@@ -1,0 +1,12 @@
+// <future> -*- C++ -*-
+#pragma once
+
+#include <chrono>
+#include <memory>
+
+#include "bits/future.h"
+#include "bits/promise.h"
+
+namespace concurrency {
+
+} // namespace concurrency

@@ -1,0 +1,8 @@
+[requires]
+gtest/1.8.0@eliaskousk/stable
+
+[options]
+gtest:shared=False
+
+[generators]
+cmake
