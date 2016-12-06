@@ -28,20 +28,17 @@ public:
     }
   }
 
-  void set_value(const T& val) {
-    enshure_setable();
-    new(&value_) T(val);
-    state_ = box_state::result;
-  }
-
-  void set_value(T&& val) {
-    enshure_setable();
-    new(&value_) T(std::move(val));
+  template<typename U>
+  void set_value(U&& u) {
+    if (state_ != box_state::empty)
+      throw future_error(future_errc::promise_already_satisfied);
+    new(&value_) T(std::forward<U>(u));
     state_ = box_state::result;
   }
 
   void set_exception(std::exception_ptr error) {
-    enshure_setable();
+    if (state_ != box_state::empty)
+      throw future_error(future_errc::promise_already_satisfied);
     new(&error_) std::exception_ptr(error);
     state_ = box_state::exception;
   }
@@ -50,25 +47,13 @@ public:
 
   T get() {
     assert(state_ != box_state::empty);
-    if (retrieved)
-      throw future_error(future_errc::future_already_retrieved);
-    retrieved = true;
     if (state_ == box_state::exception)
-      std::rethrow_exception(error_);
+      std::rethrow_exception(std::move(error_));
     return std::move(value_);
   }
 
 private:
-  void enshure_setable() {
-    if (state_ != box_state::empty)
-      throw future_error(future_errc::promise_already_satisfied);
-    if (retrieved)
-      throw future_error(future_errc::future_already_retrieved);
-  }
-
-private:
   box_state state_ = box_state::empty;
-  bool retrieved = false;
   union {
     bool dummy_;
     T value_;

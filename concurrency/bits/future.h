@@ -1,5 +1,7 @@
 #pragma once
 
+#include "fwd.h"
+
 #include "future_error.h"
 #include "future_status.h"
 #include "shared_state.h"
@@ -20,48 +22,40 @@ public:
     return *this;
   }
 
-  // implementation detail
-  explicit future(std::shared_ptr<detail::shared_state<T>>&& state) noexcept:
-    state_(std::move(state))
-  {}
-
   ~future() = default;
 
+  shared_future<T> share() noexcept {
+    return {std::move(*this)};
+  }
+
   T get() {
-    std::unique_lock<std::mutex> lock(state_->mutex);
-    state_->cv.wait(lock, [this] {
-      return state_->box.get_state() != detail::box_state::empty;
-    });
     auto state = std::move(state_);
-    return state->box.get();
+    return state->get();
   }
 
   void wait() const {
-    std::unique_lock<std::mutex> lock(state_->mutex);
-    state_->cv.wait(lock, [this] {
-      return state_->box.get_state() != detail::box_state::empty;
-    });
+    state_->wait();
   }
 
   template<typename Rep, typename Period>
   future_status wait_for(const std::chrono::duration<Rep, Period>& rel_time) const {
-    std::unique_lock<std::mutex> lock(state_->mutex);
-    const bool wait_res = state_->cv.wait_for(lock, rel_time, [this] {
-      return state_->box.get_state() != detail::box_state::empty;
-    });
-    return wait_res ? future_status::ready : future_status::timeout;
+    return state_->wait_for(rel_time);
   }
 
-  template <class Clock, class Duration>
+  template <typename Clock, typename Duration>
   future_status wait_until(const std::chrono::time_point<Clock, Duration>& abs_time) const {
-    std::unique_lock<std::mutex> lock(state_->mutex);
-    const bool wait_res = state_->cv.wait_until(lock, abs_time, [this] {
-      return state_->box.get_state() != detail::box_state::empty;
-    });
-    return wait_res ? future_status::ready : future_status::timeout;
+    return state_->wait_until(abs_time);
   }
 
-  bool valid() const {return static_cast<bool>(state_);}
+  bool valid() const noexcept {return static_cast<bool>(state_);}
+
+private:
+  friend class promise<T>;
+  friend class shared_future<T>;
+
+  explicit future(std::shared_ptr<detail::shared_state<T>>&& state) noexcept:
+    state_(std::move(state))
+  {}
 
 private:
   std::shared_ptr<detail::shared_state<T>> state_;

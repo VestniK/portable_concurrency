@@ -33,27 +33,21 @@ public:
     auto state = state_.lock();
     if (!state)
       throw future_error(future_errc::no_state);
-    std::lock_guard<std::mutex>(state->mutex);
-    state->box.set_value(val);
-    state->cv.notify_all();
+    state->set_value(val);
   }
 
   void set_value(T&& val) {
     auto state = state_.lock();
     if (!state)
       throw future_error(future_errc::no_state);
-    std::lock_guard<std::mutex>(state->mutex);
-    state->box.set_value(std::move(val));
-    state->cv.notify_all();
+    state->set_value(std::move(val));
   }
 
   void set_exception(std::exception_ptr error) {
     auto state = state_.lock();
     if (!state)
       throw future_error(future_errc::no_state);
-    std::lock_guard<std::mutex>(state->mutex);
-    state->box.set_exception(error);
-    state->cv.notify_all();
+    state->set_exception(error);
   }
 
 private:
