@@ -6,6 +6,7 @@
 
 #include "bits/future.h"
 #include "bits/promise.h"
+#include "bits/shared_future.h"
 
 namespace concurrency {
 

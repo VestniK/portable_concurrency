@@ -40,11 +40,7 @@ std::error_condition make_error_condition(future_errc errc)
 }
 
 future_error::future_error(future_errc errc):
-  std::logic_error(nullptr),
+  std::logic_error(("future_error: " + future_category().message(static_cast<int>(errc))).c_str()),
   ec_(errc) {}
-
-const char* future_error::what() const noexcept {
-  return ec_.message().c_str();
-}
 
 } // namespace concurrency

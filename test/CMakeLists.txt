@@ -3,6 +3,7 @@ include_directories(${GTEST_INCLUDE_DIRS})
 
 set(SRC
   future.cpp
+  promise.cpp
 )
 
 add_executable(unit_tests ${SRC})

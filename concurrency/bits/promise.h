@@ -9,10 +9,7 @@ namespace concurrency {
 template<typename T>
 class promise {
 public:
-  promise():
-    future_state_(std::make_shared<detail::shared_state<T>>()),
-    state_(future_state_)
-  {}
+  promise() = default;
   promise(promise&&) noexcept = default;
   promise(const promise&) = delete;
 
@@ -22,11 +19,12 @@ public:
   ~promise() = default;
 
   future<T> get_future() {
-    if (state_.expired())
-      throw future_error(future_errc::no_state);
-    if (!future_state_)
+    auto state = state_.lock();
+    if (state)
       throw future_error(future_errc::future_already_retrieved);
-    return future<T>{std::move(future_state_)};
+    state = std::make_shared<detail::shared_state<T>>();
+    state_ = state;
+    return future<T>{std::move(state)};
   }
 
   void set_value(const T& val) {
@@ -51,7 +49,6 @@ public:
   }
 
 private:
-  std::shared_ptr<detail::shared_state<T>> future_state_;
   std::weak_ptr<detail::shared_state<T>> state_;
 };
 

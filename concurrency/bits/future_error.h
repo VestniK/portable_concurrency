@@ -20,7 +20,6 @@ class future_error: public std::logic_error {
 public:
   explicit future_error(future_errc errc);
 
-  const char* what() const noexcept override;
   const std::error_code& code() const noexcept {return ec_;}
 
 private:

@@ -29,21 +29,29 @@ public:
   }
 
   T get() {
+    if (!state_)
+      throw future_error(future_errc::no_state);
     auto state = std::move(state_);
     return state->get();
   }
 
   void wait() const {
+    if (!state_)
+      throw future_error(future_errc::no_state);
     state_->wait();
   }
 
   template<typename Rep, typename Period>
   future_status wait_for(const std::chrono::duration<Rep, Period>& rel_time) const {
+    if (!state_)
+      throw future_error(future_errc::no_state);
     return state_->wait_for(rel_time);
   }
 
   template <typename Clock, typename Duration>
   future_status wait_until(const std::chrono::time_point<Clock, Duration>& abs_time) const {
+    if (!state_)
+      throw future_error(future_errc::no_state);
     return state_->wait_until(abs_time);
   }
 

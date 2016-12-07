@@ -11,11 +11,11 @@ public:
   shared_future(const shared_future&) noexcept = default;
   shared_future(shared_future&&) noexcept = default;
   shared_future(future<T>&& rhs) noexcept:
-    state(std::move(rhs.state_))
+    state_(std::move(rhs.state_))
   {}
 
-  shared_future& shared_future(const shared_future&) noexcept = default;
-  shared_future& shared_future(shared_future&&) noexcept = default;
+  shared_future& operator=(const shared_future&) noexcept = default;
+  shared_future& operator=(shared_future&&) noexcept = default;
 
   ~shared_future() = default;
 
