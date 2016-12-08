@@ -1,0 +1,10 @@
+language: cpp
+
+compiler: gcc
+
+install:
+  - pip install conan
+  - conan install --build=missing
+
+script: cmake && make && make test
+
