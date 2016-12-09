@@ -1,10 +1,25 @@
 language: cpp
-
+sudo: required
+dist: trusty
 compiler: gcc
 
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-5
+    - g++-5
+
 install:
+  - export CC=gcc-5
+  - export CXX=g++-5
   - pip install conan
   - conan install --build=missing
 
-script: cmake && make && make test
+script:
+ - export CC=gcc-5
+ - export CXX=g++-5
+ - mkdir build && cd build
+ - cmake .. && make && make test
 
