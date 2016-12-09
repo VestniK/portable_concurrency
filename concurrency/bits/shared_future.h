@@ -35,6 +35,12 @@ public:
 
   bool valid() const noexcept {return static_cast<bool>(state_);}
 
+  bool is_ready() const {
+    if (!state_)
+      throw future_error(future_errc::no_state);
+    return state_->is_ready();
+  }
+
 private:
   std::shared_ptr<detail::shared_state<T>> state_;
 };

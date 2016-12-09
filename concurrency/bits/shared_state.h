@@ -69,6 +69,11 @@ public:
     return box_.get();
   }
 
+  bool is_ready() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    return !retrieved_ && box_.get_state() != detail::box_state::empty;
+  }
+
 private:
   std::mutex mutex_;
   std::condition_variable cv_;
