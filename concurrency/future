@@ -1,12 +1,10 @@
 // <future> -*- C++ -*-
 #pragma once
 
-#include <chrono>
-#include <memory>
-
 #include "bits/future.h"
 #include "bits/promise.h"
 #include "bits/shared_future.h"
+#include "bits/make_future.h"
 
 namespace concurrency {
 

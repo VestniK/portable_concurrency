@@ -358,6 +358,54 @@ TYPED_TEST_P(FutureTests, wait_until_awakes_on_error) {
   EXPECT_TRUE(future.is_ready());
 }
 
+TYPED_TEST_P(FutureTests, ready_future_maker) {
+  auto future = concurrency::make_ready_future(val<TypeParam>(42));
+  ASSERT_TRUE(future.valid());
+  EXPECT_TRUE(future.is_ready());
+  expect_val_eq(42, future.get());
+}
+
+TYPED_TEST_P(FutureTests, error_future_maker_from_exception_val) {
+  auto future = concurrency::make_exceptional_future<TypeParam>(std::runtime_error("test error"));
+  ASSERT_TRUE(future.valid());
+  EXPECT_TRUE(future.is_ready());
+
+  try {
+    TypeParam unexpected_res = future.get();
+    ADD_FAILURE() << "Value " << printable<TypeParam>{unexpected_res} << " was returned instead of exception";
+  } catch(const std::runtime_error& err) {
+    EXPECT_EQ("test error"s, err.what());
+  } catch(const std::exception& err) {
+    ADD_FAILURE() << "Unexpected exception: " << err.what();
+  } catch(...) {
+    ADD_FAILURE() << "Unexpected unknown exception type";
+  }
+  EXPECT_FALSE(future.valid());
+}
+
+TYPED_TEST_P(FutureTests, error_future_maker_from_caught_exception) {
+  concurrency::future<TypeParam> future;
+  try {
+    throw std::runtime_error("test error");
+  } catch(...) {
+    future = concurrency::make_exceptional_future<TypeParam>(std::current_exception());
+  }
+  ASSERT_TRUE(future.valid());
+  EXPECT_TRUE(future.is_ready());
+
+  try {
+    TypeParam unexpected_res = future.get();
+    ADD_FAILURE() << "Value " << printable<TypeParam>{unexpected_res} << " was returned instead of exception";
+  } catch(const std::runtime_error& err) {
+    EXPECT_EQ("test error"s, err.what());
+  } catch(const std::exception& err) {
+    ADD_FAILURE() << "Unexpected exception: " << err.what();
+  } catch(...) {
+    ADD_FAILURE() << "Unexpected unknown exception type";
+  }
+  EXPECT_FALSE(future.valid());
+}
+
 REGISTER_TYPED_TEST_CASE_P(
   FutureTests,
   default_constructed_is_invalid,
@@ -384,7 +432,10 @@ REGISTER_TYPED_TEST_CASE_P(
   wait_until_awakes_on_value,
   wait_awakes_on_error,
   wait_for_awakes_on_error,
-  wait_until_awakes_on_error
+  wait_until_awakes_on_error,
+  ready_future_maker,
+  error_future_maker_from_exception_val,
+  error_future_maker_from_caught_exception
 );
 
 INSTANTIATE_TYPED_TEST_CASE_P(PrimitiveType, FutureTests, int);
