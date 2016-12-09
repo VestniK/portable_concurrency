@@ -14,7 +14,7 @@ using namespace std::literals;
 using sys_clock = std::chrono::system_clock;
 using hires_clock = std::chrono::high_resolution_clock;
 
-inline namespace {
+namespace {
 
 template<typename T, typename R, typename P>
 auto set_value_in_other_thread(
@@ -81,11 +81,21 @@ void expect_val_eq<std::unique_ptr<int>>(int n, const std::unique_ptr<int>& valu
   EXPECT_EQ(n, *value);
 }
 
-std::ostream& operator<< (std::ostream& out, const std::unique_ptr<int>& ptr) {
-  return out << "unique_ptr<int>{" << *ptr << "}";
+template<typename T>
+struct printable {
+  const T& value;
+};
+
+template<typename T>
+std::ostream& operator<< (std::ostream& out, const printable<T>& printable) {
+  return out << printable.value;
 }
 
+std::ostream& operator<< (std::ostream& out, const printable<std::unique_ptr<int>>& printable) {
+  return out << *(printable.value);
 }
+
+} // anonymous namespace
 
 template<typename T>
 class FutureTests: public ::testing::Test {};
@@ -171,7 +181,7 @@ TYPED_TEST_P(FutureTests, retrieve_exception) {
 
   try {
     TypeParam unexpected_res = future.get();
-    ADD_FAILURE() << "Value " << unexpected_res << " was returned instead of exception";
+    ADD_FAILURE() << "Value " << printable<TypeParam>{unexpected_res} << " was returned instead of exception";
   } catch(const std::runtime_error& err) {
     EXPECT_EQ("test error"s, err.what());
   } catch(const std::exception& err) {
