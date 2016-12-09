@@ -1,5 +1,7 @@
 # portable_concurency
 
+[![Build Status](https://travis-ci.org/VestniK/portable_concurency.svg?branch=master)](https://travis-ci.org/VestniK/portable_concurency)
+
 Attempt to write portable implementation of the C++ Extensions for Concurrency, ISO/IEC TS 19571:20
 
  * All of the classes required by TS namespace *std::experimental::conurrency_v1* resides in the namespace *concurrency*.
