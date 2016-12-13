@@ -1,3 +1,4 @@
 conanbuildinfo.cmake
 conaninfo.txt
 build
+*.kdev4
