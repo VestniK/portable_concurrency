@@ -18,12 +18,12 @@ public:
   shared_state(const shared_state&) = delete;
   shared_state(shared_state&&) = delete;
 
-  template<typename U>
-  void set_value(U&& u) {
+  template<typename... U>
+  void emplace(U&&... u) {
     std::lock_guard<std::mutex> guard(mutex_);
     if (retrieved_)
       throw future_error(future_errc::future_already_retrieved);
-    box_.set_value(std::forward<U>(u));
+    box_.emplace(std::forward<U>(u)...);
     cv_.notify_all();
   }
 

@@ -30,6 +30,14 @@ future<detail::decay_for_future_t<T>> make_ready_future(T&& value) {
   return res;
 }
 
+inline
+future<void> make_ready_future() {
+  promise<void> promise;
+  auto res = promise.get_future();
+  promise.set_value();
+  return res;
+}
+
 template<typename T>
 future<T> make_exceptional_future(std::exception_ptr error) {
   promise<T> promise;

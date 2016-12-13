@@ -28,11 +28,11 @@ public:
     }
   }
 
-  template<typename U>
-  void set_value(U&& u) {
+  template<typename... U>
+  void emplace(U&&... u) {
     if (state_ != box_state::empty)
       throw future_error(future_errc::promise_already_satisfied);
-    new(&value_) T(std::forward<U>(u));
+    new(&value_) T(std::forward<U>(u)...);
     state_ = box_state::result;
   }
 
@@ -61,6 +61,50 @@ private:
   };
 };
 
-} // namespace detail
+template<>
+class result_box<void> {
+public:
+  result_box() {}
 
+  result_box(const result_box&) = delete;
+  result_box(result_box&&) = delete;
+
+  ~result_box() {
+    switch (state_) {
+      case box_state::empty:
+      case box_state::result: break;
+      case box_state::exception: error_.~exception_ptr(); break;
+    }
+  }
+
+  void emplace() {
+    if (state_ != box_state::empty)
+      throw future_error(future_errc::promise_already_satisfied);
+    state_ = box_state::result;
+  }
+
+  void set_exception(std::exception_ptr error) {
+    if (state_ != box_state::empty)
+      throw future_error(future_errc::promise_already_satisfied);
+    new(&error_) std::exception_ptr(error);
+    state_ = box_state::exception;
+  }
+
+  box_state get_state() const noexcept {return state_;}
+
+  void get() {
+    assert(state_ != box_state::empty);
+    if (state_ == box_state::exception)
+      std::rethrow_exception(std::move(error_));
+  }
+
+private:
+  box_state state_ = box_state::empty;
+  union {
+    bool dummy_;
+    std::exception_ptr error_;
+  };
+};
+
+} // namespace detail
 } // namespace concurrency

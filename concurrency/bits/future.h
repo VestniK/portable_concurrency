@@ -5,6 +5,7 @@
 #include "future_error.h"
 #include "future_status.h"
 #include "shared_state.h"
+#include "utils.h"
 
 namespace concurrency {
 
@@ -64,8 +65,8 @@ public:
   }
 
 private:
-  friend class promise<T>;
   friend class shared_future<T>;
+  friend future<T> detail::make_future<T>(std::shared_ptr<detail::shared_state<T>>&& state);
 
   explicit future(std::shared_ptr<detail::shared_state<T>>&& state) noexcept:
     state_(std::move(state))
