@@ -12,23 +12,19 @@ template<typename T>
 class promise_base {
 public:
   future<T> get_future() {
-    auto state = state_.lock();
-    if (state)
+    if (state_.use_count() != 1)
       throw future_error(future_errc::future_already_retrieved);
-    state = std::make_shared<detail::shared_state<T>>();
-    state_ = state;
-    return make_future(std::move(state));
+    return make_future(decay_copy(state_));
   }
 
   void set_exception(std::exception_ptr error) {
-    auto state = state_.lock();
-    if (!state)
+    if (!state_)
       throw future_error(future_errc::no_state);
-    state->set_exception(error);
+    state_->set_exception(error);
   }
 
 protected:
-  std::weak_ptr<detail::shared_state<T>> state_;
+  std::shared_ptr<detail::shared_state<T>> state_ = std::make_shared<detail::shared_state<T>>();
 };
 
 } // namespace detail
@@ -46,17 +42,15 @@ public:
   ~promise() = default;
 
   void set_value(const T& val) {
-    auto state = this->state_.lock();
-    if (!state)
+    if (!this->state_)
       throw future_error(future_errc::no_state);
-    state->emplace(val);
+    this->state_->emplace(val);
   }
 
   void set_value(T&& val) {
-    auto state = this->state_.lock();
-    if (!state)
+    if (!this->state_)
       throw future_error(future_errc::no_state);
-    state->emplace(std::move(val));
+    this->state_->emplace(std::move(val));
   }
 };
 
@@ -68,15 +62,14 @@ public:
   promise(const promise&) = delete;
 
   promise& operator= (const promise&) = delete;
-  promise& operator= (promise&& rhs) noexcept;
+  promise& operator= (promise&& rhs) noexcept = default;
 
   ~promise() = default;
 
   void set_value() {
-    auto state = this->state_.lock();
-    if (!state)
+    if (!this->state_)
       throw future_error(future_errc::no_state);
-    state->emplace();
+    this->state_->emplace();
   }
 };
 
