@@ -10,11 +10,12 @@
 
 #include "test_tools.h"
 
+namespace {
+
 using namespace std::literals;
 using sys_clock = std::chrono::system_clock;
 using hires_clock = std::chrono::high_resolution_clock;
 
-namespace {
 
 template<typename T>
 T val(int n);
@@ -149,8 +150,6 @@ void expect_future_exception(concurrency::future<void>& future, const std::strin
   }
 }
 
-} // anonymous namespace
-
 template<typename T>
 class FutureTests: public ::testing::Test {};
 TYPED_TEST_CASE_P(FutureTests);
@@ -220,22 +219,6 @@ TYPED_TEST_P(FutureTests, is_ready_on_nonready) {
   concurrency::promise<TypeParam> promise;
   auto future = promise.get_future();
   EXPECT_FALSE(future.is_ready());
-}
-
-template<typename T>
-void test_is_ready_on_future_with_value() {
-  concurrency::promise<T> promise;
-  auto future = promise.get_future();
-  promise.set_value(val<T>(42));
-  EXPECT_TRUE(future.is_ready());
-}
-
-template<>
-void test_is_ready_on_future_with_value<void>() {
-  concurrency::promise<void> promise;
-  auto future = promise.get_future();
-  promise.set_value();
-  EXPECT_TRUE(future.is_ready());
 }
 
 TYPED_TEST_P(FutureTests, is_ready_on_future_with_value) {
@@ -552,3 +535,5 @@ INSTANTIATE_TYPED_TEST_CASE_P(VoidType, FutureTests, void);
 INSTANTIATE_TYPED_TEST_CASE_P(PrimitiveType, FutureTests, int);
 INSTANTIATE_TYPED_TEST_CASE_P(CopyableType, FutureTests, std::string);
 INSTANTIATE_TYPED_TEST_CASE_P(MoveableType, FutureTests, std::unique_ptr<int>);
+
+} // anonymous namespace
