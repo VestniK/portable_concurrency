@@ -2,8 +2,7 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
 set(SRC
-  future.cpp
-  promise.cpp
+  tests.cpp
 )
 
 add_executable(unit_tests ${SRC})
