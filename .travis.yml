@@ -21,5 +21,6 @@ script:
  - export CC=gcc-5
  - export CXX=g++-5
  - mkdir build && cd build
- - cmake .. && make && make test
+ - cmake .. && make
+ - make test || ( cat Testing/Temporary/LastTest.log && false )
 
