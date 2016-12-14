@@ -1,3 +1,5 @@
+#pragma once
+
 #include <chrono>
 #include <iostream>
 #include <memory>
@@ -10,12 +12,11 @@
 
 #include "test_tools.h"
 
-namespace {
-
 using namespace std::literals;
 using sys_clock = std::chrono::system_clock;
 using hires_clock = std::chrono::high_resolution_clock;
 
+namespace {
 
 template<typename T>
 T val(int n);
