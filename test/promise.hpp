@@ -24,7 +24,7 @@ void get_future_twice() {
   EXPECT_NO_THROW(f1 = p.get_future());
   EXPECT_FUTURE_ERROR(
     f2 = p.get_future(),
-    concurrency::future_errc::future_already_retrieved
+    std::future_errc::future_already_retrieved
   );
 }
 

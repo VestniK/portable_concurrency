@@ -239,7 +239,7 @@ TYPED_TEST_P(FutureTests, is_ready_on_future_with_error) {
 TYPED_TEST_P(FutureTests, get_on_invalid) {
   concurrency::future<TypeParam> future;
   ASSERT_FALSE(future.valid());
-  EXPECT_FUTURE_ERROR(future.get(), concurrency::future_errc::no_state);
+  EXPECT_FUTURE_ERROR(future.get(), std::future_errc::no_state);
 }
 
 template<typename T>
@@ -297,14 +297,14 @@ TYPED_TEST_P(FutureTests, wait_on_invalid) {
   concurrency::future<TypeParam> future;
   ASSERT_FALSE(future.valid());
 
-  EXPECT_FUTURE_ERROR(future.wait(), concurrency::future_errc::no_state);
+  EXPECT_FUTURE_ERROR(future.wait(), std::future_errc::no_state);
 }
 
 TYPED_TEST_P(FutureTests, wait_for_on_invalid) {
   concurrency::future<TypeParam> future;
   ASSERT_FALSE(future.valid());
 
-  EXPECT_FUTURE_ERROR(future.wait_for(5s), concurrency::future_errc::no_state);
+  EXPECT_FUTURE_ERROR(future.wait_for(5s), std::future_errc::no_state);
 }
 
 TYPED_TEST_P(FutureTests, wait_until_on_invalid) {
@@ -313,7 +313,7 @@ TYPED_TEST_P(FutureTests, wait_until_on_invalid) {
 
   EXPECT_FUTURE_ERROR(
     future.wait_until(sys_clock::now() + 5s),
-    concurrency::future_errc::no_state
+    std::future_errc::no_state
   );
 }
 
@@ -328,11 +328,11 @@ TYPED_TEST_P(FutureTests, wait_on_ready_value) {
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
 
-  EXPECT_EQ(concurrency::future_status::ready, future.wait_for(5s));
+  EXPECT_EQ(std::future_status::ready, future.wait_for(5s));
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
 
-  EXPECT_EQ(concurrency::future_status::ready, future.wait_until(
+  EXPECT_EQ(std::future_status::ready, future.wait_until(
     sys_clock::now() + 5s
   ));
   EXPECT_TRUE(future.valid());
@@ -350,11 +350,11 @@ TYPED_TEST_P(FutureTests, wait_on_ready_error) {
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
 
-  EXPECT_EQ(concurrency::future_status::ready, future.wait_for(5s));
+  EXPECT_EQ(std::future_status::ready, future.wait_for(5s));
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
 
-  EXPECT_EQ(concurrency::future_status::ready, future.wait_until(
+  EXPECT_EQ(std::future_status::ready, future.wait_until(
     sys_clock::now() + 5s
   ));
   EXPECT_TRUE(future.valid());
@@ -367,11 +367,11 @@ TYPED_TEST_P(FutureTests, wait_timeout) {
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
-  EXPECT_EQ(concurrency::future_status::timeout, future.wait_for(10ms));
+  EXPECT_EQ(std::future_status::timeout, future.wait_for(10ms));
   EXPECT_TRUE(future.valid());
   EXPECT_FALSE(future.is_ready());
 
-  EXPECT_EQ(concurrency::future_status::timeout, future.wait_until(
+  EXPECT_EQ(std::future_status::timeout, future.wait_until(
     hires_clock::now() + 10ms
   ));
   EXPECT_TRUE(future.valid());

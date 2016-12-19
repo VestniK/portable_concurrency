@@ -1,7 +1,5 @@
 set(HEADERS
-  future_error.h
   future.h
-  future_status.h
   fwd.h
   make_future.h
   promise.h

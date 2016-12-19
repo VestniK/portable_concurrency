@@ -1,9 +1,9 @@
 #pragma once
 
 #include <exception>
+#include <future>
 
 namespace concurrency {
-
 namespace detail {
 
 enum class box_state {
@@ -31,14 +31,14 @@ public:
   template<typename... U>
   void emplace(U&&... u) {
     if (state_ != box_state::empty)
-      throw future_error(future_errc::promise_already_satisfied);
+      throw std::future_error(std::future_errc::promise_already_satisfied);
     new(&value_) T(std::forward<U>(u)...);
     state_ = box_state::result;
   }
 
   void set_exception(std::exception_ptr error) {
     if (state_ != box_state::empty)
-      throw future_error(future_errc::promise_already_satisfied);
+      throw std::future_error(std::future_errc::promise_already_satisfied);
     new(&error_) std::exception_ptr(error);
     state_ = box_state::exception;
   }
@@ -79,13 +79,13 @@ public:
 
   void emplace() {
     if (state_ != box_state::empty)
-      throw future_error(future_errc::promise_already_satisfied);
+      throw std::future_error(std::future_errc::promise_already_satisfied);
     state_ = box_state::result;
   }
 
   void set_exception(std::exception_ptr error) {
     if (state_ != box_state::empty)
-      throw future_error(future_errc::promise_already_satisfied);
+      throw std::future_error(std::future_errc::promise_already_satisfied);
     new(&error_) std::exception_ptr(error);
     state_ = box_state::exception;
   }
