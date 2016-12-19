@@ -6,9 +6,9 @@ set(HEADERS
   future
 )
 
-add_library(concurrency concurrency.cpp)
-target_link_libraries(concurrency Threads::Threads)
-target_include_directories(concurrency PUBLIC
+add_library(concurrency INTERFACE)
+target_link_libraries(concurrency INTERFACE Threads::Threads)
+target_include_directories(concurrency INTERFACE
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include>
 )

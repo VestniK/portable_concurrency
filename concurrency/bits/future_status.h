@@ -1,11 +1,9 @@
 #pragma once
 
+#include <future>
+
 namespace concurrency {
 
-enum class future_status {
-  ready,
-  timeout,
-  deferred
-};
+using std::future_status;
 
-} // namespace CONCURRENCY_NS
+} // namespace concurrency
