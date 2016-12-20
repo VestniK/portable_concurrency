@@ -3,12 +3,19 @@
 #include <cassert>
 #include <chrono>
 #include <condition_variable>
+#include <deque>
 #include <mutex>
 
 #include "result_box.h"
 
 namespace concurrency {
 namespace detail {
+
+class continuation {
+public:
+  virtual ~continuation() = default;
+  virtual void invoke() noexcept = 0;
+};
 
 template<typename T>
 class shared_state {
@@ -19,19 +26,27 @@ public:
 
   template<typename... U>
   void emplace(U&&... u) {
-    std::lock_guard<std::mutex> guard(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
     if (retrieved_)
       throw std::future_error(std::future_errc::future_already_retrieved);
     box_.emplace(std::forward<U>(u)...);
     cv_.notify_all();
+    auto continuations = std::move(continuations_);
+    lock.unlock();
+    for (auto& cont: continuations)
+      cont->invoke();
   }
 
   void set_exception(std::exception_ptr error) {
-    std::lock_guard<std::mutex> guard(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
     if (retrieved_)
       throw std::future_error(std::future_errc::future_already_retrieved);
     box_.set_exception(error);
     cv_.notify_all();
+    auto continuations = std::move(continuations_);
+    lock.unlock();
+    for (auto& cont: continuations)
+      cont->invoke();
   }
 
   void wait() {
@@ -69,8 +84,18 @@ public:
   }
 
   bool is_ready() {
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> guard(mutex_);
     return !retrieved_ && box_.get_state() != detail::box_state::empty;
+  }
+
+  void add_continuation(std::shared_ptr<continuation>&& cnt) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    assert(!retrieved_);
+    if (box_.get_state() != detail::box_state::empty) {
+      lock.unlock();
+      cnt->invoke();
+    } else
+      continuations_.emplace_back(std::move(cnt));
   }
 
 private:
@@ -78,6 +103,7 @@ private:
   std::condition_variable cv_;
   result_box<T> box_;
   bool retrieved_ = false;
+  std::deque<std::shared_ptr<continuation>> continuations_;
 };
 
 } // namespace detail

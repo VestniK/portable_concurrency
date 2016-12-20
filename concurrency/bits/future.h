@@ -9,6 +9,37 @@
 
 namespace concurrency {
 
+namespace detail {
+
+template<typename F, typename T>
+class future_continuation: public continuation {
+public:
+  future_continuation(F&& f, future<T>&& future):
+    future_(std::move(future)),
+    f_(std::forward<F>(f))
+  {}
+
+  void invoke() noexcept override try {
+    // TODO: state_->emplace(INVOKE(std::move(f_), std::move(future_)));
+    // proper INVOKE implementation required
+    state_->emplace(f_(std::move(future_)));
+  } catch(...) {
+    state_->set_exception(std::current_exception());
+  }
+
+  auto get_state() {
+    return state_;
+  }
+
+private:
+  future<T> future_;
+  std::decay_t<F> f_;
+  std::shared_ptr<shared_state<std::result_of_t<F(future<T>)>>> state_ =
+    std::make_shared<shared_state<std::result_of_t<F(future<T>)>>>();
+};
+
+} // namespace detail
+
 template<typename T>
 class future {
 public:
@@ -62,6 +93,20 @@ public:
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
     return state_->is_ready();
+  }
+
+  template<typename F>
+  auto then(F&& f) {
+    if (!state_)
+      throw std::future_error(std::future_errc::no_state);
+    auto state = state_;
+    auto cont = std::make_shared<detail::future_continuation<F, T>>(
+      std::forward<F>(f),
+      std::move(*this)
+    );
+    auto child_state = cont->get_state();
+    state->add_continuation(std::move(cont));
+    return detail::make_future<std::result_of_t<F(future<T>)>>(std::move(child_state));
   }
 
 private:
