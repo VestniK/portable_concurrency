@@ -20,6 +20,56 @@ TYPED_TEST_CASE_P(ContinuationsTest);
 namespace tests {
 
 template<typename T>
+T some_value() = delete;
+
+template<>
+int some_value<int>() {return 42;}
+
+template<>
+std::string some_value<std::string>() {return "hello";}
+
+template<>
+std::unique_ptr<int> some_value<std::unique_ptr<int>>() {return std::make_unique<int>(42);}
+
+template<typename T>
+void exception_from_continuation() {
+  concurrency::promise<T> p;
+  auto f = p.get_future();
+  ASSERT_TRUE(f.valid());
+
+  concurrency::future<T> cont_f = f.then([](concurrency::future<T>&& ready_f) -> T {
+    EXPECT_TRUE(ready_f.is_ready());
+    throw std::runtime_error("continuation error");
+  });
+  EXPECT_FALSE(f.valid());
+  EXPECT_TRUE(cont_f.valid());
+  EXPECT_FALSE(cont_f.is_ready());
+
+  p.set_value(some_value<T>());
+  EXPECT_TRUE(cont_f.is_ready());
+  EXPECT_RUNTIME_ERROR(cont_f, "continuation error");
+}
+
+template<>
+void exception_from_continuation<void>() {
+  concurrency::promise<void> p;
+  auto f = p.get_future();
+  ASSERT_TRUE(f.valid());
+
+  concurrency::future<void> cont_f = f.then([](concurrency::future<void>&& ready_f) -> void {
+    EXPECT_TRUE(ready_f.is_ready());
+    throw std::runtime_error("continuation error");
+  });
+  EXPECT_FALSE(f.valid());
+  EXPECT_TRUE(cont_f.valid());
+  EXPECT_FALSE(cont_f.is_ready());
+
+  p.set_value();
+  EXPECT_TRUE(cont_f.is_ready());
+  EXPECT_RUNTIME_ERROR(cont_f, "continuation error");
+}
+
+template<typename T>
 void stringify_continuation() = delete;
 
 template<>
@@ -101,9 +151,11 @@ void stringify_continuation<std::unique_ptr<int>>() {
 } // namespace tests
 
 TYPED_TEST_P(ContinuationsTest, stringify_continuation) {tests::stringify_continuation<TypeParam>();}
+TYPED_TEST_P(ContinuationsTest, exception_from_continuation) {tests::exception_from_continuation<TypeParam>();}
 REGISTER_TYPED_TEST_CASE_P(
   ContinuationsTest,
-  stringify_continuation
+  stringify_continuation,
+  exception_from_continuation
 );
 
 INSTANTIATE_TYPED_TEST_CASE_P(VoidType, ContinuationsTest, void);

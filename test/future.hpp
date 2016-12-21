@@ -111,47 +111,6 @@ auto set_error_in_other_thread(
 }
 
 template<typename T>
-struct printable {
-  const T& value;
-};
-
-template<typename T>
-std::ostream& operator<< (std::ostream& out, const printable<T>& printable) {
-  return out << printable.value;
-}
-
-std::ostream& operator<< (std::ostream& out, const printable<std::unique_ptr<int>>& printable) {
-  return out << *(printable.value);
-}
-
-template<typename T>
-void expect_future_exception(concurrency::future<T>& future, const std::string& what) {
-  try {
-    T unexpected_res = future.get();
-    ADD_FAILURE() << "Value " << printable<T>{unexpected_res} << " was returned instead of exception";
-  } catch(const std::runtime_error& err) {
-    EXPECT_EQ(what, err.what());
-  } catch(const std::exception& err) {
-    ADD_FAILURE() << "Unexpected exception: " << err.what();
-  } catch(...) {
-    ADD_FAILURE() << "Unexpected unknown exception type";
-  }
-}
-
-void expect_future_exception(concurrency::future<void>& future, const std::string& what) {
-  try {
-    future.get();
-    ADD_FAILURE() << "void value was returned instead of exception";
-  } catch(const std::runtime_error& err) {
-    EXPECT_EQ(what, err.what());
-  } catch(const std::exception& err) {
-    ADD_FAILURE() << "Unexpected exception: " << err.what();
-  } catch(...) {
-    ADD_FAILURE() << "Unexpected unknown exception type";
-  }
-}
-
-template<typename T>
 class FutureTests: public ::testing::Test {};
 TYPED_TEST_CASE_P(FutureTests);
 
@@ -289,7 +248,7 @@ TYPED_TEST_P(FutureTests, retrieve_exception) {
   auto future = set_error_in_other_thread<TypeParam>(50ms, std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
 
-  expect_future_exception(future, "test error");
+  EXPECT_RUNTIME_ERROR(future, "test error");
   EXPECT_FALSE(future.valid());
 }
 
@@ -482,7 +441,7 @@ TYPED_TEST_P(FutureTests, error_future_maker_from_exception_val) {
   ASSERT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
 
-  expect_future_exception(future, "test error");
+  EXPECT_RUNTIME_ERROR(future, "test error");
   EXPECT_FALSE(future.valid());
 }
 
@@ -496,7 +455,7 @@ TYPED_TEST_P(FutureTests, error_future_maker_from_caught_exception) {
   ASSERT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
 
-  expect_future_exception(future, "test error");
+  EXPECT_RUNTIME_ERROR(future, "test error");
   EXPECT_FALSE(future.valid());
 }
 

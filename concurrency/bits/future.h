@@ -11,10 +11,11 @@ namespace concurrency {
 
 namespace detail {
 
-template<typename F, typename T>
-class future_continuation: public continuation {
+template<typename F, typename T, typename R>
+class future_continuation_helper: public continuation {
+  static_assert(std::is_same<R, std::result_of_t<F(future<T>)>>::value, "Invalid return type");
 public:
-  future_continuation(F&& f, future<T>&& future):
+  future_continuation_helper(F&& f, future<T>&& future):
     future_(std::move(future)),
     f_(std::forward<F>(f))
   {}
@@ -34,9 +35,39 @@ public:
 private:
   future<T> future_;
   std::decay_t<F> f_;
-  std::shared_ptr<shared_state<std::result_of_t<F(future<T>)>>> state_ =
-    std::make_shared<shared_state<std::result_of_t<F(future<T>)>>>();
+  std::shared_ptr<shared_state<R>> state_ = std::make_shared<shared_state<R>>();
 };
+
+template<typename F, typename T>
+class future_continuation_helper<F, T, void>: public continuation {
+  static_assert(std::is_void<std::result_of_t<F(future<T>)>>::value, "Invalid return type");
+public:
+  future_continuation_helper(F&& f, future<T>&& future):
+    future_(std::move(future)),
+    f_(std::forward<F>(f))
+  {}
+
+  void invoke() noexcept override try {
+    // TODO: state_->emplace(INVOKE(std::move(f_), std::move(future_)));
+    // proper INVOKE implementation required
+    f_(std::move(future_));
+    state_->emplace();
+  } catch(...) {
+    state_->set_exception(std::current_exception());
+  }
+
+  auto get_state() {
+    return state_;
+  }
+
+private:
+  future<T> future_;
+  std::decay_t<F> f_;
+  std::shared_ptr<shared_state<void>> state_ = std::make_shared<shared_state<void>>();
+};
+
+template<typename F, typename T>
+using future_continuation = future_continuation_helper<F, T, std::result_of_t<F(future<T>)>>;
 
 } // namespace detail
 
