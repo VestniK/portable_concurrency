@@ -83,6 +83,17 @@ public:
     return box_.get();
   }
 
+  auto shared_get() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    cv_.wait(lock, [this] {return box_.get_state() != detail::box_state::empty;});
+    // TODO Is it possible? The only case is: call future::share on retreived future
+    // and then call shared_future::get. Need to clarify how standard requires to handle
+    // this case.
+    if (retrieved_)
+      throw std::future_error(std::future_errc::future_already_retrieved);
+    return box_.shared_get();
+  }
+
   bool is_ready() {
     std::lock_guard<std::mutex> guard(mutex_);
     return !retrieved_ && box_.get_state() != detail::box_state::empty;

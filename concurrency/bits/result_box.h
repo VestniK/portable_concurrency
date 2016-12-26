@@ -52,6 +52,13 @@ public:
     return std::move(value_);
   }
 
+  const T& shared_get() {
+    assert(state_ != box_state::empty);
+    if (state_ == box_state::exception)
+      std::rethrow_exception(error_);
+    return value_;
+  }
+
 private:
   box_state state_ = box_state::empty;
   union {
@@ -96,6 +103,12 @@ public:
     assert(state_ != box_state::empty);
     if (state_ == box_state::exception)
       std::rethrow_exception(std::move(error_));
+  }
+
+  void shared_get() {
+    assert(state_ != box_state::empty);
+    if (state_ == box_state::exception)
+      std::rethrow_exception(error_);
   }
 
 private:
