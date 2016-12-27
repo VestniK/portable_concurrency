@@ -202,7 +202,7 @@ TYPED_TEST_P(FutureTests, get_on_invalid) {
 }
 
 template<typename T>
-void test_retrieve_future_result() = delete;
+void test_retrieve_future_result() {static_assert(sizeof(T) == 0, "test_retrieve_future_result<T> is deleted");} // = delete; in C++ but not in clang++
 
 template<>
 void test_retrieve_future_result<int>() {
@@ -398,7 +398,7 @@ TYPED_TEST_P(FutureTests, wait_until_awakes_on_error) {
 }
 
 template<typename T>
-void test_ready_future_maker() = delete;
+void test_ready_future_maker() {static_assert(sizeof(T) == 0, "test_ready_future_maker<T> is deleted");} // = delete; in C++ but not in clang++
 
 template<>
 void test_ready_future_maker<int>() {

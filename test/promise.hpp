@@ -29,7 +29,7 @@ void get_future_twice() {
 }
 
 template<typename T>
-void set_val_on_promise_without_future() = delete;
+void set_val_on_promise_without_future() {static_assert(sizeof(T) == 0, "set_val_on_promise_without_future<T> is deleted");} // = delete; in C++ but not in clang++
 
 template<>
 void set_val_on_promise_without_future<void>(){

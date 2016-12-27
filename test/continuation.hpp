@@ -19,8 +19,13 @@ TYPED_TEST_CASE_P(ContinuationsTest);
 
 namespace tests {
 
+// Clang don't want to eat the code bellow:
+// template<typename T>
+// T some_value() = delete;
+// https://llvm.org/bugs/show_bug.cgi?id=17537
+// https://llvm.org/bugs/show_bug.cgi?id=18539
 template<typename T>
-T some_value() = delete;
+T some_value() {static_assert(sizeof(T) == 0, "some_value<T> is deleted");}
 
 template<>
 int some_value<int>() {return 42;}
@@ -70,7 +75,7 @@ void exception_from_continuation<void>() {
 }
 
 template<typename T>
-void stringify_continuation() = delete;
+void stringify_continuation() {static_assert(sizeof(T) == 0, "stringify_continuation<T> is deleted");} // = delete; in C++ but not in clang++
 
 template<>
 void stringify_continuation<void>() {

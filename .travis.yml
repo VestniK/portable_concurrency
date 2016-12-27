@@ -1,26 +1,46 @@
 language: cpp
-sudo: required
+os: linux
 dist: trusty
-compiler: gcc
 
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-    - gcc-5
-    - g++-5
+matrix:
+  include:
+    - compiler: gcc
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-5
+            - g++-5
+      env:
+        - COMPILER_CXX=g++-5
+        - COMPILER_C=gcc-5
+        - CONAN_EXTRA_FLAGS="-s compiler=gcc -s compiler.version=5.4 -s compiler.libcxx=libstdc++"
+
+    - compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-3.8
+          packages:
+            - clang-3.8
+      env:
+        - COMPILER_CXX=clang++-3.8
+        - COMPILER_C=clang-3.8
+        - CMAKE_EXTRA_FLAGS=-DCMAKE_CXX_FLAGS=-stdlib=libc++
+        - CONAN_EXTRA_FLAGS="-s compiler=clang -s compiler.version=3.8 -s compiler.libcxx=libc++"
 
 install:
-  - export CC=gcc-5
-  - export CXX=g++-5
+  - export CXX=${COMPILER_CXX}
+  - export CC=${COMPILER_C}
   - pip install conan
-  - conan install --build=missing
+  - conan install --build=missing ${CONAN_EXTRA_FLAGS}
 
 script:
- - export CC=gcc-5
- - export CXX=g++-5
- - mkdir build && cd build
- - cmake .. && make
- - make test || ( cat Testing/Temporary/LastTest.log && false )
+  - export CXX=${COMPILER_CXX}
+  - export CC=${COMPILER_C}
+  - mkdir build && cd build
+  - cmake ${CMAKE_EXTRA_FLAGS} .. && make
+  - make test || ( cat Testing/Temporary/LastTest.log && false )
 
