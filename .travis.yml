@@ -1,10 +1,10 @@
 language: cpp
-os: linux
-dist: trusty
 
 matrix:
   include:
-    - compiler: gcc
+    - os: linux
+      dist: trusty
+      compiler: gcc
       addons:
         apt:
           sources:
@@ -15,9 +15,15 @@ matrix:
       env:
         - COMPILER_CXX=g++-5
         - COMPILER_C=gcc-5
-        - CONAN_EXTRA_FLAGS="-s compiler=gcc -s compiler.version=5.4 -s compiler.libcxx=libstdc++"
+      install:
+        - export CXX=${COMPILER_CXX}
+        - export CC=${COMPILER_C}
+        - pip install conan
+        - conan install --build=missing -s compiler=gcc -s compiler.version=5.4 -s compiler.libcxx=libstdc++
 
-    - compiler: clang
+    - os: linux
+      dist: trusty
+      compiler: clang
       addons:
         apt:
           sources:
@@ -25,17 +31,16 @@ matrix:
             - llvm-toolchain-3.8
           packages:
             - clang-3.8
+            - libc++-dev
       env:
         - COMPILER_CXX=clang++-3.8
         - COMPILER_C=clang-3.8
         - CMAKE_EXTRA_FLAGS=-DCMAKE_CXX_FLAGS=-stdlib=libc++
-        - CONAN_EXTRA_FLAGS="-s compiler=clang -s compiler.version=3.8 -s compiler.libcxx=libc++"
-
-install:
-  - export CXX=${COMPILER_CXX}
-  - export CC=${COMPILER_C}
-  - pip install conan
-  - conan install --build=missing ${CONAN_EXTRA_FLAGS}
+      install:
+        - export CXX=${COMPILER_CXX}
+        - export CC=${COMPILER_C}
+        - pip install conan
+        - conan install --build=missing -s compiler=clang -s compiler.version=3.8 -s compiler.libcxx=libc++
 
 script:
   - export CXX=${COMPILER_CXX}
