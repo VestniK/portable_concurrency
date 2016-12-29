@@ -19,23 +19,6 @@ TYPED_TEST_CASE_P(ContinuationsTest);
 
 namespace tests {
 
-// Clang don't want to eat the code bellow:
-// template<typename T>
-// T some_value() = delete;
-// https://llvm.org/bugs/show_bug.cgi?id=17537
-// https://llvm.org/bugs/show_bug.cgi?id=18539
-template<typename T>
-T some_value() {static_assert(sizeof(T) == 0, "some_value<T> is deleted");}
-
-template<>
-int some_value<int>() {return 42;}
-
-template<>
-std::string some_value<std::string>() {return "hello";}
-
-template<>
-std::unique_ptr<int> some_value<std::unique_ptr<int>>() {return std::make_unique<int>(42);}
-
 template<typename T>
 void exception_from_continuation() {
   concurrency::promise<T> p;

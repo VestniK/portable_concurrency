@@ -19,32 +19,17 @@ using hires_clock = std::chrono::high_resolution_clock;
 namespace {
 
 template<typename T>
-T val(int n);
-
-template<>
-int val<int> (int n) {return n;}
-
-template<>
-std::string val<std::string> (int n) {return std::to_string(n);}
-
-template<>
-std::unique_ptr<int> val<std::unique_ptr<int>> (int n) {return std::make_unique<int>(n);}
-
-template<typename T>
-void set_promise_value(concurrency::promise<T>& p, int num) {
-  p.set_value(val<T>(num));
+void set_promise_value(concurrency::promise<T>& p) {
+  p.set_value(some_value<T>());
 }
 
 template<>
-void set_promise_value<void>(concurrency::promise<void>& p, int) {
+void set_promise_value<void>(concurrency::promise<void>& p) {
   p.set_value();
 }
 
 template<typename T, typename R, typename P>
-auto set_value_in_other_thread(
-  std::chrono::duration<R, P> sleep_duration,
-  int num
-)
+auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
   -> std::enable_if_t<
     !std::is_void<T>::value,
     concurrency::future<std::decay_t<T>>
@@ -54,11 +39,11 @@ auto set_value_in_other_thread(
   concurrency::promise<TV> promise;
   auto res = promise.get_future();
 
-  std::thread worker([num, sleep_duration](
+  std::thread worker([sleep_duration](
     concurrency::promise<T>&& promise
   ) {
     std::this_thread::sleep_for(sleep_duration);
-    promise.set_value(val<T>(num));
+    promise.set_value(some_value<T>());
   }, std::move(promise));
   worker.detach();
 
@@ -66,10 +51,7 @@ auto set_value_in_other_thread(
 }
 
 template<typename T, typename R, typename P>
-auto set_value_in_other_thread(
-  std::chrono::duration<R, P> sleep_duration,
-  int
-)
+auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
   -> std::enable_if_t<
     std::is_void<T>::value,
     concurrency::future<void>
@@ -184,7 +166,7 @@ TYPED_TEST_P(FutureTests, is_ready_on_nonready) {
 TYPED_TEST_P(FutureTests, is_ready_on_future_with_value) {
   concurrency::promise<TypeParam> promise;
   auto future = promise.get_future();
-  set_promise_value<TypeParam>(promise, 42);
+  set_promise_value<TypeParam>(promise);
   EXPECT_TRUE(future.is_ready());
 }
 
@@ -202,29 +184,17 @@ TYPED_TEST_P(FutureTests, get_on_invalid) {
 }
 
 template<typename T>
-void test_retrieve_future_result() {static_assert(sizeof(T) == 0, "test_retrieve_future_result<T> is deleted");} // = delete; in C++ but not in clang++
-
-template<>
-void test_retrieve_future_result<int>() {
-  auto future = set_value_in_other_thread<int>(50ms, 42);
+void test_retrieve_future_result() {
+  auto future = set_value_in_other_thread<T>(50ms);
   ASSERT_TRUE(future.valid());
 
-  EXPECT_EQ(42, future.get());
-  EXPECT_FALSE(future.valid());
-}
-
-template<>
-void test_retrieve_future_result<std::string>() {
-  auto future = set_value_in_other_thread<std::string>(50ms, 42);
-  ASSERT_TRUE(future.valid());
-
-  EXPECT_EQ("42"s, future.get());
+  EXPECT_EQ(some_value<T>(), future.get());
   EXPECT_FALSE(future.valid());
 }
 
 template<>
 void test_retrieve_future_result<std::unique_ptr<int>>() {
-  auto future = set_value_in_other_thread<std::unique_ptr<int>>(50ms, 42);
+  auto future = set_value_in_other_thread<std::unique_ptr<int>>(50ms);
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(42, *future.get());
@@ -233,7 +203,7 @@ void test_retrieve_future_result<std::unique_ptr<int>>() {
 
 template<>
 void test_retrieve_future_result<void>() {
-  auto future = set_value_in_other_thread<void>(50ms, 42);
+  auto future = set_value_in_other_thread<void>(50ms);
   ASSERT_TRUE(future.valid());
 
   EXPECT_NO_THROW(future.get());
@@ -279,7 +249,7 @@ TYPED_TEST_P(FutureTests, wait_until_on_invalid) {
 TYPED_TEST_P(FutureTests, wait_on_ready_value) {
   concurrency::promise<TypeParam> promise;
   auto future = promise.get_future();
-  set_promise_value<TypeParam>(promise, 42);
+  set_promise_value<TypeParam>(promise);
   ASSERT_TRUE(future.valid());
   ASSERT_TRUE(future.is_ready());
 
@@ -338,7 +308,7 @@ TYPED_TEST_P(FutureTests, wait_timeout) {
 }
 
 TYPED_TEST_P(FutureTests, wait_awakes_on_value) {
-  auto future = set_value_in_other_thread<TypeParam>(50ms, 42);
+  auto future = set_value_in_other_thread<TypeParam>(50ms);
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -348,7 +318,7 @@ TYPED_TEST_P(FutureTests, wait_awakes_on_value) {
 }
 
 TYPED_TEST_P(FutureTests, wait_for_awakes_on_value) {
-  auto future = set_value_in_other_thread<TypeParam>(50ms, 42);
+  auto future = set_value_in_other_thread<TypeParam>(50ms);
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -358,7 +328,7 @@ TYPED_TEST_P(FutureTests, wait_for_awakes_on_value) {
 }
 
 TYPED_TEST_P(FutureTests, wait_until_awakes_on_value) {
-  auto future = set_value_in_other_thread<TypeParam>(50ms, 42);
+  auto future = set_value_in_other_thread<TypeParam>(50ms);
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
