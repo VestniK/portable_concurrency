@@ -74,6 +74,11 @@ std::ostream& operator<< (std::ostream& out, const printable<std::unique_ptr<int
   return out << *(printable.value);
 }
 
+inline
+std::ostream& operator<< (std::ostream& out, const printable<future_tests_env&>& printable) {
+  return out << "future_tests_env instance: 0x" << std::hex << reinterpret_cast<std::uintptr_t>(&printable.value);
+}
+
 template<typename T>
 void expect_future_exception(concurrency::future<T>& future, const std::string& what) {
   try {
@@ -120,3 +125,6 @@ std::string some_value<std::string>() {return "hello";}
 
 template<>
 std::unique_ptr<int> some_value<std::unique_ptr<int>>() {return std::make_unique<int>(42);}
+
+template<>
+future_tests_env& some_value<future_tests_env&>() {return *g_future_tests_env;}

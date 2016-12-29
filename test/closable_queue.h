@@ -9,7 +9,7 @@ class queue_closed: public std::exception {
 public:
   const char* what() const noexcept override {return "queue is closed";}
 };
-  
+
 template<typename T>
 class closable_queue {
 public:

@@ -32,11 +32,10 @@ template<typename T, typename R, typename P>
 auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
   -> std::enable_if_t<
     !std::is_void<T>::value,
-    concurrency::future<std::decay_t<T>>
+    concurrency::future<T>
   >
 {
-  using TV = std::decay_t<T>;
-  concurrency::promise<TV> promise;
+  concurrency::promise<T> promise;
   auto res = promise.get_future();
 
   g_future_tests_env->run_async([sleep_duration](
@@ -204,6 +203,15 @@ void test_retrieve_future_result<void>() {
   ASSERT_TRUE(future.valid());
 
   EXPECT_NO_THROW(future.get());
+  EXPECT_FALSE(future.valid());
+}
+
+template<>
+void test_retrieve_future_result<future_tests_env&>() {
+  auto future = set_value_in_other_thread<future_tests_env&>(50ms);
+  ASSERT_TRUE(future.valid());
+
+  EXPECT_EQ(g_future_tests_env, &future.get());
   EXPECT_FALSE(future.valid());
 }
 
@@ -392,6 +400,18 @@ void test_ready_future_maker<std::unique_ptr<int>>() {
 }
 
 template<>
+void test_ready_future_maker<future_tests_env&>() {
+  auto future = concurrency::make_ready_future(std::ref(*g_future_tests_env));
+  static_assert(
+    std::is_same<decltype(future), concurrency::future<future_tests_env&>>::value,
+    "Incorrect future type"
+  );
+  ASSERT_TRUE(future.valid());
+  EXPECT_TRUE(future.is_ready());
+  EXPECT_EQ(g_future_tests_env, &future.get());
+}
+
+template<>
 void test_ready_future_maker<void>() {
   auto future = concurrency::make_ready_future();
   ASSERT_TRUE(future.valid());
@@ -462,5 +482,6 @@ INSTANTIATE_TYPED_TEST_CASE_P(VoidType, FutureTests, void);
 INSTANTIATE_TYPED_TEST_CASE_P(PrimitiveType, FutureTests, int);
 INSTANTIATE_TYPED_TEST_CASE_P(CopyableType, FutureTests, std::string);
 INSTANTIATE_TYPED_TEST_CASE_P(MoveableType, FutureTests, std::unique_ptr<int>);
+INSTANTIATE_TYPED_TEST_CASE_P(ReferenceType, FutureTests, future_tests_env&);
 
 } // anonymous namespace
