@@ -39,13 +39,12 @@ auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
   concurrency::promise<TV> promise;
   auto res = promise.get_future();
 
-  std::thread worker([sleep_duration](
-    concurrency::promise<T>&& promise
+  g_future_tests_env->run_async([sleep_duration](
+    concurrency::promise<T>& promise
   ) {
     std::this_thread::sleep_for(sleep_duration);
     promise.set_value(some_value<T>());
   }, std::move(promise));
-  worker.detach();
 
   return res;
 }
@@ -60,13 +59,12 @@ auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
   concurrency::promise<void> promise;
   auto res = promise.get_future();
 
-  std::thread worker([sleep_duration](
-    concurrency::promise<void>&& promise
+  g_future_tests_env->run_async([sleep_duration](
+    concurrency::promise<void>& promise
   ) {
     std::this_thread::sleep_for(sleep_duration);
     promise.set_value();
   }, std::move(promise));
-  worker.detach();
 
   return res;
 }
@@ -79,15 +77,14 @@ auto set_error_in_other_thread(
   concurrency::promise<T> promise;
   auto res = promise.get_future();
 
-  std::thread worker([](
-    concurrency::promise<T>&& promise,
+  g_future_tests_env->run_async([](
+    concurrency::promise<T>& promise,
     E worker_err,
     std::chrono::duration<R, P> tm
   ) {
     std::this_thread::sleep_for(tm);
     promise.set_exception(std::make_exception_ptr(worker_err));
   }, std::move(promise), std::move(err), sleep_duration);
-  worker.detach();
 
   return res;
 }
