@@ -53,6 +53,25 @@ public:
   }
 };
 
+template<typename T>
+class promise<T&>: public detail::promise_base<T&> {
+public:
+  promise() = default;
+  promise(promise&&) noexcept = default;
+  promise(const promise&) = delete;
+
+  promise& operator= (const promise&) = delete;
+  promise& operator= (promise&& rhs) noexcept;
+
+  ~promise() = default;
+
+  void set_value(T& val) {
+    if (!this->state_)
+      throw std::future_error(std::future_errc::no_state);
+    this->state_->emplace(val);
+  }
+};
+
 template<>
 class promise<void>: public detail::promise_base<void> {
 public:
