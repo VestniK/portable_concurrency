@@ -33,6 +33,46 @@ TYPED_TEST_P(SharedFutureTests, obtained_from_promise_is_valid) {
   EXPECT_TRUE(future.valid());
 }
 
+TYPED_TEST_P(SharedFutureTests, copy_constructed_from_invalid_is_invalid) {
+  concurrency::shared_future<TypeParam> sf1;
+  ASSERT_FALSE(sf1.valid());
+  concurrency::shared_future<TypeParam> sf2 = sf1;
+  EXPECT_FALSE(sf1.valid());
+  EXPECT_FALSE(sf2.valid());
+}
+
+TYPED_TEST_P(SharedFutureTests, copy_assigned_from_invalid_is_invalid) {
+  concurrency::shared_future<TypeParam> sf1;
+  concurrency::shared_future<TypeParam> sf2;
+  ASSERT_FALSE(sf1.valid());
+  ASSERT_FALSE(sf2.valid());
+
+  sf2 = sf1;
+  EXPECT_FALSE(sf1.valid());
+  EXPECT_FALSE(sf2.valid());
+}
+
+TYPED_TEST_P(SharedFutureTests, copy_constructed_from_valid_is_valid) {
+  concurrency::promise<TypeParam> p;
+  concurrency::shared_future<TypeParam> sf1 = p.get_future();
+  ASSERT_TRUE(sf1.valid());
+  concurrency::shared_future<TypeParam> sf2 = sf1;
+  EXPECT_TRUE(sf1.valid());
+  EXPECT_TRUE(sf2.valid());
+}
+
+TYPED_TEST_P(SharedFutureTests, copy_assigned_from_valid_is_valid) {
+  concurrency::promise<TypeParam> p;
+  concurrency::shared_future<TypeParam> sf1 = p.get_future();
+  concurrency::shared_future<TypeParam> sf2;
+  ASSERT_TRUE(sf1.valid());
+  ASSERT_FALSE(sf2.valid());
+
+  sf2 = sf1;
+  EXPECT_TRUE(sf1.valid());
+  EXPECT_TRUE(sf2.valid());
+}
+
 TYPED_TEST_P(SharedFutureTests, moved_to_constructor_is_invalid) {
   concurrency::promise<TypeParam> promise;
   concurrency::shared_future<TypeParam> future = promise.get_future().share();
@@ -162,6 +202,76 @@ TYPED_TEST_P(SharedFutureTests, retrieve_exception) {
 
   EXPECT_RUNTIME_ERROR(future, "test error");
   EXPECT_TRUE(future.valid());
+}
+
+template<typename T>
+void test_retrieve_shared_future_result_twice() {
+  concurrency::shared_future<T> sf1 = set_value_in_other_thread<T>(50ms);
+  auto sf2 = sf1;
+  ASSERT_TRUE(sf1.valid());
+  ASSERT_TRUE(sf2.valid());
+
+  EXPECT_EQ(some_value<T>(), sf1.get());
+  EXPECT_EQ(some_value<T>(), sf2.get());
+  EXPECT_TRUE(sf1.valid()); // TODO: investigate if shared_future must remain valid after get()
+  EXPECT_TRUE(sf2.valid()); // TODO: investigate if shared_future must remain valid after get()
+}
+
+template<>
+void test_retrieve_shared_future_result_twice<std::unique_ptr<int>>() {
+  concurrency::shared_future<std::unique_ptr<int>> sf1 = set_value_in_other_thread<std::unique_ptr<int>>(50ms);
+  auto sf2 = sf1;
+  ASSERT_TRUE(sf1.valid());
+  ASSERT_TRUE(sf2.valid());
+
+  EXPECT_EQ(42, *sf1.get());
+  EXPECT_EQ(42, *sf2.get());
+  EXPECT_TRUE(sf1.valid()); // TODO: investigate if shared_future must remain valid after get()
+  EXPECT_TRUE(sf2.valid()); // TODO: investigate if shared_future must remain valid after get()
+}
+
+template<>
+void test_retrieve_shared_future_result_twice<void>() {
+  concurrency::shared_future<void> sf1 = set_value_in_other_thread<void>(50ms);
+  auto sf2 = sf1;
+  ASSERT_TRUE(sf1.valid());
+  ASSERT_TRUE(sf2.valid());
+
+  EXPECT_NO_THROW(sf1.get());
+  EXPECT_NO_THROW(sf2.get());
+  EXPECT_TRUE(sf1.valid()); // TODO: investigate if shared_future must remain valid after get()
+  EXPECT_TRUE(sf2.valid()); // TODO: investigate if shared_future must remain valid after get()
+}
+
+template<>
+void test_retrieve_shared_future_result_twice<future_tests_env&>() {
+  concurrency::shared_future<future_tests_env&> sf1 = set_value_in_other_thread<future_tests_env&>(50ms);
+  auto sf2 = sf1;
+  ASSERT_TRUE(sf1.valid());
+  ASSERT_TRUE(sf2.valid());
+
+  EXPECT_EQ(g_future_tests_env, &sf1.get());
+  EXPECT_EQ(g_future_tests_env, &sf2.get());
+  EXPECT_TRUE(sf1.valid()); // TODO: investigate if shared_future must remain valid after get()
+  EXPECT_TRUE(sf2.valid()); // TODO: investigate if shared_future must remain valid after get()
+}
+
+TYPED_TEST_P(SharedFutureTests, retreive_result_from_several_futures) {
+  test_retrieve_shared_future_result_twice<TypeParam>();
+}
+
+TYPED_TEST_P(SharedFutureTests, retreive_exception_from_several_futures) {
+  concurrency::shared_future<TypeParam> sf1 =
+    set_error_in_other_thread<TypeParam>(50ms, std::runtime_error("test error"))
+  ;
+  auto sf2 = sf1;
+  ASSERT_TRUE(sf1.valid());
+  ASSERT_TRUE(sf2.valid());
+
+  EXPECT_RUNTIME_ERROR(sf1, "test error");
+  EXPECT_RUNTIME_ERROR(sf2, "test error");
+  EXPECT_TRUE(sf1.valid());
+  EXPECT_TRUE(sf2.valid());
 }
 
 TYPED_TEST_P(SharedFutureTests, wait_on_invalid) {
@@ -313,6 +423,10 @@ REGISTER_TYPED_TEST_CASE_P(
   SharedFutureTests,
   default_constructed_is_invalid,
   obtained_from_promise_is_valid,
+  copy_constructed_from_invalid_is_invalid,
+  copy_assigned_from_invalid_is_invalid,
+  copy_constructed_from_valid_is_valid,
+  copy_assigned_from_valid_is_valid,
   moved_to_constructor_is_invalid,
   moved_to_assigment_to_invalid_is_invalid,
   moved_to_assigment_to_valid_is_invalid,
@@ -325,6 +439,8 @@ REGISTER_TYPED_TEST_CASE_P(
   get_on_invalid,
   retrieve_result,
   retrieve_exception,
+  retreive_result_from_several_futures,
+  retreive_exception_from_several_futures,
   wait_on_invalid,
   wait_for_on_invalid,
   wait_until_on_invalid,
