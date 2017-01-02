@@ -43,7 +43,7 @@ public:
 
   bool valid() const noexcept {return static_cast<bool>(state_);}
 
-  auto get() {
+  decltype(auto) get() {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
     return state_->shared_get();

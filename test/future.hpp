@@ -19,76 +19,6 @@ using hires_clock = std::chrono::high_resolution_clock;
 namespace {
 
 template<typename T>
-void set_promise_value(concurrency::promise<T>& p) {
-  p.set_value(some_value<T>());
-}
-
-template<>
-void set_promise_value<void>(concurrency::promise<void>& p) {
-  p.set_value();
-}
-
-template<typename T, typename R, typename P>
-auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
-  -> std::enable_if_t<
-    !std::is_void<T>::value,
-    concurrency::future<T>
-  >
-{
-  concurrency::promise<T> promise;
-  auto res = promise.get_future();
-
-  g_future_tests_env->run_async([sleep_duration](
-    concurrency::promise<T>& promise
-  ) {
-    std::this_thread::sleep_for(sleep_duration);
-    promise.set_value(some_value<T>());
-  }, std::move(promise));
-
-  return res;
-}
-
-template<typename T, typename R, typename P>
-auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
-  -> std::enable_if_t<
-    std::is_void<T>::value,
-    concurrency::future<void>
-  >
-{
-  concurrency::promise<void> promise;
-  auto res = promise.get_future();
-
-  g_future_tests_env->run_async([sleep_duration](
-    concurrency::promise<void>& promise
-  ) {
-    std::this_thread::sleep_for(sleep_duration);
-    promise.set_value();
-  }, std::move(promise));
-
-  return res;
-}
-
-template<typename T, typename E, typename R, typename P>
-auto set_error_in_other_thread(
-  std::chrono::duration<R, P> sleep_duration,
-  E err
-) {
-  concurrency::promise<T> promise;
-  auto res = promise.get_future();
-
-  g_future_tests_env->run_async([](
-    concurrency::promise<T>& promise,
-    E worker_err,
-    std::chrono::duration<R, P> tm
-  ) {
-    std::this_thread::sleep_for(tm);
-    promise.set_exception(std::make_exception_ptr(worker_err));
-  }, std::move(promise), std::move(err), sleep_duration);
-
-  return res;
-}
-
-template<typename T>
 class FutureTests: public ::testing::Test {};
 TYPED_TEST_CASE_P(FutureTests);
 
@@ -96,7 +26,6 @@ TYPED_TEST_P(FutureTests, default_constructed_is_invalid) {
   concurrency::future<TypeParam> future;
   EXPECT_FALSE(future.valid());
 }
-
 
 TYPED_TEST_P(FutureTests, obtained_from_promise_is_valid) {
   concurrency::promise<TypeParam> promise;
@@ -135,13 +64,6 @@ TYPED_TEST_P(FutureTests, moved_to_assigment_to_valid_is_invalid) {
   future2 = std::move(future1);
   EXPECT_TRUE(future2.valid());
   EXPECT_FALSE(future1.valid());
-}
-
-TYPED_TEST_P(FutureTests, share_of_invalid_is_invalid) {
-  concurrency::future<TypeParam> future;
-  ASSERT_FALSE(future.valid());
-  auto shared = future.share();
-  EXPECT_FALSE(shared.valid());
 }
 
 TYPED_TEST_P(FutureTests, share_invalidates_future) {
@@ -453,7 +375,6 @@ REGISTER_TYPED_TEST_CASE_P(
   moved_to_constructor_is_invalid,
   moved_to_assigment_to_invalid_is_invalid,
   moved_to_assigment_to_valid_is_invalid,
-  share_of_invalid_is_invalid,
   share_invalidates_future,
   is_ready_on_nonready,
   is_ready_on_future_with_value,

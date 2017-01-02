@@ -83,7 +83,7 @@ public:
     return box_.get();
   }
 
-  auto shared_get() {
+  decltype(auto) shared_get() {
     std::unique_lock<std::mutex> lock(mutex_);
     cv_.wait(lock, [this] {return box_.get_state() != detail::box_state::empty;});
     // TODO Is it possible? The only case is: call future::share on retreived future

@@ -93,8 +93,36 @@ void expect_future_exception(concurrency::future<T>& future, const std::string& 
   }
 }
 
+template<typename T>
+void expect_future_exception(concurrency::shared_future<T>& future, const std::string& what) {
+  try {
+    const T& unexpected_res = future.get();
+    ADD_FAILURE() << "Value " << printable<T>{unexpected_res} << " was returned instead of exception";
+  } catch(const std::runtime_error& err) {
+    EXPECT_EQ(what, err.what());
+  } catch(const std::exception& err) {
+    ADD_FAILURE() << "Unexpected exception: " << err.what();
+  } catch(...) {
+    ADD_FAILURE() << "Unexpected unknown exception type";
+  }
+}
+
 inline
 void expect_future_exception(concurrency::future<void>& future, const std::string& what) {
+  try {
+    future.get();
+    ADD_FAILURE() << "void value was returned instead of exception";
+  } catch(const std::runtime_error& err) {
+    EXPECT_EQ(what, err.what());
+  } catch(const std::exception& err) {
+    ADD_FAILURE() << "Unexpected exception: " << err.what();
+  } catch(...) {
+    ADD_FAILURE() << "Unexpected unknown exception type";
+  }
+}
+
+inline
+void expect_future_exception(concurrency::shared_future<void>& future, const std::string& what) {
   try {
     future.get();
     ADD_FAILURE() << "void value was returned instead of exception";
@@ -128,3 +156,73 @@ std::unique_ptr<int> some_value<std::unique_ptr<int>>() {return std::make_unique
 
 template<>
 future_tests_env& some_value<future_tests_env&>() {return *g_future_tests_env;}
+
+template<typename T>
+void set_promise_value(concurrency::promise<T>& p) {
+  p.set_value(some_value<T>());
+}
+
+template<>
+void set_promise_value<void>(concurrency::promise<void>& p) {
+  p.set_value();
+}
+
+template<typename T, typename R, typename P>
+auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
+  -> std::enable_if_t<
+    !std::is_void<T>::value,
+    concurrency::future<T>
+  >
+{
+  concurrency::promise<T> promise;
+  auto res = promise.get_future();
+
+  g_future_tests_env->run_async([sleep_duration](
+    concurrency::promise<T>& promise
+  ) {
+    std::this_thread::sleep_for(sleep_duration);
+    promise.set_value(some_value<T>());
+  }, std::move(promise));
+
+  return res;
+}
+
+template<typename T, typename R, typename P>
+auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
+  -> std::enable_if_t<
+    std::is_void<T>::value,
+    concurrency::future<void>
+  >
+{
+  concurrency::promise<void> promise;
+  auto res = promise.get_future();
+
+  g_future_tests_env->run_async([sleep_duration](
+    concurrency::promise<void>& promise
+  ) {
+    std::this_thread::sleep_for(sleep_duration);
+    promise.set_value();
+  }, std::move(promise));
+
+  return res;
+}
+
+template<typename T, typename E, typename R, typename P>
+auto set_error_in_other_thread(
+  std::chrono::duration<R, P> sleep_duration,
+  E err
+) {
+  concurrency::promise<T> promise;
+  auto res = promise.get_future();
+
+  g_future_tests_env->run_async([](
+    concurrency::promise<T>& promise,
+    E worker_err,
+    std::chrono::duration<R, P> tm
+  ) {
+    std::this_thread::sleep_for(tm);
+    promise.set_exception(std::make_exception_ptr(worker_err));
+  }, std::move(promise), std::move(err), sleep_duration);
+
+  return res;
+}
