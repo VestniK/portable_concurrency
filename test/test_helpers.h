@@ -34,6 +34,21 @@ void set_promise_value<void>(concurrency::promise<void>& p) {
   p.set_value();
 }
 
+template<typename T>
+concurrency::future<T> make_some_ready_future() {
+  return concurrency::make_ready_future(some_value<T>());
+}
+
+template<>
+concurrency::future<future_tests_env&> make_some_ready_future() {
+  return concurrency::make_ready_future(std::ref(some_value<future_tests_env&>()));
+}
+
+template<>
+concurrency::future<void> make_some_ready_future() {
+  return concurrency::make_ready_future();
+}
+
 template<typename T, typename R, typename P>
 auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
   -> std::enable_if_t<
@@ -109,3 +124,25 @@ std::string to_string(const future_tests_env& val) {
 std::string to_string(const std::string& val) {
   return val;
 }
+
+template<typename T>
+void expect_some_value(concurrency::future<T>& f) {
+  EXPECT_EQ(some_value<T>(), f.get());
+}
+
+template<>
+void expect_some_value<std::unique_ptr<int>>(concurrency::future<std::unique_ptr<int>>& f) {
+  EXPECT_EQ(*some_value<std::unique_ptr<int>>(), *f.get());
+}
+
+template<>
+void expect_some_value<future_tests_env&>(concurrency::future<future_tests_env&>& f) {
+  EXPECT_EQ(&some_value<future_tests_env&>(), &f.get());
+}
+
+template<>
+void expect_some_value<void>(concurrency::future<void>& f) {
+  EXPECT_NO_THROW(f.get());
+}
+
+#define EXPECT_SOME_VALUE(f) expect_some_value(f)

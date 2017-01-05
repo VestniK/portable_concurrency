@@ -280,6 +280,99 @@ void exception_to_ready_continuation() {
   EXPECT_EQ(string_f.get(), "Exception delivered"s);
 }
 
+template<typename T>
+void unwrap_constructor_async_async() {
+  concurrency::promise<concurrency::future<T>> p;
+  auto f = p.get_future();
+  g_future_tests_env->run_async([](concurrency::promise<concurrency::future<T>>& p) {
+    std::this_thread::sleep_for(15ms);
+    p.set_value(set_value_in_other_thread<T>(15ms));
+  }, std::move(p));
+  ASSERT_TRUE(f.valid());
+
+  concurrency::future<T> unwrapped_f(std::move(f));
+  EXPECT_FALSE(f.valid());
+  EXPECT_TRUE(unwrapped_f.valid());
+  EXPECT_FALSE(unwrapped_f.is_ready());
+  EXPECT_SOME_VALUE(unwrapped_f);
+}
+
+template<typename T>
+void unwrap_constructor_async_ready() {
+  concurrency::promise<concurrency::future<T>> p;
+  auto f = p.get_future();
+  g_future_tests_env->run_async([](concurrency::promise<concurrency::future<T>>& p) {
+    std::this_thread::sleep_for(15ms);
+    p.set_value(make_some_ready_future<T>());
+  }, std::move(p));
+  ASSERT_TRUE(f.valid());
+
+  concurrency::future<T> unwrapped_f(std::move(f));
+  EXPECT_FALSE(f.valid());
+  EXPECT_TRUE(unwrapped_f.valid());
+  EXPECT_FALSE(unwrapped_f.is_ready());
+  EXPECT_SOME_VALUE(unwrapped_f);
+}
+
+template<typename T>
+void unwrap_constructor_async_invalid() {
+  concurrency::promise<concurrency::future<T>> p;
+  auto f = p.get_future();
+  g_future_tests_env->run_async([](concurrency::promise<concurrency::future<T>>& p) {
+    std::this_thread::sleep_for(15ms);
+    p.set_value(concurrency::future<T>{});
+  }, std::move(p));
+  ASSERT_TRUE(f.valid());
+
+  concurrency::future<T> unwrapped_f(std::move(f));
+  EXPECT_FALSE(f.valid());
+  EXPECT_TRUE(unwrapped_f.valid());
+  EXPECT_FALSE(unwrapped_f.is_ready());
+  EXPECT_FUTURE_ERROR(unwrapped_f.get(), std::future_errc::broken_promise);
+}
+
+template<typename T>
+void unwrap_constructor_ready_async() {
+  concurrency::future<concurrency::future<T>> f = concurrency::make_ready_future(
+    set_value_in_other_thread<T>(15ms)
+  );
+  ASSERT_TRUE(f.valid());
+  ASSERT_TRUE(f.is_ready());
+
+  concurrency::future<T> unwrapped_f(std::move(f));
+  EXPECT_FALSE(f.valid());
+  EXPECT_TRUE(unwrapped_f.valid());
+  EXPECT_FALSE(unwrapped_f.is_ready());
+  EXPECT_SOME_VALUE(unwrapped_f);
+}
+
+template<typename T>
+void unwrap_constructor_ready_ready() {
+  concurrency::future<concurrency::future<T>> f = concurrency::make_ready_future(
+    make_some_ready_future<T>()
+  );
+  ASSERT_TRUE(f.valid());
+  ASSERT_TRUE(f.is_ready());
+
+  concurrency::future<T> unwrapped_f(std::move(f));
+  EXPECT_FALSE(f.valid());
+  EXPECT_TRUE(unwrapped_f.valid());
+  EXPECT_TRUE(unwrapped_f.is_ready());
+  EXPECT_SOME_VALUE(unwrapped_f);
+}
+
+template<typename T>
+void unwrap_constructor_ready_invalid() {
+  auto f = concurrency::make_ready_future(concurrency::future<T>{});
+  ASSERT_TRUE(f.valid());
+
+  concurrency::future<T> unwrapped_f(std::move(f));
+  EXPECT_FALSE(f.valid());
+  EXPECT_TRUE(unwrapped_f.valid());
+  EXPECT_TRUE(unwrapped_f.is_ready());
+  EXPECT_FUTURE_ERROR(unwrapped_f.get(), std::future_errc::broken_promise);
+}
+
 } // namespace tests
 
 TYPED_TEST_P(ContinuationsTest, exception_from_continuation) {tests::exception_from_continuation<TypeParam>();}
@@ -290,6 +383,12 @@ TYPED_TEST_P(ContinuationsTest, async_continuation_call) {tests::async_continuat
 TYPED_TEST_P(ContinuationsTest, ready_continuation_call) {tests::ready_continuation_call<TypeParam>();}
 TYPED_TEST_P(ContinuationsTest, void_continuation) {tests::void_continuation<TypeParam>();}
 TYPED_TEST_P(ContinuationsTest, ready_void_continuation) {tests::ready_void_continuation<TypeParam>();}
+TYPED_TEST_P(ContinuationsTest, unwrap_constructor_async_async) {tests::unwrap_constructor_async_async<TypeParam>();}
+TYPED_TEST_P(ContinuationsTest, unwrap_constructor_async_ready) {tests::unwrap_constructor_async_ready<TypeParam>();}
+TYPED_TEST_P(ContinuationsTest, unwrap_constructor_async_invalid) {tests::unwrap_constructor_async_invalid<TypeParam>();}
+TYPED_TEST_P(ContinuationsTest, unwrap_constructor_ready_async) {tests::unwrap_constructor_ready_async<TypeParam>();}
+TYPED_TEST_P(ContinuationsTest, unwrap_constructor_ready_ready) {tests::unwrap_constructor_ready_ready<TypeParam>();}
+TYPED_TEST_P(ContinuationsTest, unwrap_constructor_ready_invalid) {tests::unwrap_constructor_ready_invalid<TypeParam>();}
 REGISTER_TYPED_TEST_CASE_P(
   ContinuationsTest,
   exception_from_continuation,
@@ -299,7 +398,13 @@ REGISTER_TYPED_TEST_CASE_P(
   async_continuation_call,
   ready_continuation_call,
   void_continuation,
-  ready_void_continuation
+  ready_void_continuation,
+  unwrap_constructor_async_async,
+  unwrap_constructor_async_ready,
+  unwrap_constructor_async_invalid,
+  unwrap_constructor_ready_async,
+  unwrap_constructor_ready_ready,
+  unwrap_constructor_ready_invalid
 );
 
 INSTANTIATE_TYPED_TEST_CASE_P(VoidType, ContinuationsTest, void);
