@@ -16,6 +16,8 @@ template<typename F, typename T, typename R>
 class future_continuation_helper: public continuation {
   static_assert(std::is_same<R, std::result_of_t<F(future<T>)>>::value, "Invalid return type");
 public:
+  using result_type = R;
+
   future_continuation_helper(F&& f, future<T>&& future):
     future_(std::move(future)),
     f_(std::forward<F>(f))
@@ -27,9 +29,7 @@ public:
     state_->set_exception(std::current_exception());
   }
 
-  auto get_state() {
-    return state_;
-  }
+  auto get_state() const noexcept {return state_;}
 
 private:
   future<T> future_;
@@ -41,6 +41,8 @@ template<typename F, typename T>
 class future_continuation_helper<F, T, void>: public continuation {
   static_assert(std::is_void<std::result_of_t<F(future<T>)>>::value, "Invalid return type");
 public:
+  using result_type = void;
+
   future_continuation_helper(F&& f, future<T>&& future):
     future_(std::move(future)),
     f_(std::forward<F>(f))
@@ -53,9 +55,7 @@ public:
     state_->set_exception(std::current_exception());
   }
 
-  auto get_state() {
-    return state_;
-  }
+  auto get_state() const noexcept {return state_;}
 
 private:
   future<T> future_;
@@ -74,6 +74,27 @@ public:
   future() noexcept = default;
   future(future&&) noexcept = default;
   future(const future&) = delete;
+
+  // TODO: specification requires noexcept unwrap constructor
+  future(future<future<T>>&& wrapped) {
+    auto state = std::make_shared<detail::shared_state<T>>();
+    wrapped.then([state](future<future<T>>&& ready_wrapped) -> void {
+      auto f = ready_wrapped.get();
+      if (!f.valid()) {
+        return state->set_exception(std::make_exception_ptr(
+          std::future_error(std::future_errc::broken_promise)
+        ));
+      }
+      f.then([state](future<T>&& ready_f) -> void {
+        try {
+          state.emplace(ready_f.get());
+        } catch(...) {
+          state.set_exception(std::current_exception());
+        }
+      });
+    });
+    state_ = std::move(state);
+  }
 
   future& operator= (const future&) = delete;
   future& operator= (future&& rhs) noexcept {
@@ -134,7 +155,7 @@ public:
     );
     auto child_state = cont->get_state();
     state->add_continuation(std::move(cont));
-    return detail::make_future<std::result_of_t<F(future<T>)>>(std::move(child_state));
+    return detail::make_future<typename detail::future_continuation<F, T>::result_type>(std::move(child_state));
   }
 
 private:
