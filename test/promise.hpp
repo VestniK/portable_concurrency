@@ -29,30 +29,15 @@ void get_future_twice() {
 }
 
 template<typename T>
-void set_val_on_promise_without_future() {static_assert(sizeof(T) == 0, "set_val_on_promise_without_future<T> is deleted");} // = delete; in C++ but not in clang++
+void set_val_on_promise_without_future() {
+  concurrency::promise<T> p;
+  EXPECT_NO_THROW(p.set_value(some_value<T>()));
+}
 
 template<>
 void set_val_on_promise_without_future<void>(){
   concurrency::promise<void> p;
   EXPECT_NO_THROW(p.set_value());
-}
-
-template<>
-void set_val_on_promise_without_future<int>(){
-  concurrency::promise<int> p;
-  EXPECT_NO_THROW(p.set_value(42));
-}
-
-template<>
-void set_val_on_promise_without_future<std::string>(){
-  concurrency::promise<std::string> p;
-  EXPECT_NO_THROW(p.set_value("hello world"));
-}
-
-template<>
-void set_val_on_promise_without_future<std::unique_ptr<int>>(){
-  concurrency::promise<std::unique_ptr<int>> p;
-  EXPECT_NO_THROW(p.set_value(std::make_unique<int>(42)));
 }
 
 template<typename T>
@@ -77,5 +62,6 @@ INSTANTIATE_TYPED_TEST_CASE_P(VoidType, PromiseTest, void);
 INSTANTIATE_TYPED_TEST_CASE_P(PrimitiveType, PromiseTest, int);
 INSTANTIATE_TYPED_TEST_CASE_P(CopyableType, PromiseTest, std::string);
 INSTANTIATE_TYPED_TEST_CASE_P(MoveableType, PromiseTest, std::unique_ptr<int>);
+INSTANTIATE_TYPED_TEST_CASE_P(ReferenceType, PromiseTest, future_tests_env&);
 
 } // anonymous namespace

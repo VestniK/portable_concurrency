@@ -136,6 +136,25 @@ void stringify_continuation<std::unique_ptr<int>>() {
   EXPECT_EQ(string_f.get(), "42"s);
 }
 
+template<>
+void stringify_continuation<future_tests_env&>() {
+  concurrency::promise<future_tests_env&> p;
+  auto f = p.get_future();
+  ASSERT_TRUE(f.valid());
+
+  concurrency::future<std::string> string_f = f.then([](concurrency::future<future_tests_env&>&& ready_f) {
+    EXPECT_TRUE(ready_f.is_ready());
+    return std::to_string(reinterpret_cast<uintptr_t>(&ready_f.get()));
+  });
+  EXPECT_FALSE(f.valid());
+  EXPECT_TRUE(string_f.valid());
+  EXPECT_FALSE(string_f.is_ready());
+
+  p.set_value(*g_future_tests_env);
+  EXPECT_TRUE(string_f.is_ready());
+  EXPECT_EQ(string_f.get(), std::to_string(reinterpret_cast<uintptr_t>(g_future_tests_env)));
+}
+
 } // namespace tests
 
 TYPED_TEST_P(ContinuationsTest, stringify_continuation) {tests::stringify_continuation<TypeParam>();}
@@ -150,5 +169,6 @@ INSTANTIATE_TYPED_TEST_CASE_P(VoidType, ContinuationsTest, void);
 INSTANTIATE_TYPED_TEST_CASE_P(PrimitiveType, ContinuationsTest, int);
 INSTANTIATE_TYPED_TEST_CASE_P(CopyableType, ContinuationsTest, std::string);
 INSTANTIATE_TYPED_TEST_CASE_P(MoveableType, ContinuationsTest, std::unique_ptr<int>);
+INSTANTIATE_TYPED_TEST_CASE_P(ReferenceType, ContinuationsTest, future_tests_env&);
 
 } // anonymous namespace
