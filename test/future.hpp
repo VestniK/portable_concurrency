@@ -103,7 +103,7 @@ TYPED_TEST_P(FutureTests, get_on_invalid) {
 
 template<typename T>
 void test_retrieve_future_result() {
-  auto future = set_value_in_other_thread<T>(50ms);
+  auto future = set_value_in_other_thread<T>(25ms);
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(some_value<T>(), future.get());
@@ -112,7 +112,7 @@ void test_retrieve_future_result() {
 
 template<>
 void test_retrieve_future_result<std::unique_ptr<int>>() {
-  auto future = set_value_in_other_thread<std::unique_ptr<int>>(50ms);
+  auto future = set_value_in_other_thread<std::unique_ptr<int>>(25ms);
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(42, *future.get());
@@ -121,7 +121,7 @@ void test_retrieve_future_result<std::unique_ptr<int>>() {
 
 template<>
 void test_retrieve_future_result<void>() {
-  auto future = set_value_in_other_thread<void>(50ms);
+  auto future = set_value_in_other_thread<void>(25ms);
   ASSERT_TRUE(future.valid());
 
   EXPECT_NO_THROW(future.get());
@@ -130,7 +130,7 @@ void test_retrieve_future_result<void>() {
 
 template<>
 void test_retrieve_future_result<future_tests_env&>() {
-  auto future = set_value_in_other_thread<future_tests_env&>(50ms);
+  auto future = set_value_in_other_thread<future_tests_env&>(25ms);
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(g_future_tests_env, &future.get());
@@ -142,7 +142,7 @@ TYPED_TEST_P(FutureTests, retrieve_result) {
 }
 
 TYPED_TEST_P(FutureTests, retrieve_exception) {
-  auto future = set_error_in_other_thread<TypeParam>(50ms, std::runtime_error("test error"));
+  auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
 
   EXPECT_RUNTIME_ERROR(future, "test error");
@@ -223,19 +223,19 @@ TYPED_TEST_P(FutureTests, wait_timeout) {
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
-  EXPECT_EQ(std::future_status::timeout, future.wait_for(10ms));
+  EXPECT_EQ(std::future_status::timeout, future.wait_for(5ms));
   EXPECT_TRUE(future.valid());
   EXPECT_FALSE(future.is_ready());
 
   EXPECT_EQ(std::future_status::timeout, future.wait_until(
-    hires_clock::now() + 10ms
+    hires_clock::now() + 5ms
   ));
   EXPECT_TRUE(future.valid());
   EXPECT_FALSE(future.is_ready());
 }
 
 TYPED_TEST_P(FutureTests, wait_awakes_on_value) {
-  auto future = set_value_in_other_thread<TypeParam>(50ms);
+  auto future = set_value_in_other_thread<TypeParam>(25ms);
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -245,7 +245,7 @@ TYPED_TEST_P(FutureTests, wait_awakes_on_value) {
 }
 
 TYPED_TEST_P(FutureTests, wait_for_awakes_on_value) {
-  auto future = set_value_in_other_thread<TypeParam>(50ms);
+  auto future = set_value_in_other_thread<TypeParam>(25ms);
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -255,7 +255,7 @@ TYPED_TEST_P(FutureTests, wait_for_awakes_on_value) {
 }
 
 TYPED_TEST_P(FutureTests, wait_until_awakes_on_value) {
-  auto future = set_value_in_other_thread<TypeParam>(50ms);
+  auto future = set_value_in_other_thread<TypeParam>(25ms);
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -265,7 +265,7 @@ TYPED_TEST_P(FutureTests, wait_until_awakes_on_value) {
 }
 
 TYPED_TEST_P(FutureTests, wait_awakes_on_error) {
-  auto future = set_error_in_other_thread<TypeParam>(50ms, std::runtime_error("test error"));
+  auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -275,7 +275,7 @@ TYPED_TEST_P(FutureTests, wait_awakes_on_error) {
 }
 
 TYPED_TEST_P(FutureTests, wait_for_awakes_on_error) {
-  auto future = set_error_in_other_thread<TypeParam>(50ms, std::runtime_error("test error"));
+  auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -285,7 +285,7 @@ TYPED_TEST_P(FutureTests, wait_for_awakes_on_error) {
 }
 
 TYPED_TEST_P(FutureTests, wait_until_awakes_on_error) {
-  auto future = set_error_in_other_thread<TypeParam>(50ms, std::runtime_error("test error"));
+  auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 

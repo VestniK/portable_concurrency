@@ -158,7 +158,7 @@ TYPED_TEST_P(SharedFutureTests, get_on_invalid) {
 
 template<typename T>
 void test_retrieve_shared_future_result() {
-  concurrency::shared_future<T> future = set_value_in_other_thread<T>(50ms).share();
+  concurrency::shared_future<T> future = set_value_in_other_thread<T>(25ms).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(some_value<T>(), future.get());
@@ -167,7 +167,7 @@ void test_retrieve_shared_future_result() {
 
 template<>
 void test_retrieve_shared_future_result<std::unique_ptr<int>>() {
-  auto future = set_value_in_other_thread<std::unique_ptr<int>>(50ms).share();
+  auto future = set_value_in_other_thread<std::unique_ptr<int>>(25ms).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(42, *future.get());
@@ -176,7 +176,7 @@ void test_retrieve_shared_future_result<std::unique_ptr<int>>() {
 
 template<>
 void test_retrieve_shared_future_result<void>() {
-  auto future = set_value_in_other_thread<void>(50ms).share();
+  auto future = set_value_in_other_thread<void>(25ms).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_NO_THROW(future.get());
@@ -185,7 +185,7 @@ void test_retrieve_shared_future_result<void>() {
 
 template<>
 void test_retrieve_shared_future_result<future_tests_env&>() {
-  auto future = set_value_in_other_thread<future_tests_env&>(50ms).share();
+  auto future = set_value_in_other_thread<future_tests_env&>(25ms).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(g_future_tests_env, &future.get());
@@ -197,7 +197,7 @@ TYPED_TEST_P(SharedFutureTests, retrieve_result) {
 }
 
 TYPED_TEST_P(SharedFutureTests, retrieve_exception) {
-  auto future = set_error_in_other_thread<TypeParam>(50ms, std::runtime_error("test error")).share();
+  auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error")).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_RUNTIME_ERROR(future, "test error");
@@ -206,7 +206,7 @@ TYPED_TEST_P(SharedFutureTests, retrieve_exception) {
 
 template<typename T>
 void test_retrieve_shared_future_result_twice() {
-  concurrency::shared_future<T> sf1 = set_value_in_other_thread<T>(50ms);
+  concurrency::shared_future<T> sf1 = set_value_in_other_thread<T>(25ms);
   auto sf2 = sf1;
   ASSERT_TRUE(sf1.valid());
   ASSERT_TRUE(sf2.valid());
@@ -219,7 +219,7 @@ void test_retrieve_shared_future_result_twice() {
 
 template<>
 void test_retrieve_shared_future_result_twice<std::unique_ptr<int>>() {
-  concurrency::shared_future<std::unique_ptr<int>> sf1 = set_value_in_other_thread<std::unique_ptr<int>>(50ms);
+  concurrency::shared_future<std::unique_ptr<int>> sf1 = set_value_in_other_thread<std::unique_ptr<int>>(25ms);
   auto sf2 = sf1;
   ASSERT_TRUE(sf1.valid());
   ASSERT_TRUE(sf2.valid());
@@ -232,7 +232,7 @@ void test_retrieve_shared_future_result_twice<std::unique_ptr<int>>() {
 
 template<>
 void test_retrieve_shared_future_result_twice<void>() {
-  concurrency::shared_future<void> sf1 = set_value_in_other_thread<void>(50ms);
+  concurrency::shared_future<void> sf1 = set_value_in_other_thread<void>(25ms);
   auto sf2 = sf1;
   ASSERT_TRUE(sf1.valid());
   ASSERT_TRUE(sf2.valid());
@@ -245,7 +245,7 @@ void test_retrieve_shared_future_result_twice<void>() {
 
 template<>
 void test_retrieve_shared_future_result_twice<future_tests_env&>() {
-  concurrency::shared_future<future_tests_env&> sf1 = set_value_in_other_thread<future_tests_env&>(50ms);
+  concurrency::shared_future<future_tests_env&> sf1 = set_value_in_other_thread<future_tests_env&>(25ms);
   auto sf2 = sf1;
   ASSERT_TRUE(sf1.valid());
   ASSERT_TRUE(sf2.valid());
@@ -262,7 +262,7 @@ TYPED_TEST_P(SharedFutureTests, retreive_result_from_several_futures) {
 
 TYPED_TEST_P(SharedFutureTests, retreive_exception_from_several_futures) {
   concurrency::shared_future<TypeParam> sf1 =
-    set_error_in_other_thread<TypeParam>(50ms, std::runtime_error("test error"))
+    set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"))
   ;
   auto sf2 = sf1;
   ASSERT_TRUE(sf1.valid());
@@ -348,19 +348,19 @@ TYPED_TEST_P(SharedFutureTests, wait_timeout) {
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
-  EXPECT_EQ(std::future_status::timeout, future.wait_for(10ms));
+  EXPECT_EQ(std::future_status::timeout, future.wait_for(5ms));
   EXPECT_TRUE(future.valid());
   EXPECT_FALSE(future.is_ready());
 
   EXPECT_EQ(std::future_status::timeout, future.wait_until(
-    hires_clock::now() + 10ms
+    hires_clock::now() + 5ms
   ));
   EXPECT_TRUE(future.valid());
   EXPECT_FALSE(future.is_ready());
 }
 
 TYPED_TEST_P(SharedFutureTests, wait_awakes_on_value) {
-  auto future = set_value_in_other_thread<TypeParam>(50ms).share();
+  auto future = set_value_in_other_thread<TypeParam>(25ms).share();
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -370,7 +370,7 @@ TYPED_TEST_P(SharedFutureTests, wait_awakes_on_value) {
 }
 
 TYPED_TEST_P(SharedFutureTests, wait_for_awakes_on_value) {
-  auto future = set_value_in_other_thread<TypeParam>(50ms).share();
+  auto future = set_value_in_other_thread<TypeParam>(25ms).share();
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -380,7 +380,7 @@ TYPED_TEST_P(SharedFutureTests, wait_for_awakes_on_value) {
 }
 
 TYPED_TEST_P(SharedFutureTests, wait_until_awakes_on_value) {
-  auto future = set_value_in_other_thread<TypeParam>(50ms).share();
+  auto future = set_value_in_other_thread<TypeParam>(25ms).share();
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -390,7 +390,7 @@ TYPED_TEST_P(SharedFutureTests, wait_until_awakes_on_value) {
 }
 
 TYPED_TEST_P(SharedFutureTests, wait_awakes_on_error) {
-  auto future = set_error_in_other_thread<TypeParam>(50ms, std::runtime_error("test error")).share();
+  auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error")).share();
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -400,7 +400,7 @@ TYPED_TEST_P(SharedFutureTests, wait_awakes_on_error) {
 }
 
 TYPED_TEST_P(SharedFutureTests, wait_for_awakes_on_error) {
-  auto future = set_error_in_other_thread<TypeParam>(50ms, std::runtime_error("test error")).share();
+  auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error")).share();
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -410,7 +410,7 @@ TYPED_TEST_P(SharedFutureTests, wait_for_awakes_on_error) {
 }
 
 TYPED_TEST_P(SharedFutureTests, wait_until_awakes_on_error) {
-  auto future = set_error_in_other_thread<TypeParam>(50ms, std::runtime_error("test error")).share();
+  auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error")).share();
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
