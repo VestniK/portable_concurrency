@@ -4,6 +4,7 @@
 
 #include "fwd.h"
 
+#include "invoke.h"
 #include "shared_state.h"
 #include "utils.h"
 
@@ -21,9 +22,7 @@ public:
   {}
 
   void invoke() noexcept override try {
-    // TODO: state_->emplace(INVOKE(std::move(f_), std::move(future_)));
-    // proper INVOKE implementation required
-    state_->emplace(f_(std::move(future_)));
+    state_->emplace(concurrency::detail::invoke(std::move(f_), std::move(future_)));
   } catch(...) {
     state_->set_exception(std::current_exception());
   }
@@ -48,9 +47,7 @@ public:
   {}
 
   void invoke() noexcept override try {
-    // TODO: state_->emplace(INVOKE(std::move(f_), std::move(future_)));
-    // proper INVOKE implementation required
-    f_(std::move(future_));
+    concurrency::detail::invoke(std::move(f_), std::move(future_));
     state_->emplace();
   } catch(...) {
     state_->set_exception(std::current_exception());
