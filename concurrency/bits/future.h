@@ -79,19 +79,23 @@ public:
   future(future<future<T>>&& wrapped) {
     auto state = std::make_shared<detail::shared_state<T>>();
     wrapped.then([state](future<future<T>>&& ready_wrapped) -> void {
-      auto f = ready_wrapped.get();
-      if (!f.valid()) {
-        return state->set_exception(std::make_exception_ptr(
-          std::future_error(std::future_errc::broken_promise)
-        ));
-      }
-      f.then([state](future<T>&& ready_f) -> void {
-        try {
-          state->emplace(ready_f.get());
-        } catch(...) {
-          state->set_exception(std::current_exception());
+      try {
+        auto f = ready_wrapped.get();
+        if (!f.valid()) {
+          return state->set_exception(std::make_exception_ptr(
+            std::future_error(std::future_errc::broken_promise)
+          ));
         }
-      });
+        f.then([state](future<T>&& ready_f) -> void {
+          try {
+            state->emplace(ready_f.get());
+          } catch(...) {
+            state->set_exception(std::current_exception());
+          }
+        });
+      } catch(...) {
+        state->set_exception(std::current_exception());
+      }
     });
     state_ = std::move(state);
   }
@@ -175,20 +179,24 @@ inline
 future<void>::future(future<future<void>>&& wrapped) {
   auto state = std::make_shared<detail::shared_state<void>>();
   wrapped.then([state](future<future<void>>&& ready_wrapped) -> void {
-    auto f = ready_wrapped.get();
-    if (!f.valid()) {
-      return state->set_exception(std::make_exception_ptr(
-        std::future_error(std::future_errc::broken_promise)
-      ));
-    }
-    f.then([state](future<void>&& ready_f) -> void {
-      try {
-        ready_f.get();
-        state->emplace();
-      } catch(...) {
-        state->set_exception(std::current_exception());
+    try {
+      auto f = ready_wrapped.get();
+      if (!f.valid()) {
+        return state->set_exception(std::make_exception_ptr(
+          std::future_error(std::future_errc::broken_promise)
+        ));
       }
-    });
+      f.then([state](future<void>&& ready_f) -> void {
+        try {
+          ready_f.get();
+          state->emplace();
+        } catch(...) {
+          state->set_exception(std::current_exception());
+        }
+      });
+    } catch(...) {
+      state->set_exception(std::current_exception());
+    }
   });
   state_ = std::move(state);
 }
