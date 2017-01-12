@@ -7,7 +7,9 @@ include(conanbuildinfo.cmake)
 conan_basic_setup()
 
 set(CMAKE_CXX_STANDARD 14)
-add_definitions(-Werror=all)
+if (NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
+  add_definitions(-Werror=all)
+endif()
 
 add_subdirectory(concurrency)
 
