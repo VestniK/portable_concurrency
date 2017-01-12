@@ -27,8 +27,6 @@ public:
   template<typename... U>
   void emplace(U&&... u) {
     std::unique_lock<std::mutex> lock(mutex_);
-    if (retrieved_)
-      throw std::future_error(std::future_errc::future_already_retrieved);
     box_.emplace(std::forward<U>(u)...);
     cv_.notify_all();
     auto continuations = std::move(continuations_);
@@ -39,8 +37,6 @@ public:
 
   void set_exception(std::exception_ptr error) {
     std::unique_lock<std::mutex> lock(mutex_);
-    if (retrieved_)
-      throw std::future_error(std::future_errc::future_already_retrieved);
     box_.set_exception(error);
     cv_.notify_all();
     auto continuations = std::move(continuations_);
@@ -77,31 +73,22 @@ public:
   T get() {
     std::unique_lock<std::mutex> lock(mutex_);
     cv_.wait(lock, [this] {return box_.get_state() != detail::box_state::empty;});
-    if (retrieved_)
-      throw std::future_error(std::future_errc::future_already_retrieved);
-    retrieved_ = true;
     return box_.get();
   }
 
   decltype(auto) shared_get() {
     std::unique_lock<std::mutex> lock(mutex_);
     cv_.wait(lock, [this] {return box_.get_state() != detail::box_state::empty;});
-    // TODO Is it possible? The only case is: call future::share on retreived future
-    // and then call shared_future::get. Need to clarify how standard requires to handle
-    // this case.
-    if (retrieved_)
-      throw std::future_error(std::future_errc::future_already_retrieved);
     return box_.shared_get();
   }
 
   bool is_ready() {
     std::lock_guard<std::mutex> guard(mutex_);
-    return !retrieved_ && box_.get_state() != detail::box_state::empty;
+    return box_.get_state() != detail::box_state::empty;
   }
 
   void add_continuation(std::shared_ptr<continuation>&& cnt) {
     std::unique_lock<std::mutex> lock(mutex_);
-    assert(!retrieved_);
     if (box_.get_state() != detail::box_state::empty) {
       lock.unlock();
       cnt->invoke();
@@ -113,7 +100,6 @@ private:
   std::mutex mutex_;
   std::condition_variable cv_;
   result_box<T> box_;
-  bool retrieved_ = false;
   std::deque<std::shared_ptr<continuation>> continuations_;
 };
 

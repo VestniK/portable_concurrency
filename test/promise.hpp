@@ -46,16 +46,94 @@ void set_err_on_promise_without_future() {
   EXPECT_NO_THROW(p.set_exception(std::make_exception_ptr(std::runtime_error("error"))));
 }
 
+template<typename T>
+void set_value_twice_without_future() {
+  concurrency::promise<T> p;
+  EXPECT_NO_THROW(p.set_value(some_value<T>()));
+  EXPECT_FUTURE_ERROR(p.set_value(some_value<T>()), std::future_errc::promise_already_satisfied);
+}
+
+template<>
+void set_value_twice_without_future<void>() {
+  concurrency::promise<void> p;
+  EXPECT_NO_THROW(p.set_value());
+  EXPECT_FUTURE_ERROR(p.set_value(), std::future_errc::promise_already_satisfied);
+}
+
+template<typename T>
+void set_value_twice_with_future() {
+  concurrency::promise<T> p;
+  auto f = p.get_future();
+
+  EXPECT_NO_THROW(p.set_value(some_value<T>()));
+  EXPECT_TRUE(f.valid());
+  EXPECT_TRUE(f.is_ready());
+
+  EXPECT_FUTURE_ERROR(p.set_value(some_value<T>()), std::future_errc::promise_already_satisfied);
+  EXPECT_TRUE(f.valid());
+  EXPECT_TRUE(f.is_ready());
+}
+
+template<>
+void set_value_twice_with_future<void>() {
+  concurrency::promise<void> p;
+  auto f = p.get_future();
+
+  EXPECT_NO_THROW(p.set_value());
+  EXPECT_TRUE(f.valid());
+  EXPECT_TRUE(f.is_ready());
+
+  EXPECT_FUTURE_ERROR(p.set_value(), std::future_errc::promise_already_satisfied);
+  EXPECT_TRUE(f.valid());
+  EXPECT_TRUE(f.is_ready());
+}
+
+template<typename T>
+void set_value_twice_after_value_taken() {
+  concurrency::promise<T> p;
+  auto f = p.get_future();
+
+  EXPECT_NO_THROW(p.set_value(some_value<T>()));
+  EXPECT_TRUE(f.valid());
+  EXPECT_TRUE(f.is_ready());
+  f.get();
+  EXPECT_FALSE(f.valid());
+
+  EXPECT_FUTURE_ERROR(p.set_value(some_value<T>()), std::future_errc::promise_already_satisfied);
+  EXPECT_FALSE(f.valid());
+}
+
+template<>
+void set_value_twice_after_value_taken<void>() {
+  concurrency::promise<void> p;
+  auto f = p.get_future();
+
+  EXPECT_NO_THROW(p.set_value());
+  EXPECT_TRUE(f.valid());
+  EXPECT_TRUE(f.is_ready());
+  f.get();
+  EXPECT_FALSE(f.valid());
+
+  EXPECT_FUTURE_ERROR(p.set_value(), std::future_errc::promise_already_satisfied);
+  EXPECT_FALSE(f.valid());
+}
+
 } // namespace tests
 
 TYPED_TEST_P(PromiseTest, get_future_twice) {tests::get_future_twice<TypeParam>();}
 TYPED_TEST_P(PromiseTest, set_val_on_promise_without_future) {tests::set_val_on_promise_without_future<TypeParam>();}
 TYPED_TEST_P(PromiseTest, set_err_on_promise_without_future) {tests::set_err_on_promise_without_future<TypeParam>();}
+TYPED_TEST_P(PromiseTest, set_value_twice_without_future) {tests::set_value_twice_without_future<TypeParam>();}
+TYPED_TEST_P(PromiseTest, set_value_twice_with_future) {tests::set_value_twice_with_future<TypeParam>();}
+TYPED_TEST_P(PromiseTest, set_value_twice_after_value_taken) {tests::set_value_twice_after_value_taken<TypeParam>();}
 REGISTER_TYPED_TEST_CASE_P(
   PromiseTest,
   get_future_twice,
   set_val_on_promise_without_future,
-  set_err_on_promise_without_future
+  set_err_on_promise_without_future,
+  set_value_twice_without_future,
+  set_value_twice_with_future,
+  set_value_twice_after_value_taken
 );
 
 INSTANTIATE_TYPED_TEST_CASE_P(VoidType, PromiseTest, void);

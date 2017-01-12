@@ -16,7 +16,7 @@
     statement; \
     ADD_FAILURE() << "Excpected exception was not thrown"; \
   } catch(const std::future_error& err) { \
-    EXPECT_EQ(err.code(), errc); \
+    EXPECT_EQ(err.code(), errc) << "received error message: " << err.code().message(); \
   } catch(const std::exception& err) { \
     ADD_FAILURE() << "Unexpected exception: " << err.what(); \
   } catch(...) { \
