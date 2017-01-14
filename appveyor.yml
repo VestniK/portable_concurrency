@@ -17,5 +17,5 @@ build_script:
     cmake --build . --config Release
 
 test_script:
-- cmd: build/bin/unit_tests.exe
+- cmd: .\bin\unit_tests.exe
 
