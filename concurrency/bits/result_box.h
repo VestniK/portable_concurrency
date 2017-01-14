@@ -3,7 +3,8 @@
 #include <exception>
 #include <future>
 
-namespace concurrency {
+namespace experimental {
+inline namespace concurrency_v1 {
 namespace detail {
 
 enum class box_state {
@@ -175,4 +176,5 @@ private:
 };
 
 } // namespace detail
-} // namespace concurrency
+} // inline namespace concurrency_v1
+} // namespace experimental

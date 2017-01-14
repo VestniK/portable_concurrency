@@ -4,7 +4,8 @@
 #include "shared_state.h"
 #include "utils.h"
 
-namespace concurrency {
+namespace experimental {
+inline namespace concurrency_v1 {
 namespace detail {
 
 template<typename T>
@@ -91,4 +92,5 @@ public:
   }
 };
 
-} // namespace concurrency
+} // inline namespace concurrency_v1
+} // namespace experimental

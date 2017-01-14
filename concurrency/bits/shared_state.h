@@ -8,7 +8,8 @@
 
 #include "result_box.h"
 
-namespace concurrency {
+namespace experimental {
+inline namespace concurrency_v1 {
 namespace detail {
 
 class continuation {
@@ -104,4 +105,5 @@ private:
 };
 
 } // namespace detail
-} // namespace concurrency
+} // inline namespace concurrency_v1
+} // namespace experimental

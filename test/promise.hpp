@@ -19,8 +19,8 @@ namespace tests {
 
 template<typename T>
 void get_future_twice() {
-  concurrency::promise<T> p;
-  concurrency::future<T> f1, f2;
+  experimental::promise<T> p;
+  experimental::future<T> f1, f2;
   EXPECT_NO_THROW(f1 = p.get_future());
   EXPECT_FUTURE_ERROR(
     f2 = p.get_future(),
@@ -30,39 +30,39 @@ void get_future_twice() {
 
 template<typename T>
 void set_val_on_promise_without_future() {
-  concurrency::promise<T> p;
+  experimental::promise<T> p;
   EXPECT_NO_THROW(p.set_value(some_value<T>()));
 }
 
 template<>
 void set_val_on_promise_without_future<void>(){
-  concurrency::promise<void> p;
+  experimental::promise<void> p;
   EXPECT_NO_THROW(p.set_value());
 }
 
 template<typename T>
 void set_err_on_promise_without_future() {
-  concurrency::promise<T> p;
+  experimental::promise<T> p;
   EXPECT_NO_THROW(p.set_exception(std::make_exception_ptr(std::runtime_error("error"))));
 }
 
 template<typename T>
 void set_value_twice_without_future() {
-  concurrency::promise<T> p;
+  experimental::promise<T> p;
   EXPECT_NO_THROW(p.set_value(some_value<T>()));
   EXPECT_FUTURE_ERROR(p.set_value(some_value<T>()), std::future_errc::promise_already_satisfied);
 }
 
 template<>
 void set_value_twice_without_future<void>() {
-  concurrency::promise<void> p;
+  experimental::promise<void> p;
   EXPECT_NO_THROW(p.set_value());
   EXPECT_FUTURE_ERROR(p.set_value(), std::future_errc::promise_already_satisfied);
 }
 
 template<typename T>
 void set_value_twice_with_future() {
-  concurrency::promise<T> p;
+  experimental::promise<T> p;
   auto f = p.get_future();
 
   EXPECT_NO_THROW(p.set_value(some_value<T>()));
@@ -76,7 +76,7 @@ void set_value_twice_with_future() {
 
 template<>
 void set_value_twice_with_future<void>() {
-  concurrency::promise<void> p;
+  experimental::promise<void> p;
   auto f = p.get_future();
 
   EXPECT_NO_THROW(p.set_value());
@@ -90,7 +90,7 @@ void set_value_twice_with_future<void>() {
 
 template<typename T>
 void set_value_twice_after_value_taken() {
-  concurrency::promise<T> p;
+  experimental::promise<T> p;
   auto f = p.get_future();
 
   EXPECT_NO_THROW(p.set_value(some_value<T>()));
@@ -105,7 +105,7 @@ void set_value_twice_after_value_taken() {
 
 template<>
 void set_value_twice_after_value_taken<void>() {
-  concurrency::promise<void> p;
+  experimental::promise<void> p;
   auto f = p.get_future();
 
   EXPECT_NO_THROW(p.set_value());

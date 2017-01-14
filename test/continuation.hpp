@@ -22,11 +22,11 @@ namespace tests {
 
 template<typename T>
 void exception_from_continuation() {
-  concurrency::promise<T> p;
+  experimental::promise<T> p;
   auto f = p.get_future();
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<T> cont_f = f.then([](concurrency::future<T>&& ready_f) -> T {
+  experimental::future<T> cont_f = f.then([](experimental::future<T>&& ready_f) -> T {
     EXPECT_TRUE(ready_f.is_ready());
     throw std::runtime_error("continuation error");
   });
@@ -41,11 +41,11 @@ void exception_from_continuation() {
 
 template<>
 void exception_from_continuation<void>() {
-  concurrency::promise<void> p;
+  experimental::promise<void> p;
   auto f = p.get_future();
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<void> cont_f = f.then([](concurrency::future<void>&& ready_f) -> void {
+  experimental::future<void> cont_f = f.then([](experimental::future<void>&& ready_f) -> void {
     EXPECT_TRUE(ready_f.is_ready());
     throw std::runtime_error("continuation error");
   });
@@ -60,11 +60,11 @@ void exception_from_continuation<void>() {
 
 template<typename T>
 void continuation_call() {
-  concurrency::promise<T> p;
+  experimental::promise<T> p;
   auto f = p.get_future();
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<std::string> string_f = f.then([](concurrency::future<T>&& ready_f) {
+  experimental::future<std::string> string_f = f.then([](experimental::future<T>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     return to_string(ready_f.get());
   });
@@ -79,11 +79,11 @@ void continuation_call() {
 
 template<>
 void continuation_call<void>() {
-  concurrency::promise<void> p;
+  experimental::promise<void> p;
   auto f = p.get_future();
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<std::string> string_f = f.then([](concurrency::future<void>&& ready_f) {
+  experimental::future<std::string> string_f = f.then([](experimental::future<void>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     return "void value"s;
@@ -102,7 +102,7 @@ void async_continuation_call() {
   auto f = set_value_in_other_thread<T>(25ms);
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<std::string> string_f = f.then([](concurrency::future<T>&& ready_f) {
+  experimental::future<std::string> string_f = f.then([](experimental::future<T>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     return to_string(ready_f.get());
   });
@@ -118,7 +118,7 @@ void async_continuation_call<void>() {
   auto f = set_value_in_other_thread<void>(25ms);
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<std::string> string_f = f.then([](concurrency::future<void>&& ready_f) {
+  experimental::future<std::string> string_f = f.then([](experimental::future<void>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     return "void value"s;
@@ -132,9 +132,9 @@ void async_continuation_call<void>() {
 
 template<typename T>
 void ready_continuation_call() {
-  auto f = concurrency::make_ready_future(some_value<T>());
+  auto f = experimental::make_ready_future(some_value<T>());
 
-  concurrency::future<std::string> string_f = f.then([](concurrency::future<T>&& ready_f) {
+  experimental::future<std::string> string_f = f.then([](experimental::future<T>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     return to_string(ready_f.get());
   });
@@ -147,9 +147,9 @@ void ready_continuation_call() {
 
 template<>
 void ready_continuation_call<future_tests_env&>() {
-  auto f = concurrency::make_ready_future(std::ref(some_value<future_tests_env&>()));
+  auto f = experimental::make_ready_future(std::ref(some_value<future_tests_env&>()));
 
-  concurrency::future<std::string> string_f = f.then([](concurrency::future<future_tests_env&>&& ready_f) {
+  experimental::future<std::string> string_f = f.then([](experimental::future<future_tests_env&>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     return to_string(ready_f.get());
   });
@@ -165,7 +165,7 @@ void void_continuation() {
   auto f = set_value_in_other_thread<T>(25ms);
   bool executed = false;
 
-  concurrency::future<void> void_f = f.then([&executed](concurrency::future<T>&& ready_f) -> void {
+  experimental::future<void> void_f = f.then([&executed](experimental::future<T>&& ready_f) -> void {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     executed = true;
@@ -180,10 +180,10 @@ void void_continuation() {
 
 template<typename T>
 void ready_void_continuation() {
-  auto f = concurrency::make_ready_future(some_value<T>());
+  auto f = experimental::make_ready_future(some_value<T>());
   bool executed = false;
 
-  concurrency::future<void> void_f = f.then([&executed](concurrency::future<T>&& ready_f) -> void {
+  experimental::future<void> void_f = f.then([&executed](experimental::future<T>&& ready_f) -> void {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     executed = true;
@@ -198,10 +198,10 @@ void ready_void_continuation() {
 
 template<>
 void ready_void_continuation<future_tests_env&>() {
-  auto f = concurrency::make_ready_future(std::ref(some_value<future_tests_env&>()));
+  auto f = experimental::make_ready_future(std::ref(some_value<future_tests_env&>()));
   bool executed = false;
 
-  concurrency::future<void> void_f = f.then([&executed](concurrency::future<future_tests_env&>&& ready_f) -> void {
+  experimental::future<void> void_f = f.then([&executed](experimental::future<future_tests_env&>&& ready_f) -> void {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     executed = true;
@@ -216,10 +216,10 @@ void ready_void_continuation<future_tests_env&>() {
 
 template<>
 void ready_void_continuation<void>() {
-  auto f = concurrency::make_ready_future();
+  auto f = experimental::make_ready_future();
   bool executed = false;
 
-  concurrency::future<void> void_f = f.then([&executed](concurrency::future<void>&& ready_f) -> void {
+  experimental::future<void> void_f = f.then([&executed](experimental::future<void>&& ready_f) -> void {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     executed = true;
@@ -234,9 +234,9 @@ void ready_void_continuation<void>() {
 
 template<>
 void ready_continuation_call<void>() {
-  auto f = concurrency::make_ready_future();
+  auto f = experimental::make_ready_future();
 
-  concurrency::future<std::string> string_f = f.then([](concurrency::future<void>&& ready_f) {
+  experimental::future<std::string> string_f = f.then([](experimental::future<void>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     return "void value"s;
@@ -252,7 +252,7 @@ template<typename T>
 void exception_to_continuation() {
   auto f = set_error_in_other_thread<T>(25ms, std::runtime_error("test error"));
 
-  concurrency::future<std::string> string_f = f.then([](concurrency::future<T>&& ready_f) {
+  experimental::future<std::string> string_f = f.then([](experimental::future<T>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     EXPECT_RUNTIME_ERROR(ready_f, "test error");
     return "Exception delivered"s;
@@ -266,9 +266,9 @@ void exception_to_continuation() {
 
 template<typename T>
 void exception_to_ready_continuation() {
-  auto f = concurrency::make_exceptional_future<T>(std::runtime_error("test error"));
+  auto f = experimental::make_exceptional_future<T>(std::runtime_error("test error"));
 
-  concurrency::future<std::string> string_f = f.then([](concurrency::future<T>&& ready_f) {
+  experimental::future<std::string> string_f = f.then([](experimental::future<T>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     EXPECT_RUNTIME_ERROR(ready_f, "test error");
     return "Exception delivered"s;
@@ -282,15 +282,15 @@ void exception_to_ready_continuation() {
 
 template<typename T>
 void unwrap_constructor_async_async() {
-  concurrency::promise<concurrency::future<T>> p;
+  experimental::promise<experimental::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](concurrency::promise<concurrency::future<T>>& p) {
+  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>& p) {
     std::this_thread::sleep_for(15ms);
     p.set_value(set_value_in_other_thread<T>(15ms));
   }, std::move(p));
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<T> unwrapped_f(std::move(f));
+  experimental::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -299,15 +299,15 @@ void unwrap_constructor_async_async() {
 
 template<typename T>
 void unwrap_constructor_async_ready() {
-  concurrency::promise<concurrency::future<T>> p;
+  experimental::promise<experimental::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](concurrency::promise<concurrency::future<T>>& p) {
+  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>& p) {
     std::this_thread::sleep_for(15ms);
     p.set_value(make_some_ready_future<T>());
   }, std::move(p));
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<T> unwrapped_f(std::move(f));
+  experimental::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -316,15 +316,15 @@ void unwrap_constructor_async_ready() {
 
 template<typename T>
 void unwrap_constructor_async_invalid() {
-  concurrency::promise<concurrency::future<T>> p;
+  experimental::promise<experimental::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](concurrency::promise<concurrency::future<T>>& p) {
+  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>& p) {
     std::this_thread::sleep_for(15ms);
-    p.set_value(concurrency::future<T>{});
+    p.set_value(experimental::future<T>{});
   }, std::move(p));
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<T> unwrapped_f(std::move(f));
+  experimental::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -333,13 +333,13 @@ void unwrap_constructor_async_invalid() {
 
 template<typename T>
 void unwrap_constructor_ready_async() {
-  concurrency::future<concurrency::future<T>> f = concurrency::make_ready_future(
+  experimental::future<experimental::future<T>> f = experimental::make_ready_future(
     set_value_in_other_thread<T>(15ms)
   );
   ASSERT_TRUE(f.valid());
   ASSERT_TRUE(f.is_ready());
 
-  concurrency::future<T> unwrapped_f(std::move(f));
+  experimental::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -348,13 +348,13 @@ void unwrap_constructor_ready_async() {
 
 template<typename T>
 void unwrap_constructor_ready_ready() {
-  concurrency::future<concurrency::future<T>> f = concurrency::make_ready_future(
+  experimental::future<experimental::future<T>> f = experimental::make_ready_future(
     make_some_ready_future<T>()
   );
   ASSERT_TRUE(f.valid());
   ASSERT_TRUE(f.is_ready());
 
-  concurrency::future<T> unwrapped_f(std::move(f));
+  experimental::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_TRUE(unwrapped_f.is_ready());
@@ -363,10 +363,10 @@ void unwrap_constructor_ready_ready() {
 
 template<typename T>
 void unwrap_constructor_ready_invalid() {
-  auto f = concurrency::make_ready_future(concurrency::future<T>{});
+  auto f = experimental::make_ready_future(experimental::future<T>{});
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<T> unwrapped_f(std::move(f));
+  experimental::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_TRUE(unwrapped_f.is_ready());
@@ -375,15 +375,15 @@ void unwrap_constructor_ready_invalid() {
 
 template<typename T>
 void unwrap_constructor_async_async_error() {
-  concurrency::promise<concurrency::future<T>> p;
+  experimental::promise<experimental::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](concurrency::promise<concurrency::future<T>>& p) {
+  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>& p) {
     std::this_thread::sleep_for(15ms);
     p.set_value(set_error_in_other_thread<T>(15ms, std::runtime_error("test error")));
   }, std::move(p));
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<T> unwrapped_f(std::move(f));
+  experimental::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -392,15 +392,15 @@ void unwrap_constructor_async_async_error() {
 
 template<typename T>
 void unwrap_constructor_async_ready_error() {
-  concurrency::promise<concurrency::future<T>> p;
+  experimental::promise<experimental::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](concurrency::promise<concurrency::future<T>>& p) {
+  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>& p) {
     std::this_thread::sleep_for(15ms);
-    p.set_value(concurrency::make_exceptional_future<T>(std::runtime_error("test error")));
+    p.set_value(experimental::make_exceptional_future<T>(std::runtime_error("test error")));
   }, std::move(p));
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<T> unwrapped_f(std::move(f));
+  experimental::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -409,12 +409,12 @@ void unwrap_constructor_async_ready_error() {
 
 template<typename T>
 void unwrap_constructor_ready_async_error() {
-  concurrency::future<concurrency::future<T>> f = concurrency::make_ready_future(
+  experimental::future<experimental::future<T>> f = experimental::make_ready_future(
     set_error_in_other_thread<T>(15ms, std::runtime_error("test error"))
   );
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<T> unwrapped_f(std::move(f));
+  experimental::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -423,12 +423,12 @@ void unwrap_constructor_ready_async_error() {
 
 template<typename T>
 void unwrap_constructor_ready_ready_error() {
-  concurrency::future<concurrency::future<T>> f = concurrency::make_ready_future(
-    concurrency::make_exceptional_future<T>(std::runtime_error("test error"))
+  experimental::future<experimental::future<T>> f = experimental::make_ready_future(
+    experimental::make_exceptional_future<T>(std::runtime_error("test error"))
   );
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<T> unwrapped_f(std::move(f));
+  experimental::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_TRUE(unwrapped_f.is_ready());
@@ -437,12 +437,12 @@ void unwrap_constructor_ready_ready_error() {
 
 template<typename T>
 void unwrap_constructor_ready_error() {
-  concurrency::future<concurrency::future<T>> f =
-    concurrency::make_exceptional_future<concurrency::future<T>>(std::runtime_error("test error"))
+  experimental::future<experimental::future<T>> f =
+    experimental::make_exceptional_future<experimental::future<T>>(std::runtime_error("test error"))
   ;
   ASSERT_TRUE(f.valid());
 
-  concurrency::future<T> unwrapped_f(std::move(f));
+  experimental::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_TRUE(unwrapped_f.is_ready());

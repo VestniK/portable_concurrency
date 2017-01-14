@@ -8,7 +8,8 @@
 #include "shared_state.h"
 #include "utils.h"
 
-namespace concurrency {
+namespace experimental {
+inline namespace concurrency_v1 {
 
 namespace detail {
 
@@ -24,7 +25,7 @@ public:
   {}
 
   void invoke() noexcept override try {
-    state_->emplace(concurrency::detail::invoke(std::move(f_), std::move(future_)));
+    state_->emplace(experimental::detail::invoke(std::move(f_), std::move(future_)));
   } catch(...) {
     state_->set_exception(std::current_exception());
   }
@@ -49,7 +50,7 @@ public:
   {}
 
   void invoke() noexcept override try {
-    concurrency::detail::invoke(std::move(f_), std::move(future_));
+    experimental::detail::invoke(std::move(f_), std::move(future_));
     state_->emplace();
   } catch(...) {
     state_->set_exception(std::current_exception());
@@ -201,4 +202,5 @@ future<void>::future(future<future<void>>&& wrapped) {
   state_ = std::move(state);
 }
 
-} // namespace concurrency
+} // inline namespace concurrency_v1
+} // namespace experimental

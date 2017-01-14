@@ -46,6 +46,7 @@ script:
   - export CXX=${COMPILER_CXX}
   - export CC=${COMPILER_C}
   - mkdir build && cd build
-  - cmake ${CMAKE_EXTRA_FLAGS} .. && make
-  - make test || ( cat Testing/Temporary/LastTest.log && false )
+  - cmake ${CMAKE_EXTRA_FLAGS} ..
+  - make
+  - ./bin/unit_tests
 

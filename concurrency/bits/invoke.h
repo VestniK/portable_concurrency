@@ -3,7 +3,8 @@
 #include <type_traits>
 #include <functional>
 
-namespace concurrency {
+namespace experimental {
+inline namespace concurrency_v1 {
 namespace detail {
 
 #if __cpp_lib_invoke >= 201411
@@ -104,4 +105,5 @@ auto invoke(F&& f, A&&... args)
 
 #endif // __cpp_lib_invoke >= 201411
 } // namespace detail
-} // namespace concurrency
+} // inline namespace concurrency_v1
+} // namespace experimental

@@ -6,6 +6,3 @@
 #include "bits/shared_future.h"
 #include "bits/make_future.h"
 
-namespace concurrency {
-
-} // namespace concurrency

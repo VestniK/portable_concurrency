@@ -4,7 +4,8 @@
 
 #include "fwd.h"
 
-namespace concurrency {
+namespace experimental {
+inline namespace concurrency_v1 {
 
 template<typename T>
 class shared_future {
@@ -59,4 +60,5 @@ private:
   std::shared_ptr<detail::shared_state<T>> state_;
 };
 
-} // namespace concurrency
+} // inline namespace concurrency_v1
+} // namespace experimental

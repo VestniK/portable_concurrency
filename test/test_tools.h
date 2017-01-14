@@ -80,7 +80,7 @@ std::ostream& operator<< (std::ostream& out, const printable<future_tests_env&>&
 }
 
 template<typename T>
-void expect_future_exception(concurrency::future<T>& future, const std::string& what) {
+void expect_future_exception(experimental::future<T>& future, const std::string& what) {
   try {
     T unexpected_res = future.get();
     ADD_FAILURE() << "Value " << printable<T>{unexpected_res} << " was returned instead of exception";
@@ -94,7 +94,7 @@ void expect_future_exception(concurrency::future<T>& future, const std::string& 
 }
 
 template<typename T>
-void expect_future_exception(concurrency::shared_future<T>& future, const std::string& what) {
+void expect_future_exception(experimental::shared_future<T>& future, const std::string& what) {
   try {
     const T& unexpected_res = future.get();
     ADD_FAILURE() << "Value " << printable<T>{unexpected_res} << " was returned instead of exception";
@@ -108,7 +108,7 @@ void expect_future_exception(concurrency::shared_future<T>& future, const std::s
 }
 
 inline
-void expect_future_exception(concurrency::future<void>& future, const std::string& what) {
+void expect_future_exception(experimental::future<void>& future, const std::string& what) {
   try {
     future.get();
     ADD_FAILURE() << "void value was returned instead of exception";
@@ -122,7 +122,7 @@ void expect_future_exception(concurrency::future<void>& future, const std::strin
 }
 
 inline
-void expect_future_exception(concurrency::shared_future<void>& future, const std::string& what) {
+void expect_future_exception(experimental::shared_future<void>& future, const std::string& what) {
   try {
     future.get();
     ADD_FAILURE() << "void value was returned instead of exception";

@@ -25,42 +25,42 @@ template<>
 future_tests_env& some_value<future_tests_env&>() {return *g_future_tests_env;}
 
 template<typename T>
-void set_promise_value(concurrency::promise<T>& p) {
+void set_promise_value(experimental::promise<T>& p) {
   p.set_value(some_value<T>());
 }
 
 template<>
-void set_promise_value<void>(concurrency::promise<void>& p) {
+void set_promise_value<void>(experimental::promise<void>& p) {
   p.set_value();
 }
 
 template<typename T>
-concurrency::future<T> make_some_ready_future() {
-  return concurrency::make_ready_future(some_value<T>());
+experimental::future<T> make_some_ready_future() {
+  return experimental::make_ready_future(some_value<T>());
 }
 
 template<>
-concurrency::future<future_tests_env&> make_some_ready_future() {
-  return concurrency::make_ready_future(std::ref(some_value<future_tests_env&>()));
+experimental::future<future_tests_env&> make_some_ready_future() {
+  return experimental::make_ready_future(std::ref(some_value<future_tests_env&>()));
 }
 
 template<>
-concurrency::future<void> make_some_ready_future() {
-  return concurrency::make_ready_future();
+experimental::future<void> make_some_ready_future() {
+  return experimental::make_ready_future();
 }
 
 template<typename T, typename R, typename P>
 auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
   -> std::enable_if_t<
     !std::is_void<T>::value,
-    concurrency::future<T>
+    experimental::future<T>
   >
 {
-  concurrency::promise<T> promise;
+  experimental::promise<T> promise;
   auto res = promise.get_future();
 
   g_future_tests_env->run_async([sleep_duration](
-    concurrency::promise<T>& promise
+    experimental::promise<T>& promise
   ) {
     std::this_thread::sleep_for(sleep_duration);
     promise.set_value(some_value<T>());
@@ -73,14 +73,14 @@ template<typename T, typename R, typename P>
 auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
   -> std::enable_if_t<
     std::is_void<T>::value,
-    concurrency::future<void>
+    experimental::future<void>
   >
 {
-  concurrency::promise<void> promise;
+  experimental::promise<void> promise;
   auto res = promise.get_future();
 
   g_future_tests_env->run_async([sleep_duration](
-    concurrency::promise<void>& promise
+    experimental::promise<void>& promise
   ) {
     std::this_thread::sleep_for(sleep_duration);
     promise.set_value();
@@ -94,11 +94,11 @@ auto set_error_in_other_thread(
   std::chrono::duration<R, P> sleep_duration,
   E err
 ) {
-  concurrency::promise<T> promise;
+  experimental::promise<T> promise;
   auto res = promise.get_future();
 
   g_future_tests_env->run_async([](
-    concurrency::promise<T>& promise,
+    experimental::promise<T>& promise,
     E worker_err,
     std::chrono::duration<R, P> tm
   ) {
@@ -126,22 +126,22 @@ std::string to_string(const std::string& val) {
 }
 
 template<typename T>
-void expect_some_value(concurrency::future<T>& f) {
+void expect_some_value(experimental::future<T>& f) {
   EXPECT_EQ(some_value<T>(), f.get());
 }
 
 template<>
-void expect_some_value<std::unique_ptr<int>>(concurrency::future<std::unique_ptr<int>>& f) {
+void expect_some_value<std::unique_ptr<int>>(experimental::future<std::unique_ptr<int>>& f) {
   EXPECT_EQ(*some_value<std::unique_ptr<int>>(), *f.get());
 }
 
 template<>
-void expect_some_value<future_tests_env&>(concurrency::future<future_tests_env&>& f) {
+void expect_some_value<future_tests_env&>(experimental::future<future_tests_env&>& f) {
   EXPECT_EQ(&some_value<future_tests_env&>(), &f.get());
 }
 
 template<>
-void expect_some_value<void>(concurrency::future<void>& f) {
+void expect_some_value<void>(experimental::future<void>& f) {
   EXPECT_NO_THROW(f.get());
 }
 
