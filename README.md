@@ -1,6 +1,7 @@
 # portable_concurrency
 
-[![Build Status](https://travis-ci.org/VestniK/portable_concurency.svg?branch=master)](https://travis-ci.org/VestniK/portable_concurency)
+[![Build Status](https://travis-ci.org/VestniK/portable_concurrency.svg?branch=master)](https://travis-ci.org/VestniK/portable_concurrency)
+[![Build status](https://ci.appveyor.com/api/projects/status/r2d3py3ioae5bv7u?svg=true)](https://ci.appveyor.com/project/VestniK/portable-concurrency)
 
 Attempt to write portable implementation of the C++ Extensions for Concurrency, ISO/IEC TS 19571:2016
 
