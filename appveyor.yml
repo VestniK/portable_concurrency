@@ -1,0 +1,17 @@
+version: 1.0.{build}
+
+install:
+- cmd: >-
+    pip.exe install conan
+    conan install --build=missing
+
+build_script:
+- cmd: >-
+    mkdir build
+    cd build
+    cmake -G "Visual Studio 14 2015 Win64" ..
+    cmake --build . --config Release
+
+test_script:
+- cmd: build/bin/unit_tests.exe
+
