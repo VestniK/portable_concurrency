@@ -1,7 +1,10 @@
 set(HEADERS
+  async.h
   future.h
   fwd.h
+  invoke.h
   make_future.h
+  postponed_action.h
   promise.h
   result_box.h
   shared_future.h

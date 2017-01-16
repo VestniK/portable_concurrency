@@ -7,6 +7,7 @@
 #include <mutex>
 
 #include "result_box.h"
+#include "postponed_action.h"
 
 namespace experimental {
 inline namespace concurrency_v1 {
