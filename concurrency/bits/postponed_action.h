@@ -12,7 +12,11 @@ namespace detail {
 
 class erased_action {
 public:
+  erased_action() = default;
   virtual ~erased_action() = default;
+
+  erased_action(erased_action&&) = delete;
+
   virtual void invoke() = 0;
 };
 
@@ -22,6 +26,10 @@ public:
 
   template<typename F, typename... A>
   postponed_action(F&& f, A&&... a);
+
+  postponed_action(std::unique_ptr<erased_action>&& action):
+    action_(std::move(action))
+  {}
 
   void operator() () {
     action_->invoke();

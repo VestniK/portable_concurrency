@@ -6,6 +6,7 @@
 
 #include "invoke.h"
 #include "shared_state.h"
+#include "postponed_action.h"
 #include "utils.h"
 
 namespace experimental {
@@ -13,59 +14,53 @@ inline namespace concurrency_v1 {
 
 namespace detail {
 
+template<typename F, typename T>
+using continuation_result_t = std::result_of_t<F(future<T>)>;
+
 template<typename F, typename T, typename R>
-class future_continuation_helper: public continuation {
-  static_assert(std::is_same<R, std::result_of_t<F(future<T>)>>::value, "Invalid return type");
+class future_continuation_action: public erased_action {
+  static_assert(std::is_same<R, std::result_of_t<F(future<T>)>>::value, "Incorrect continuation return type");
 public:
-  using result_type = R;
-
-  future_continuation_helper(F&& f, future<T>&& future):
-    future_(std::move(future)),
-    f_(std::forward<F>(f))
+  future_continuation_action(F&& f, future<T>&& ft, const std::shared_ptr<shared_state<R>>& s):
+    func(std::forward<F>(f)),
+    fut(std::move(ft)),
+    state(s)
   {}
 
-  void invoke() noexcept override try {
-    state_->emplace(experimental::detail::invoke(std::move(f_), std::move(future_)));
-  } catch(...) {
-    state_->set_exception(std::current_exception());
+  void invoke() override try {
+    state->emplace(::experimental::concurrency_v1::detail::invoke(std::move(func), std::move(fut)));
+  } catch (...) {
+    state->set_exception(std::current_exception());
   }
 
-  auto get_state() const noexcept {return state_;}
-
 private:
-  future<T> future_;
-  std::decay_t<F> f_;
-  std::shared_ptr<shared_state<R>> state_ = std::make_shared<shared_state<R>>();
+  std::decay_t<F> func;
+  future<T> fut;
+  std::shared_ptr<shared_state<R>> state;
 };
 
 template<typename F, typename T>
-class future_continuation_helper<F, T, void>: public continuation {
-  static_assert(std::is_void<std::result_of_t<F(future<T>)>>::value, "Invalid return type");
+class future_continuation_action<F, T, void>: public erased_action {
+  static_assert(std::is_void<std::result_of_t<F(future<T>)>>::value, "Incorrect continuation return type");
 public:
-  using result_type = void;
-
-  future_continuation_helper(F&& f, future<T>&& future):
-    future_(std::move(future)),
-    f_(std::forward<F>(f))
+  future_continuation_action(F&& f, future<T>&& ft, const std::shared_ptr<shared_state<void>>& s):
+    func(std::forward<F>(f)),
+    fut(std::move(ft)),
+    state(s)
   {}
 
-  void invoke() noexcept override try {
-    experimental::detail::invoke(std::move(f_), std::move(future_));
-    state_->emplace();
-  } catch(...) {
-    state_->set_exception(std::current_exception());
+  void invoke() override try {
+    ::experimental::concurrency_v1::detail::invoke(std::move(func), std::move(fut));
+    state->emplace();
+  } catch (...) {
+    state->set_exception(std::current_exception());
   }
 
-  auto get_state() const noexcept {return state_;}
-
 private:
-  future<T> future_;
-  std::decay_t<F> f_;
-  std::shared_ptr<shared_state<void>> state_ = std::make_shared<shared_state<void>>();
+  std::decay_t<F> func;
+  future<T> fut;
+  std::shared_ptr<shared_state<void>> state;
 };
-
-template<typename F, typename T>
-using future_continuation = future_continuation_helper<F, T, std::result_of_t<F(future<T>)>>;
 
 } // namespace detail
 
@@ -154,13 +149,12 @@ public:
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
     auto state = state_;
-    auto cont = std::make_shared<detail::future_continuation<F, T>>(
-      std::forward<F>(f),
-      std::move(*this)
-    );
-    auto child_state = cont->get_state();
-    state->add_continuation(std::move(cont));
-    return detail::make_future<typename detail::future_continuation<F, T>::result_type>(std::move(child_state));
+    using R = detail::continuation_result_t<F, T>;
+    auto cnt_state = std::make_shared<detail::shared_state<R>>();
+    state->add_continuation(std::unique_ptr<detail::erased_action>{
+      new detail::future_continuation_action<F, T, R>{std::forward<F>(f), std::move(*this), cnt_state}
+    });
+    return detail::make_future<R>(std::move(cnt_state));
   }
 
 private:

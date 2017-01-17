@@ -13,12 +13,6 @@ namespace experimental {
 inline namespace concurrency_v1 {
 namespace detail {
 
-class continuation {
-public:
-  virtual ~continuation() = default;
-  virtual void invoke() noexcept = 0;
-};
-
 template<typename T>
 class shared_state {
 public:
@@ -34,7 +28,7 @@ public:
     auto continuations = std::move(continuations_);
     lock.unlock();
     for (auto& cont: continuations)
-      cont->invoke();
+      cont();
   }
 
   void set_exception(std::exception_ptr error) {
@@ -44,7 +38,7 @@ public:
     auto continuations = std::move(continuations_);
     lock.unlock();
     for (auto& cont: continuations)
-      cont->invoke();
+      cont();
   }
 
   void wait() {
@@ -89,11 +83,11 @@ public:
     return box_.get_state() != detail::box_state::empty;
   }
 
-  void add_continuation(std::shared_ptr<continuation>&& cnt) {
+  void add_continuation(postponed_action&& cnt) {
     std::unique_lock<std::mutex> lock(mutex_);
     if (box_.get_state() != detail::box_state::empty) {
       lock.unlock();
-      cnt->invoke();
+      cnt();
     } else
       continuations_.emplace_back(std::move(cnt));
   }
@@ -102,7 +96,7 @@ private:
   std::mutex mutex_;
   std::condition_variable cv_;
   result_box<T> box_;
-  std::deque<std::shared_ptr<continuation>> continuations_;
+  std::deque<postponed_action> continuations_;
 };
 
 } // namespace detail
