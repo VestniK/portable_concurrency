@@ -20,6 +20,10 @@ public:
   shared_state(const shared_state&) = delete;
   shared_state(shared_state&&) = delete;
 
+  void set_wait_action(postponed_action&& action) {
+    wait_action_ = std::move(action);
+  }
+
   template<typename... U>
   void emplace(U&&... u) {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -43,14 +47,14 @@ public:
 
   void wait() {
     std::unique_lock<std::mutex> lock(mutex_);
-    cv_.wait(lock, [this] {
-      return box_.get_state() != detail::box_state::empty;
-    });
+    wait(lock);
   }
 
   template<typename Rep, typename Period>
   std::future_status wait_for(const std::chrono::duration<Rep, Period>& rel_time) {
     std::unique_lock<std::mutex> lock(mutex_);
+    if (wait_action_)
+      return std::future_status::deferred;
     const bool wait_res = cv_.wait_for(lock, rel_time, [this] {
       return box_.get_state() != detail::box_state::empty;
     });
@@ -60,6 +64,8 @@ public:
   template <typename Clock, typename Duration>
   std::future_status wait_until(const std::chrono::time_point<Clock, Duration>& abs_time) {
     std::unique_lock<std::mutex> lock(mutex_);
+    if (wait_action_)
+      return std::future_status::deferred;
     const bool wait_res = cv_.wait_until(lock, abs_time, [this] {
       return box_.get_state() != detail::box_state::empty;
     });
@@ -68,13 +74,13 @@ public:
 
   T get() {
     std::unique_lock<std::mutex> lock(mutex_);
-    cv_.wait(lock, [this] {return box_.get_state() != detail::box_state::empty;});
+    wait(lock);
     return box_.get();
   }
 
   decltype(auto) shared_get() {
     std::unique_lock<std::mutex> lock(mutex_);
-    cv_.wait(lock, [this] {return box_.get_state() != detail::box_state::empty;});
+    wait(lock);
     return box_.shared_get();
   }
 
@@ -93,9 +99,24 @@ public:
   }
 
 private:
+  void wait(std::unique_lock<std::mutex>& lock) {
+    if (wait_action_)
+    {
+      auto action = std::move(wait_action_);
+      lock.unlock();
+      action();
+      lock.lock();
+    }
+    cv_.wait(lock, [this] {
+      return box_.get_state() != detail::box_state::empty;
+    });
+  }
+
+private:
   std::mutex mutex_;
   std::condition_variable cv_;
   result_box<T> box_;
+  postponed_action wait_action_;
   std::deque<postponed_action> continuations_;
 };
 

@@ -1,4 +1,5 @@
 #include "continuation.hpp"
+#include "deferred.hpp"
 #include "future.hpp"
 #include "promise.hpp"
 #include "shared_future.hpp"

@@ -22,7 +22,7 @@ public:
 
 class postponed_action {
 public:
-  postponed_action() = delete;
+  postponed_action() = default;
 
   template<typename F, typename... A>
   postponed_action(F&& f, A&&... a);
@@ -35,6 +35,9 @@ public:
     action_->invoke();
     action_.reset();
   }
+
+  explicit operator bool () const noexcept {return static_cast<bool>(action_);}
+
 private:
   std::unique_ptr<erased_action> action_;
 };
