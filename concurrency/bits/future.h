@@ -14,6 +14,9 @@ inline namespace concurrency_v1 {
 
 namespace detail {
 
+template<typename T>
+future<T> make_future(std::shared_ptr<shared_state<T>>&& state);
+
 template<typename F, typename T>
 using continuation_result_t = std::result_of_t<F(future<T>)>;
 
@@ -21,21 +24,36 @@ template<typename F, typename T, typename R>
 class future_continuation_action: public erased_action {
   static_assert(std::is_same<R, std::result_of_t<F(future<T>)>>::value, "Incorrect continuation return type");
 public:
-  future_continuation_action(F&& f, future<T>&& ft, const std::shared_ptr<shared_state<R>>& s):
+  future_continuation_action(
+    F&& f,
+    std::shared_ptr<shared_state<T>>&& parent,
+    const std::shared_ptr<shared_state<R>>& s
+  ):
     func(std::forward<F>(f)),
-    fut(std::move(ft)),
+    parent_state(std::move(parent)),
     state(s)
-  {}
+  {
+    if (!parent_state->is_deferred())
+      return;
+    std::weak_ptr<shared_state<T>> weak_parent = parent_state;
+    state->set_wait_action([weak_parent]() {
+      if (auto p = weak_parent.lock())
+        p->wait();
+    });
+  }
 
   void invoke() override try {
-    state->emplace(::experimental::concurrency_v1::detail::invoke(std::move(func), std::move(fut)));
+    state->emplace(::experimental::concurrency_v1::detail::invoke(
+      std::move(func),
+      make_future(std::move(parent_state)))
+    );
   } catch (...) {
     state->set_exception(std::current_exception());
   }
 
 private:
   std::decay_t<F> func;
-  future<T> fut;
+  std::shared_ptr<shared_state<T>> parent_state;
   std::shared_ptr<shared_state<R>> state;
 };
 
@@ -43,14 +61,29 @@ template<typename F, typename T>
 class future_continuation_action<F, T, void>: public erased_action {
   static_assert(std::is_void<std::result_of_t<F(future<T>)>>::value, "Incorrect continuation return type");
 public:
-  future_continuation_action(F&& f, future<T>&& ft, const std::shared_ptr<shared_state<void>>& s):
+  future_continuation_action(
+    F&& f,
+    std::shared_ptr<shared_state<T>>&& parent,
+    const std::shared_ptr<shared_state<void>>& s
+  ):
     func(std::forward<F>(f)),
-    fut(std::move(ft)),
+    parent_state(std::move(parent)),
     state(s)
-  {}
+  {
+    if (!parent_state->is_deferred())
+      return;
+    std::weak_ptr<shared_state<T>> weak_parent = parent_state;
+    state->set_wait_action([weak_parent]() {
+      if (auto p = weak_parent.lock())
+        p->wait();
+    });
+  }
 
   void invoke() override try {
-    ::experimental::concurrency_v1::detail::invoke(std::move(func), std::move(fut));
+    ::experimental::concurrency_v1::detail::invoke(
+      std::move(func),
+      make_future(std::move(parent_state))
+    );
     state->emplace();
   } catch (...) {
     state->set_exception(std::current_exception());
@@ -58,7 +91,7 @@ public:
 
 private:
   std::decay_t<F> func;
-  future<T> fut;
+  std::shared_ptr<shared_state<T>> parent_state;
   std::shared_ptr<shared_state<void>> state;
 };
 
@@ -152,7 +185,7 @@ public:
     using R = detail::continuation_result_t<F, T>;
     auto cnt_state = std::make_shared<detail::shared_state<R>>();
     state->add_continuation(std::unique_ptr<detail::erased_action>{
-      new detail::future_continuation_action<F, T, R>{std::forward<F>(f), std::move(*this), cnt_state}
+      new detail::future_continuation_action<F, T, R>{std::forward<F>(f), std::move(state_), cnt_state}
     });
     return detail::make_future<R>(std::move(cnt_state));
   }

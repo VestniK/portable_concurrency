@@ -24,6 +24,8 @@ public:
     wait_action_ = std::move(action);
   }
 
+  bool is_deferred() const {return static_cast<bool>(wait_action_);}
+
   template<typename... U>
   void emplace(U&&... u) {
     std::unique_lock<std::mutex> lock(mutex_);

@@ -47,6 +47,11 @@ struct concrete_action: public erased_action {
   std::decay_t<F> func;
   std::tuple<std::decay_t<A>...> args;
 
+  concrete_action(F&& f, A&&... a):
+    func(std::forward<F>(f)),
+    args(std::forward<A>(a)...)
+  {}
+
   void invoke() override {
     invoke(std::make_index_sequence<sizeof...(A)>());
   }
