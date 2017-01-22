@@ -21,7 +21,7 @@ namespace tests {
 template<typename T>
 void called_on_get() {
   unsigned call_count = 0;
-  auto f = experimental::async(std::launch::deferred, [&call_count]() {
+  auto f = experimental::async(std::launch::deferred, [&call_count]() -> T {
     ++call_count;
     return some_value<T>();
   });
@@ -43,6 +43,6 @@ REGISTER_TYPED_TEST_CASE_P(
 INSTANTIATE_TYPED_TEST_CASE_P(PrimitiveType, DeferredFutureTests, int);
 INSTANTIATE_TYPED_TEST_CASE_P(CopyableType, DeferredFutureTests, std::string);
 INSTANTIATE_TYPED_TEST_CASE_P(MoveableType, DeferredFutureTests, std::unique_ptr<int>);
-// TODO: INSTANTIATE_TYPED_TEST_CASE_P(ReferenceType, DeferredFutureTests, future_tests_env&);
+INSTANTIATE_TYPED_TEST_CASE_P(ReferenceType, DeferredFutureTests, future_tests_env&);
 
 } // anonymous namespace
