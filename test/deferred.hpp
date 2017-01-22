@@ -71,16 +71,88 @@ void copy_shared_after_get() {
   EXPECT_EQ(1u, call_count);
 }
 
+template<typename T>
+void one_param_deferred_func() {
+  unsigned call_count = 0;
+  auto f = experimental::async(
+    std::launch::deferred,
+    [](unsigned& counter) -> T {
+      ++counter;
+      return some_value<T>();
+    },
+    std::ref(call_count)
+  );
+  ASSERT_TRUE(f.valid());
+  EXPECT_EQ(0u, call_count);
+  EXPECT_SOME_VALUE(f);
+  EXPECT_EQ(1u, call_count);
+}
+
+template<typename T>
+void move_only_param_deferred_func() {
+  unsigned call_count = 0;
+  experimental::promise<std::string> p;
+  auto pf = p.get_future();
+  auto df = experimental::async(
+    std::launch::deferred,
+    [&call_count](experimental::promise<std::string>&& promise) -> T {
+      ++call_count;
+      promise.set_value("deferred action launched");
+      return some_value<T>();
+    },
+    std::move(p)
+  );
+  ASSERT_TRUE(df.valid());
+  EXPECT_EQ(0u, call_count);
+  EXPECT_FALSE(df.is_ready());
+  EXPECT_SOME_VALUE(df);
+  EXPECT_EQ(1u, call_count);
+
+  EXPECT_TRUE(pf.is_ready());
+  EXPECT_EQ("deferred action launched", pf.get());
+}
+
+template<typename T>
+void two_params_deferred_func() {
+  unsigned call_count = 0;
+  experimental::promise<std::string> p;
+  auto pf = p.get_future();
+  auto df = experimental::async(
+    std::launch::deferred,
+    [](experimental::promise<std::string>&& promise, unsigned& counter) -> T {
+      ++counter;
+      promise.set_value("deferred action launched");
+      return some_value<T>();
+    },
+    std::move(p),
+    std::ref(call_count)
+  );
+  ASSERT_TRUE(df.valid());
+  EXPECT_EQ(0u, call_count);
+  EXPECT_FALSE(df.is_ready());
+  EXPECT_SOME_VALUE(df);
+  EXPECT_EQ(1u, call_count);
+
+  EXPECT_TRUE(pf.is_ready());
+  EXPECT_EQ("deferred action launched", pf.get());
+}
+
 } // namespace test
 
 TYPED_TEST_P(DeferredFutureTests, called_on_get) {tests::called_on_get<TypeParam>();}
 TYPED_TEST_P(DeferredFutureTests, called_on_shared_get) {tests::called_on_shared_get<TypeParam>();}
 TYPED_TEST_P(DeferredFutureTests, copy_shared_after_get) {tests::copy_shared_after_get<TypeParam>();}
+TYPED_TEST_P(DeferredFutureTests, one_param_deferred_func) {tests::one_param_deferred_func<TypeParam>();}
+TYPED_TEST_P(DeferredFutureTests, move_only_param_deferred_func) {tests::move_only_param_deferred_func<TypeParam>();}
+TYPED_TEST_P(DeferredFutureTests, two_params_deferred_func) {tests::two_params_deferred_func<TypeParam>();}
 REGISTER_TYPED_TEST_CASE_P(
   DeferredFutureTests,
   called_on_get,
   called_on_shared_get,
-  copy_shared_after_get
+  copy_shared_after_get,
+  one_param_deferred_func,
+  move_only_param_deferred_func,
+  two_params_deferred_func
 );
 
 // TODO: INSTANTIATE_TYPED_TEST_CASE_P(VoidType, DeferredFutureTests, void);
