@@ -162,7 +162,7 @@ void test_retrieve_shared_future_result() {
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(some_value<T>(), future.get());
-  EXPECT_TRUE(future.valid()); // TODO: investigate if shared_future must remain valid after get()
+  EXPECT_TRUE(future.valid());
 }
 
 template<>
@@ -171,7 +171,7 @@ void test_retrieve_shared_future_result<std::unique_ptr<int>>() {
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(42, *future.get());
-  EXPECT_TRUE(future.valid()); // TODO: investigate if shared_future must remain valid after get()
+  EXPECT_TRUE(future.valid());
 }
 
 template<>
@@ -180,7 +180,7 @@ void test_retrieve_shared_future_result<void>() {
   ASSERT_TRUE(future.valid());
 
   EXPECT_NO_THROW(future.get());
-  EXPECT_TRUE(future.valid()); // TODO: investigate if shared_future must remain valid after get()
+  EXPECT_TRUE(future.valid());
 }
 
 template<>
@@ -189,7 +189,7 @@ void test_retrieve_shared_future_result<future_tests_env&>() {
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(g_future_tests_env, &future.get());
-  EXPECT_TRUE(future.valid()); // TODO: investigate if shared_future must remain valid after get()
+  EXPECT_TRUE(future.valid());
 }
 
 TYPED_TEST_P(SharedFutureTests, retrieve_result) {
@@ -211,49 +211,10 @@ void test_retrieve_shared_future_result_twice() {
   ASSERT_TRUE(sf1.valid());
   ASSERT_TRUE(sf2.valid());
 
-  EXPECT_EQ(some_value<T>(), sf1.get());
-  EXPECT_EQ(some_value<T>(), sf2.get());
-  EXPECT_TRUE(sf1.valid()); // TODO: investigate if shared_future must remain valid after get()
-  EXPECT_TRUE(sf2.valid()); // TODO: investigate if shared_future must remain valid after get()
-}
-
-template<>
-void test_retrieve_shared_future_result_twice<std::unique_ptr<int>>() {
-  experimental::shared_future<std::unique_ptr<int>> sf1 = set_value_in_other_thread<std::unique_ptr<int>>(25ms);
-  auto sf2 = sf1;
-  ASSERT_TRUE(sf1.valid());
-  ASSERT_TRUE(sf2.valid());
-
-  EXPECT_EQ(42, *sf1.get());
-  EXPECT_EQ(42, *sf2.get());
-  EXPECT_TRUE(sf1.valid()); // TODO: investigate if shared_future must remain valid after get()
-  EXPECT_TRUE(sf2.valid()); // TODO: investigate if shared_future must remain valid after get()
-}
-
-template<>
-void test_retrieve_shared_future_result_twice<void>() {
-  experimental::shared_future<void> sf1 = set_value_in_other_thread<void>(25ms);
-  auto sf2 = sf1;
-  ASSERT_TRUE(sf1.valid());
-  ASSERT_TRUE(sf2.valid());
-
-  EXPECT_NO_THROW(sf1.get());
-  EXPECT_NO_THROW(sf2.get());
-  EXPECT_TRUE(sf1.valid()); // TODO: investigate if shared_future must remain valid after get()
-  EXPECT_TRUE(sf2.valid()); // TODO: investigate if shared_future must remain valid after get()
-}
-
-template<>
-void test_retrieve_shared_future_result_twice<future_tests_env&>() {
-  experimental::shared_future<future_tests_env&> sf1 = set_value_in_other_thread<future_tests_env&>(25ms);
-  auto sf2 = sf1;
-  ASSERT_TRUE(sf1.valid());
-  ASSERT_TRUE(sf2.valid());
-
-  EXPECT_EQ(g_future_tests_env, &sf1.get());
-  EXPECT_EQ(g_future_tests_env, &sf2.get());
-  EXPECT_TRUE(sf1.valid()); // TODO: investigate if shared_future must remain valid after get()
-  EXPECT_TRUE(sf2.valid()); // TODO: investigate if shared_future must remain valid after get()
+  EXPECT_SOME_VALUE(sf1);
+  EXPECT_SOME_VALUE(sf2);
+  EXPECT_TRUE(sf1.valid());
+  EXPECT_TRUE(sf2.valid());
 }
 
 TYPED_TEST_P(SharedFutureTests, retreive_result_from_several_futures) {

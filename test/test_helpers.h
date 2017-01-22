@@ -125,23 +125,45 @@ std::string to_string(const std::string& val) {
   return val;
 }
 
+// EXPECT_SOME_VALUE test that std::future<T> is set with value of some_value<T>() function
+
 template<typename T>
 void expect_some_value(experimental::future<T>& f) {
   EXPECT_EQ(some_value<T>(), f.get());
 }
 
-template<>
-void expect_some_value<std::unique_ptr<int>>(experimental::future<std::unique_ptr<int>>& f) {
+inline
+void expect_some_value(experimental::future<std::unique_ptr<int>>& f) {
   EXPECT_EQ(*some_value<std::unique_ptr<int>>(), *f.get());
 }
 
-template<>
-void expect_some_value<future_tests_env&>(experimental::future<future_tests_env&>& f) {
+inline
+void expect_some_value(experimental::future<future_tests_env&>& f) {
   EXPECT_EQ(&some_value<future_tests_env&>(), &f.get());
 }
 
-template<>
-void expect_some_value<void>(experimental::future<void>& f) {
+inline
+void expect_some_value(experimental::future<void>& f) {
+  EXPECT_NO_THROW(f.get());
+}
+
+template<typename T>
+void expect_some_value(experimental::shared_future<T>& f) {
+  EXPECT_EQ(some_value<T>(), f.get());
+}
+
+inline
+void expect_some_value(experimental::shared_future<std::unique_ptr<int>>& f) {
+  EXPECT_EQ(*some_value<std::unique_ptr<int>>(), *f.get());
+}
+
+inline
+void expect_some_value(experimental::shared_future<future_tests_env&>& f) {
+  EXPECT_EQ(&some_value<future_tests_env&>(), &f.get());
+}
+
+inline
+void expect_some_value(experimental::shared_future<void>& f) {
   EXPECT_NO_THROW(f.get());
 }
 
