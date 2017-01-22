@@ -17,3 +17,12 @@ Attempt to write portable implementation of the C++ Extensions for Concurrency, 
     cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ../..
     ninja
     ninja test
+
+## TODO
+
+ * Proper deferred future support (in progress)
+ * packaged_task implementation
+ * shared_future continuation
+ * when_any implementation
+ * when_all implementation
+ * implicit unwrap for continuations
