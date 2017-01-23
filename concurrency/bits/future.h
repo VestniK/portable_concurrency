@@ -32,15 +32,7 @@ public:
     func(std::forward<F>(f)),
     parent_state(std::move(parent)),
     state(s)
-  {
-    if (!parent_state->is_deferred())
-      return;
-    std::weak_ptr<shared_state<T>> weak_parent = parent_state;
-    state->set_wait_action([weak_parent]() {
-      if (auto p = weak_parent.lock())
-        p->wait();
-    });
-  }
+  {}
 
   void invoke() override try {
     state->emplace(::experimental::concurrency_v1::detail::invoke(
@@ -69,15 +61,7 @@ public:
     func(std::forward<F>(f)),
     parent_state(std::move(parent)),
     state(s)
-  {
-    if (!parent_state->is_deferred())
-      return;
-    std::weak_ptr<shared_state<T>> weak_parent = parent_state;
-    state->set_wait_action([weak_parent]() {
-      if (auto p = weak_parent.lock())
-        p->wait();
-    });
-  }
+  {}
 
   void invoke() override try {
     ::experimental::concurrency_v1::detail::invoke(

@@ -17,14 +17,10 @@ template<typename T>
 class shared_state {
 public:
   shared_state() = default;
+  virtual ~shared_state() = default;
+
   shared_state(const shared_state&) = delete;
   shared_state(shared_state&&) = delete;
-
-  void set_wait_action(postponed_action&& action) {
-    wait_action_ = std::move(action);
-  }
-
-  bool is_deferred() const {return static_cast<bool>(wait_action_);}
 
   template<typename... U>
   void emplace(U&&... u) {
@@ -55,7 +51,7 @@ public:
   template<typename Rep, typename Period>
   std::future_status wait_for(const std::chrono::duration<Rep, Period>& rel_time) {
     std::unique_lock<std::mutex> lock(mutex_);
-    if (wait_action_)
+    if (deferred_)
       return std::future_status::deferred;
     const bool wait_res = cv_.wait_for(lock, rel_time, [this] {
       return box_.get_state() != detail::box_state::empty;
@@ -66,7 +62,7 @@ public:
   template <typename Clock, typename Duration>
   std::future_status wait_until(const std::chrono::time_point<Clock, Duration>& abs_time) {
     std::unique_lock<std::mutex> lock(mutex_);
-    if (wait_action_)
+    if (deferred_)
       return std::future_status::deferred;
     const bool wait_res = cv_.wait_until(lock, abs_time, [this] {
       return box_.get_state() != detail::box_state::empty;
@@ -100,13 +96,26 @@ public:
       continuations_.emplace_back(std::move(cnt));
   }
 
+  void invoke_deferred_action() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    if (!deferred_)
+      return;
+    deferred_ = false;
+    lock.unlock();
+    deferred_action();
+  }
+
+protected:
+  shared_state(bool defered): deferred_(defered) {}
+
+  virtual void deferred_action() noexcept {}
+
 private:
   void wait(std::unique_lock<std::mutex>& lock) {
-    if (wait_action_)
-    {
-      auto action = std::move(wait_action_);
+    if (deferred_) {
+      deferred_ = false;
       lock.unlock();
-      action();
+      deferred_action();
       lock.lock();
     }
     cv_.wait(lock, [this] {
@@ -114,12 +123,13 @@ private:
     });
   }
 
+
 private:
   std::mutex mutex_;
   std::condition_variable cv_;
   result_box<T> box_;
-  postponed_action wait_action_;
   std::deque<postponed_action> continuations_;
+  bool deferred_ = false;
 };
 
 } // namespace detail

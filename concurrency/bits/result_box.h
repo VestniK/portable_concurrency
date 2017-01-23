@@ -8,9 +8,9 @@ inline namespace concurrency_v1 {
 namespace detail {
 
 enum class box_state {
-    empty,
-    result,
-    exception
+  empty,
+  result,
+  exception
 };
 
 template<typename T>
