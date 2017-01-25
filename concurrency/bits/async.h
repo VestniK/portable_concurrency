@@ -11,8 +11,18 @@ inline namespace concurrency_v1 {
 
 namespace detail {
 
+#if defined(_MSC_VER)
+template<typename F, typename... A>
+struct async_res {
+  using type = std::result_of_t<std::decay_t<F>(std::decay_t<A>...)>;
+};
+
+template<typename F, typename... A>
+using async_res_t = typename async_res<F, A...>::type;
+#else
 template<typename F, typename... A>
 using async_res_t = std::result_of_t<std::decay_t<F>(std::decay_t<A>...)>;
+#endif
 
 template<typename F, typename... A>
 class deferred_shared_state: public shared_state<async_res_t<F, A...>> {
