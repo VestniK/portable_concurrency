@@ -10,3 +10,8 @@ target_link_libraries(unit_tests concurrency ${GTEST_BOTH_LIBRARIES})
 add_test(NAME unit_tests
   COMMAND unit_tests --gtest_output=xml:${CMAKE_BINARY_DIR}/Reports/unit_tests.xml
 )
+
+if (ENABLE_UBSAN)
+  find_package(UBSan)
+  target_link_libraries(unit_tests UBSan)
+endif()

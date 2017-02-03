@@ -2,6 +2,7 @@ language: cpp
 
 matrix:
   include:
+    # linux gcc 5 release
     - os: linux
       dist: trusty
       compiler: gcc
@@ -21,6 +22,28 @@ matrix:
         - pip install conan
         - conan install --build=missing -s compiler=gcc -s compiler.version=5.4 -s compiler.libcxx=libstdc++
 
+    # linux gcc 6 ub-sanitizer
+    - os: linux
+      dist: trusty
+      compiler: gcc
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-6
+            - g++-6
+      env:
+        - COMPILER_CXX=g++-6
+        - COMPILER_C=gcc-6
+        - CMAKE_EXTRA_FLAGS=-DCMAKE_BUILD_TYPE=Debug -DENABLE_UBSAN=On
+      install:
+        - export CXX=${COMPILER_CXX}
+        - export CC=${COMPILER_C}
+        - pip install conan
+        - conan install --build=missing -s compiler=gcc -s compiler.version=6.2 -s compiler.libcxx=libstdc++
+
+    # linux clang 3.8 release
     - os: linux
       dist: trusty
       compiler: clang
@@ -36,6 +59,28 @@ matrix:
         - COMPILER_CXX=clang++-3.8
         - COMPILER_C=clang-3.8
         - CMAKE_EXTRA_FLAGS=-DCMAKE_CXX_FLAGS=-stdlib=libc++
+      install:
+        - export CXX=${COMPILER_CXX}
+        - export CC=${COMPILER_C}
+        - pip install conan
+        - conan install --build=missing -s compiler=clang -s compiler.version=3.8 -s compiler.libcxx=libc++
+
+    # linux clang 3.8 ub-sanitizer
+    - os: linux
+      dist: trusty
+      compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-3.8
+          packages:
+            - clang-3.8
+            - libc++-dev
+      env:
+        - COMPILER_CXX=clang++-3.8
+        - COMPILER_C=clang-3.8
+        - CMAKE_EXTRA_FLAGS=-DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_BUILD_TYPE=Debug -DENABLE_UBSAN=On
       install:
         - export CXX=${COMPILER_CXX}
         - export CC=${COMPILER_C}
