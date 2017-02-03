@@ -4,6 +4,7 @@ set(HEADERS
   fwd.h
   invoke.h
   make_future.h
+  packaged_task.h
   promise.h
   result_box.h
   shared_future.h

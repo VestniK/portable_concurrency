@@ -3,6 +3,7 @@
 
 #include "bits/async.h"
 #include "bits/future.h"
+#include "bits/packaged_task.h"
 #include "bits/promise.h"
 #include "bits/shared_future.h"
 #include "bits/make_future.h"
