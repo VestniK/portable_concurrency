@@ -1,12 +1,12 @@
 #pragma once
 
 #include <future>
+#include <type_traits>
 
 #include "fwd.h"
 
 #include "invoke.h"
 #include "shared_state.h"
-#include "postponed_action.h"
 #include "utils.h"
 
 namespace experimental {
@@ -20,63 +20,42 @@ future<T> make_future(std::shared_ptr<shared_state<T>>&& state);
 template<typename F, typename T>
 using continuation_result_t = std::result_of_t<F(future<T>)>;
 
-template<typename F, typename T, typename R>
-class future_continuation_action: public erased_action {
-  static_assert(std::is_same<R, std::result_of_t<F(future<T>)>>::value, "Incorrect continuation return type");
-public:
-  future_continuation_action(
-    F&& f,
-    std::shared_ptr<shared_state<T>>&& parent,
-    const std::shared_ptr<shared_state<R>>& s
-  ):
-    func(std::forward<F>(f)),
-    parent_state(std::move(parent)),
-    state(s)
-  {}
-
-  void invoke() override try {
-    state->emplace(::experimental::concurrency_v1::detail::invoke(
-      std::move(func),
-      make_future(std::move(parent_state)))
-    );
-  } catch (...) {
-    state->set_exception(std::current_exception());
-  }
-
-private:
-  std::decay_t<F> func;
-  std::shared_ptr<shared_state<T>> parent_state;
-  std::shared_ptr<shared_state<R>> state;
-};
-
 template<typename F, typename T>
-class future_continuation_action<F, T, void>: public erased_action {
-  static_assert(std::is_void<std::result_of_t<F(future<T>)>>::value, "Incorrect continuation return type");
+class continuation_state:
+  public shared_state<continuation_result_t<F, T>>,
+  public continuation
+{
 public:
-  future_continuation_action(
-    F&& f,
-    std::shared_ptr<shared_state<T>>&& parent,
-    const std::shared_ptr<shared_state<void>>& s
-  ):
-    func(std::forward<F>(f)),
-    parent_state(std::move(parent)),
-    state(s)
-  {}
+  using result_t = continuation_result_t<F, T>;
 
-  void invoke() override try {
-    ::experimental::concurrency_v1::detail::invoke(
-      std::move(func),
-      make_future(std::move(parent_state))
+  continuation_state(F&& f, std::shared_ptr<shared_state<T>>&& parent):
+    func_(std::forward<F>(f)),
+    parent_(std::move(parent))
+  {
+    // using this-> to prevent ADL
+    this->set_deferred_action(parent_->get_deferred_action());
+  }
+
+  static std::shared_ptr<shared_state<continuation_result_t<F, T>>> make(
+    F&& func,
+    std::shared_ptr<shared_state<T>>&& parent
+  ) {
+    auto res = std::make_shared<continuation_state>(std::forward<F>(func), std::move(parent));
+    res->parent_->add_continuation(res);
+    return res;
+  }
+
+  void invoke() noexcept override {
+    ::experimental::concurrency_v1::detail::set_state_value(
+      *this,
+      std::move(func_),
+      make_future(std::move(parent_))
     );
-    state->emplace();
-  } catch (...) {
-    state->set_exception(std::current_exception());
   }
 
 private:
-  std::decay_t<F> func;
-  std::shared_ptr<shared_state<T>> parent_state;
-  std::shared_ptr<shared_state<void>> state;
+  std::decay_t<F> func_;
+  std::shared_ptr<shared_state<T>> parent_;
 };
 
 } // namespace detail
@@ -114,11 +93,7 @@ public:
   }
 
   future& operator= (const future&) = delete;
-  future& operator= (future&& rhs) noexcept {
-    state_ = std::move(rhs.state_);
-    rhs.state_ = nullptr;
-    return *this;
-  }
+  future& operator= (future&& rhs) noexcept = default;
 
   ~future() = default;
 
@@ -165,13 +140,9 @@ public:
   auto then(F&& f) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    auto state = state_;
-    using R = detail::continuation_result_t<F, T>;
-    auto cnt_state = std::make_shared<detail::shared_state<R>>();
-    state->add_continuation(std::unique_ptr<detail::erased_action>{
-      new detail::future_continuation_action<F, T, R>{std::forward<F>(f), std::move(state_), cnt_state}
-    });
-    return detail::make_future<R>(std::move(cnt_state));
+    return detail::make_future(detail::continuation_state<F, T>::make(
+      std::forward<F>(f), std::move(state_)
+    ));
   }
 
 private:

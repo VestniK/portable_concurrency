@@ -20,7 +20,6 @@ Attempt to write portable implementation of the C++ Extensions for Concurrency, 
 
 ## TODO
 
- * Proper deferred future support (in progress)
  * packaged_task implementation
  * shared_future continuation
  * when_any implementation

@@ -159,6 +159,28 @@ void deferred_future_continuation() {
   EXPECT_EQ(1u, continuation_call_count);
 }
 
+template<>
+void deferred_future_continuation<void>() {
+  unsigned call_count = 0;
+  unsigned continuation_call_count = 0;
+  auto f = experimental::async(std::launch::deferred, [&call_count]() -> void {
+    ++call_count;
+  }).then([&continuation_call_count](experimental::future<void>&& ready) {
+    ++continuation_call_count;
+    EXPECT_TRUE(ready.is_ready());
+    EXPECT_NO_THROW(ready.get());
+    return "void val"s;
+  });
+  ASSERT_TRUE(f.valid());
+
+  EXPECT_EQ(0u, call_count);
+  EXPECT_EQ(0u, continuation_call_count);
+
+  EXPECT_EQ("void val"s, f.get());
+  EXPECT_EQ(1u, call_count);
+  EXPECT_EQ(1u, continuation_call_count);
+}
+
 } // namespace test
 
 TYPED_TEST_P(DeferredFutureTests, called_on_get) {tests::called_on_get<TypeParam>();}
@@ -167,8 +189,7 @@ TYPED_TEST_P(DeferredFutureTests, copy_shared_after_get) {tests::copy_shared_aft
 TYPED_TEST_P(DeferredFutureTests, one_param_deferred_func) {tests::one_param_deferred_func<TypeParam>();}
 TYPED_TEST_P(DeferredFutureTests, move_only_param_deferred_func) {tests::move_only_param_deferred_func<TypeParam>();}
 TYPED_TEST_P(DeferredFutureTests, two_params_deferred_func) {tests::two_params_deferred_func<TypeParam>();}
-// TODO: fix deadlock on continuation future get()
-TYPED_TEST_P(DeferredFutureTests, DISABLED_deferred_future_continuation) {tests::deferred_future_continuation<TypeParam>();}
+TYPED_TEST_P(DeferredFutureTests, deferred_future_continuation) {tests::deferred_future_continuation<TypeParam>();}
 REGISTER_TYPED_TEST_CASE_P(
   DeferredFutureTests,
   called_on_get,
@@ -177,10 +198,10 @@ REGISTER_TYPED_TEST_CASE_P(
   one_param_deferred_func,
   move_only_param_deferred_func,
   two_params_deferred_func,
-  DISABLED_deferred_future_continuation
+  deferred_future_continuation
 );
 
-// TODO: INSTANTIATE_TYPED_TEST_CASE_P(VoidType, DeferredFutureTests, void);
+INSTANTIATE_TYPED_TEST_CASE_P(VoidType, DeferredFutureTests, void);
 INSTANTIATE_TYPED_TEST_CASE_P(PrimitiveType, DeferredFutureTests, int);
 INSTANTIATE_TYPED_TEST_CASE_P(CopyableType, DeferredFutureTests, std::string);
 INSTANTIATE_TYPED_TEST_CASE_P(MoveableType, DeferredFutureTests, std::unique_ptr<int>);

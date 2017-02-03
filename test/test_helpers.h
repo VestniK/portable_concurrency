@@ -24,6 +24,9 @@ std::unique_ptr<int> some_value<std::unique_ptr<int>>() {return std::make_unique
 template<>
 future_tests_env& some_value<future_tests_env&>() {return *g_future_tests_env;}
 
+template<>
+void some_value<void>() {}
+
 template<typename T>
 void set_promise_value(experimental::promise<T>& p) {
   p.set_value(some_value<T>());
