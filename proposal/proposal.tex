@@ -1,0 +1,67 @@
+\documentclass[ebook,openany,10pt,oneside,final]{memoir}
+
+\usepackage{listings}
+\usepackage{underscore}
+
+\title{Posibility to erase std::packaged\_task return type}
+\date{2017-02-04}
+\author{Sergey Vidyuk}
+
+\renewcommand\thesection{\arabic{section}}
+
+\begin{document}
+
+\lstset{language=C++}
+
+\makeatletter
+\hfill\begin{tabular}{ll}
+\textbf{Document Number:} & to be reserved \\
+\textbf{Date:} & \@date \\
+\textbf{Audience:} & SG1\\
+\textbf{Author:} & \@author
+\end{tabular}
+
+\vspace{2.5cm}
+\begin{center}
+\textbf{\Huge\@title}
+\end{center}
+\vfill
+\textbf{Note: this is an early draft. It's known to be incomplet and
+  incorrekt, and it has lots of
+b\kern-1.2pta\kern1ptd\hspace{1.5em}for\kern-3ptmat\kern0.6ptti\raise0.15ex\hbox{n}g.}
+\makeatother
+\newpage
+
+\section{Motivation}
+Implementing custom executor on top of the std::future API requres some type erasure class for function and
+function-like objects which:
+\begin{itemize}
+ \item Hold write reference to a shared state of a future.
+ \item Protect from accidental execution of the wrapped function more than once.
+ \item Make shared state ready with some predictable exception if object is destroyed without execution of the wrapped function.
+ \item Store result of the wrapped function or any exception thrown in the shared state.
+ \item Objects wrapping functions with the same argument types but different return type can be stored in a same collection.
+\end{itemize}
+Template class std::packaged_task satisfy all of those requrements except the last one. Common workaround here is to wrap
+packaged_task into additional type-erasure for functions which leads to a code like this:
+
+\begin{lstlisting}
+using task_queue =
+  mt_queue<std::function<void()>>;
+
+template<typename F>
+auto
+post_function(task_queue& queue, F&& func) {
+  using R = std::result_of_t<F()>;
+  auto task = std::make_shared<
+    std::packaged_task<R()>
+  >();
+  auto res = task->get_future();
+  queue.push([task = std::move(task)]() {
+    (*task)();
+  });
+  return res;
+}
+\end{lstlisting}
+
+\end{document}
