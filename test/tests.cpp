@@ -1,6 +1,7 @@
 #include "continuation.hpp"
 #include "deferred.hpp"
 #include "future.hpp"
+#include "packaged_task.hpp"
 #include "promise.hpp"
 #include "shared_future.hpp"
 #include "test_tools.hpp"
