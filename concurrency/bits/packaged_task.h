@@ -29,7 +29,7 @@ public:
     ::experimental::concurrency_v1::detail::set_state_value(*this, func_, std::forward<A>(a)...);
   }
 
-  std::shared_ptr<task_state_base<R, A...>> reset() {
+  std::shared_ptr<task_state_base<R, A...>> reset() override {
     return std::shared_ptr<task_state_base<R, A...>>{
       new task_state{std::move(func_)}
     };
