@@ -45,7 +45,7 @@ public:
     return res;
   }
 
-  void invoke() noexcept override {
+  void invoke() override {
     ::experimental::concurrency_v1::detail::set_state_value(
       *this,
       std::move(func_),

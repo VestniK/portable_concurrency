@@ -15,7 +15,7 @@ namespace detail {
 template<typename R, typename... A>
 class task_state_base: public shared_state<R> {
 public:
-  virtual void invoke(A&&...) noexcept = 0;
+  virtual void invoke(A...) = 0;
   virtual std::shared_ptr<task_state_base> reset() = 0;
 };
 
@@ -25,8 +25,8 @@ public:
   template<typename U>
   task_state(U&& f): func_(std::forward<U>(f)) {}
 
-  void invoke(A&&... a) noexcept override {
-    set_state_value(*this, func_, std::forward<A>(a)...);
+  void invoke(A... a) override {
+    ::experimental::concurrency_v1::detail::set_state_value(*this, func_, std::forward<A>(a)...);
   }
 
   std::shared_ptr<task_state_base<R, A...>> reset() {

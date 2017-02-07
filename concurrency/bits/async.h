@@ -33,7 +33,7 @@ public:
     args_(std::forward<A>(a)...)
   {}
 
-  void invoke() noexcept override {
+  void invoke() override {
     bool expected = false;
     if (!executed_.compare_exchange_strong(expected, true))
       return;
@@ -45,7 +45,7 @@ public:
   }
 
   template<size_t... I>
-  void invoke(std::index_sequence<I...>) noexcept {
+  void invoke(std::index_sequence<I...>) {
     auto state = state_.lock();
     if (!state)
       return;

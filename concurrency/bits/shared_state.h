@@ -16,13 +16,13 @@ class action {
 public:
   virtual ~action() = default;
   virtual bool is_executed() const noexcept = 0;
-  virtual void invoke() noexcept = 0;
+  virtual void invoke() = 0;
 };
 
 class continuation {
 public:
   virtual ~continuation() = default;
-  virtual void invoke() noexcept = 0;
+  virtual void invoke() = 0;
 };
 
 template<typename T>

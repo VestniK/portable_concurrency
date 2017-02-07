@@ -122,6 +122,87 @@ void swap_valid_tasks() {
   EXPECT_TRUE(f2.is_ready());
 }
 
+template<typename T>
+void call_task_twice() {
+  experimental::packaged_task<T()> task(some_value<T>);
+  ASSERT_TRUE(task.valid());
+
+  ASSERT_NO_THROW(task());
+  EXPECT_FUTURE_ERROR(task(), std::future_errc::promise_already_satisfied);
+}
+
+template<typename T>
+void function_task() {
+  experimental::packaged_task<T()> task(some_value<T>);
+  auto f = task.get_future();
+  g_future_tests_env->run_async(std::move(task));
+  ASSERT_TRUE(f.valid());
+  EXPECT_SOME_VALUE(f);
+}
+
+template<typename T>
+void copyable_functor_task() {
+  auto func = [timeout = 5ms]() -> T {
+    std::this_thread::sleep_for(timeout);
+    return some_value<T>();
+  };
+  static_assert(
+    !std::is_function<decltype(func)>::value &&
+    std::is_copy_constructible<decltype(func)>::value,
+    "Test written incorrectly"
+  );
+  experimental::packaged_task<T()> task{func};
+  auto f = task.get_future();
+  g_future_tests_env->run_async(std::move(task));
+  ASSERT_TRUE(f.valid());
+  EXPECT_SOME_VALUE(f);
+}
+
+template<typename T>
+void moveonly_functor_task() {
+  auto timeout_ptr = std::make_unique<std::chrono::milliseconds>(5ms);
+  auto func = [timeout = std::move(timeout_ptr)]() -> T {
+    std::this_thread::sleep_for(*timeout);
+    return some_value<T>();
+  };
+  static_assert(
+    !std::is_function<decltype(func)>::value &&
+    !std::is_copy_constructible<decltype(func)>::value &&
+    std::is_move_constructible<decltype(func)>::value,
+    "Test written incorrectly"
+  );
+  experimental::packaged_task<T()> task{std::move(func)};
+  auto f = task.get_future();
+  g_future_tests_env->run_async(std::move(task));
+  ASSERT_TRUE(f.valid());
+  EXPECT_SOME_VALUE(f);
+}
+
+template<typename T>
+void one_param_task() {
+  experimental::packaged_task<T(std::chrono::milliseconds)> task([](std::chrono::milliseconds tm) -> T {
+    EXPECT_EQ(tm, 5ms);
+    return some_value<T>();
+  });
+  auto f = task.get_future();
+  g_future_tests_env->run_async(std::move(task), 5ms);
+  ASSERT_TRUE(f.valid());
+  EXPECT_SOME_VALUE(f);
+}
+
+template<typename T>
+void two_param_task() {
+  experimental::packaged_task<T(std::chrono::milliseconds, int)> task([](std::chrono::milliseconds tm, int n) -> T {
+    EXPECT_EQ(tm, 1ms);
+    EXPECT_EQ(n, 5);
+    return some_value<T>();
+  });
+  auto f = task.get_future();
+  g_future_tests_env->run_async(std::move(task), 1ms, 5);
+  ASSERT_TRUE(f.valid());
+  EXPECT_SOME_VALUE(f);
+}
+
 } // namespace tests
 
 TYPED_TEST_P(PackagedTaskTest, default_constructed_is_invalid) {tests::default_constructed_is_invalid<TypeParam>();}
@@ -132,6 +213,12 @@ TYPED_TEST_P(PackagedTaskTest, get_task_future_twice) {tests::get_task_future_tw
 TYPED_TEST_P(PackagedTaskTest, successfull_call_makes_state_ready) {tests::successfull_call_makes_state_ready<TypeParam>();}
 TYPED_TEST_P(PackagedTaskTest, failed_call_makes_state_ready) {tests::failed_call_makes_state_ready<TypeParam>();}
 TYPED_TEST_P(PackagedTaskTest, swap_valid_tasks) {tests::swap_valid_tasks<TypeParam>();}
+TYPED_TEST_P(PackagedTaskTest, call_task_twice) {tests::call_task_twice<TypeParam>();}
+TYPED_TEST_P(PackagedTaskTest, function_task) {tests::function_task<TypeParam>();}
+TYPED_TEST_P(PackagedTaskTest, copyable_functor_task) {tests::copyable_functor_task<TypeParam>();}
+TYPED_TEST_P(PackagedTaskTest, moveonly_functor_task) {tests::moveonly_functor_task<TypeParam>();}
+TYPED_TEST_P(PackagedTaskTest, one_param_task) {tests::one_param_task<TypeParam>();}
+TYPED_TEST_P(PackagedTaskTest, two_param_task) {tests::two_param_task<TypeParam>();}
 REGISTER_TYPED_TEST_CASE_P(
   PackagedTaskTest,
   default_constructed_is_invalid,
@@ -141,7 +228,13 @@ REGISTER_TYPED_TEST_CASE_P(
   get_task_future_twice,
   successfull_call_makes_state_ready,
   failed_call_makes_state_ready,
-  swap_valid_tasks
+  swap_valid_tasks,
+  call_task_twice,
+  function_task,
+  copyable_functor_task,
+  moveonly_functor_task,
+  one_param_task,
+  two_param_task
 );
 
 INSTANTIATE_TYPED_TEST_CASE_P(VoidType, PackagedTaskTest, void);
