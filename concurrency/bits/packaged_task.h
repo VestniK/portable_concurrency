@@ -47,7 +47,7 @@ public:
   packaged_task() noexcept = default;
 
   template<typename F>
-  packaged_task(F&& f):
+  explicit packaged_task(F&& f):
     state_(new detail::task_state<F, R, A...>{std::forward<F>(f)})
   {}
 
