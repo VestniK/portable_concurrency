@@ -18,20 +18,45 @@ future<T> make_future(std::shared_ptr<shared_state<T>>&& state) {
 }
 
 template<typename R, typename F, typename... A>
-void set_state_value(shared_state<R>& state, F&& f, A&&... a) noexcept try {
-  state.emplace(
-    ::experimental::concurrency_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...)
-  );
-} catch (...) {
-  state.set_exception(std::current_exception());
+void set_state_value(shared_state<R>& state, F&& f, A&&... a) {
+  bool executed = false;
+  try {
+    auto&& res = ::experimental::concurrency_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
+    executed = true;
+    state.emplace(std::move(res));
+  } catch (...) {
+    if (executed)
+      throw;
+    state.set_exception(std::current_exception());
+  }
+}
+
+template<typename R, typename F, typename... A>
+void set_state_value(shared_state<R&>& state, F&& f, A&&... a) {
+  bool executed = false;
+  try {
+    R& res = ::experimental::concurrency_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
+    executed = true;
+    state.emplace(res);
+  } catch (...) {
+    if (executed)
+      throw;
+    state.set_exception(std::current_exception());
+  }
 }
 
 template<typename F, typename... A>
-void set_state_value(shared_state<void>& state, F&& f, A&&... a) noexcept try {
-  ::experimental::concurrency_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
-  state.emplace();
-} catch (...) {
-  state.set_exception(std::current_exception());
+void set_state_value(shared_state<void>& state, F&& f, A&&... a) {
+  bool executed = false;
+  try {
+    ::experimental::concurrency_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
+    executed = true;
+    state.emplace();
+  } catch (...) {
+    if (executed)
+      throw;
+    state.set_exception(std::current_exception());
+  }
 }
 
 } // namespace detail

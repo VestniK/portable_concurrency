@@ -181,6 +181,28 @@ void deferred_future_continuation<void>() {
   EXPECT_EQ(1u, continuation_call_count);
 }
 
+template<typename T>
+void single_execution_on_concurect_get() {
+  std::atomic<unsigned> call_count{0};
+  auto sf1 = experimental::async(std::launch::deferred, [&call_count]() -> T {
+    ++call_count;
+    return some_value<T>();
+  }).share();
+  auto sf2 = sf1;
+  ASSERT_TRUE(sf1.valid());
+  ASSERT_TRUE(sf2.valid());
+
+  EXPECT_FALSE(sf1.is_ready());
+  EXPECT_FALSE(sf2.is_ready());
+
+  g_future_tests_env->run_async([](experimental::shared_future<T>& sf) {
+    EXPECT_SOME_VALUE(sf);
+  }, std::move(sf1));
+  EXPECT_SOME_VALUE(sf2);
+
+  EXPECT_EQ(call_count.load(), 1u);
+}
+
 } // namespace test
 
 TYPED_TEST_P(DeferredFutureTests, called_on_get) {tests::called_on_get<TypeParam>();}
@@ -190,6 +212,7 @@ TYPED_TEST_P(DeferredFutureTests, one_param_deferred_func) {tests::one_param_def
 TYPED_TEST_P(DeferredFutureTests, move_only_param_deferred_func) {tests::move_only_param_deferred_func<TypeParam>();}
 TYPED_TEST_P(DeferredFutureTests, two_params_deferred_func) {tests::two_params_deferred_func<TypeParam>();}
 TYPED_TEST_P(DeferredFutureTests, deferred_future_continuation) {tests::deferred_future_continuation<TypeParam>();}
+TYPED_TEST_P(DeferredFutureTests, single_execution_on_concurect_get) {tests::single_execution_on_concurect_get<TypeParam>();}
 REGISTER_TYPED_TEST_CASE_P(
   DeferredFutureTests,
   called_on_get,
@@ -198,7 +221,8 @@ REGISTER_TYPED_TEST_CASE_P(
   one_param_deferred_func,
   move_only_param_deferred_func,
   two_params_deferred_func,
-  deferred_future_continuation
+  deferred_future_continuation,
+  single_execution_on_concurect_get
 );
 
 INSTANTIATE_TYPED_TEST_CASE_P(VoidType, DeferredFutureTests, void);

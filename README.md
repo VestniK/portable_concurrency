@@ -20,7 +20,6 @@ Attempt to write portable implementation of the C++ Extensions for Concurrency, 
 
 ## TODO
 
- * packaged_task implementation (in progres)
  * shared_future continuation
  * when_any implementation
  * when_all implementation
