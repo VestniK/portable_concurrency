@@ -203,6 +203,66 @@ void two_param_task() {
   EXPECT_SOME_VALUE(f);
 }
 
+template<typename T>
+void task_reset_simple() {
+  auto task = experimental::packaged_task<T()>{some_value<T>};
+  ASSERT_TRUE(task.valid());
+  auto f = task.get_future();
+  ASSERT_TRUE(f.valid());
+  EXPECT_FALSE(f.is_ready());
+
+  ASSERT_NO_THROW(task());
+  EXPECT_TRUE(f.is_ready());
+  EXPECT_SOME_VALUE(f);
+  EXPECT_FALSE(f.valid());
+
+  task.reset();
+  ASSERT_NO_THROW(f = task.get_future());
+  ASSERT_TRUE(f.valid());
+  EXPECT_FALSE(f.is_ready());
+
+  ASSERT_NO_THROW(task());
+  EXPECT_TRUE(f.is_ready());
+  EXPECT_SOME_VALUE(f);
+  EXPECT_FALSE(f.valid());
+}
+
+template<typename T>
+void task_reset_moveonly_func() {
+  auto timeout_ptr = std::make_unique<std::chrono::milliseconds>(5ms);
+  auto func = [timeout = std::move(timeout_ptr)]() -> T {
+    std::this_thread::sleep_for(*timeout);
+    return some_value<T>();
+  };
+  static_assert(
+    !std::is_function<decltype(func)>::value &&
+    !std::is_copy_constructible<decltype(func)>::value &&
+    std::is_move_constructible<decltype(func)>::value,
+    "Test written incorrectly"
+  );
+
+  auto task = experimental::packaged_task<T()>{std::move(func)};
+  ASSERT_TRUE(task.valid());
+  auto f = task.get_future();
+  ASSERT_TRUE(f.valid());
+  EXPECT_FALSE(f.is_ready());
+
+  ASSERT_NO_THROW(task());
+  EXPECT_TRUE(f.is_ready());
+  EXPECT_SOME_VALUE(f);
+  EXPECT_FALSE(f.valid());
+
+  task.reset();
+  ASSERT_NO_THROW(f = task.get_future());
+  ASSERT_TRUE(f.valid());
+  EXPECT_FALSE(f.is_ready());
+
+  ASSERT_NO_THROW(task());
+  EXPECT_TRUE(f.is_ready());
+  EXPECT_SOME_VALUE(f);
+  EXPECT_FALSE(f.valid());
+}
+
 } // namespace tests
 
 TYPED_TEST_P(PackagedTaskTest, default_constructed_is_invalid) {tests::default_constructed_is_invalid<TypeParam>();}
@@ -219,6 +279,8 @@ TYPED_TEST_P(PackagedTaskTest, copyable_functor_task) {tests::copyable_functor_t
 TYPED_TEST_P(PackagedTaskTest, moveonly_functor_task) {tests::moveonly_functor_task<TypeParam>();}
 TYPED_TEST_P(PackagedTaskTest, one_param_task) {tests::one_param_task<TypeParam>();}
 TYPED_TEST_P(PackagedTaskTest, two_param_task) {tests::two_param_task<TypeParam>();}
+TYPED_TEST_P(PackagedTaskTest, task_reset_simple) {tests::task_reset_simple<TypeParam>();}
+TYPED_TEST_P(PackagedTaskTest, task_reset_moveonly_func) {tests::task_reset_moveonly_func<TypeParam>();}
 REGISTER_TYPED_TEST_CASE_P(
   PackagedTaskTest,
   default_constructed_is_invalid,
@@ -234,7 +296,9 @@ REGISTER_TYPED_TEST_CASE_P(
   copyable_functor_task,
   moveonly_functor_task,
   one_param_task,
-  two_param_task
+  two_param_task,
+  task_reset_simple,
+  task_reset_moveonly_func
 );
 
 INSTANTIATE_TYPED_TEST_CASE_P(VoidType, PackagedTaskTest, void);
