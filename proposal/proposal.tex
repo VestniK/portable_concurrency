@@ -2,6 +2,7 @@
 
 \usepackage{listings}
 \usepackage{underscore}
+\usepackage{hyperref}
 
 \title{Posibility to erase std::packaged\_task return type}
 \date{2017-02-04}
@@ -32,18 +33,33 @@ b\kern-1.2pta\kern1ptd\hspace{1.5em}for\kern-3ptmat\kern0.6ptti\raise0.15ex\hbox
 \makeatother
 \newpage
 
+\section{Introduction}
+
+This document proposes to add partial specialization of the std::packaged_task class template which
+destoys information on a type returned by a function wrapped into the task. The main purpose of
+this specialization is to allow sotre tasks with the same argument types but differernt return
+types in the same collection.
+
+Prove of concept implementation of the proposed feature is available on github:
+\url{https://github.com/VestniK/portable_concurrency/tree/result-erased-task-proposal}
+
 \section{Motivation}
-Implementing custom executor on top of the std::future API requres some type erasure class for function and
-function-like objects which:
+
+Implementing custom executor on top of the std::future API requres some type erasure class for
+function and function-like objects which:
 \begin{itemize}
  \item Hold write reference to a shared state of a future.
  \item Protect from accidental execution of the wrapped function more than once.
- \item Make shared state ready with some predictable exception if object is destroyed without execution of the wrapped function.
+ \item Make shared state ready with some predictable exception if object is destroyed
+ without execution of the wrapped function.
  \item Store result of the wrapped function or any exception thrown in the shared state.
- \item Objects wrapping functions with the same argument types but different return type can be stored in a same collection.
+ \item Objects wrapping functions with the same argument types but different return type can
+ be stored in a same collection.
 \end{itemize}
-Template class std::packaged_task satisfy all of those requrements except the last one. Common workaround here is to wrap
-packaged_task into additional type-erasure for functions which leads to a code like this:
+
+Template class std::packaged_task satisfy all of those requrements except the last one. Common
+workaround here is to wrap packaged_task into additional type-erasure for functions which leads to a
+code like this:
 
 \begin{lstlisting}
 using task_queue =
