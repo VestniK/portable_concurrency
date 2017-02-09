@@ -46,6 +46,7 @@ matrix:
         - pip install conan
         - conan install --build=missing -s compiler=clang -s compiler.version=3.8 -s compiler.libcxx=${CONAN_LIBCXX}
 
+  allow_failures:
     # linux clang 3.8 ub-sanitizer
     - os: linux
       dist: trusty
@@ -69,7 +70,6 @@ matrix:
         - pip install conan
         - conan install --build=missing -s compiler=clang -s compiler.version=3.8 -s compiler.libcxx=${CONAN_LIBCXX}
 
-  allow_failures:
     # linux gcc 6 ub-sanitizer
     - os: linux
       dist: trusty
