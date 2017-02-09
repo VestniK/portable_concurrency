@@ -263,6 +263,50 @@ void task_reset_moveonly_func() {
   EXPECT_FALSE(f.valid());
 }
 
+template<typename F, typename... A>
+auto push_task_back(
+  std::vector<experimental::packaged_task<experimental::ignore_t(A...)>>& dest,
+  F&& func
+) {
+  using R = std::result_of_t<std::decay_t<F>(A...)>;
+  auto task = experimental::packaged_task<R(A...)>{std::forward<F>(func)};
+  auto res = task.get_future();
+  dest.push_back(std::move(task));
+  return res;
+}
+
+template<typename T>
+void geterogenious_tasks_collection() {
+  using tasks_vec_t = std::vector<experimental::packaged_task<experimental::ignore_t(size_t)>>;
+  tasks_vec_t tasks;
+  auto f0 = push_task_back(tasks, [](size_t n) -> T {
+    EXPECT_EQ(n, 0u);
+    return some_value<T>();
+  });
+  auto f1 = push_task_back(tasks, [](size_t n) -> std::string {
+    return std::to_string(n);
+  });
+  auto f2 = push_task_back(tasks, [](size_t n) -> void {
+    throw std::runtime_error(std::to_string(n));
+  });
+  ASSERT_TRUE(f0.valid());
+  ASSERT_TRUE(f1.valid());
+  ASSERT_TRUE(f2.valid());
+
+  EXPECT_FALSE(f0.is_ready());
+  EXPECT_FALSE(f1.is_ready());
+  EXPECT_FALSE(f2.is_ready());
+
+  g_future_tests_env->run_async([](tasks_vec_t& tasks_vec) {
+    for (size_t n = 0; n < tasks_vec.size(); ++n)
+      tasks_vec[n](n);
+  }, std::move(tasks));
+
+  EXPECT_SOME_VALUE(f0);
+  EXPECT_EQ(f1.get(), "1"s);
+  EXPECT_RUNTIME_ERROR(f2, "2");
+}
+
 } // namespace tests
 
 TYPED_TEST_P(PackagedTaskTest, default_constructed_is_invalid) {tests::default_constructed_is_invalid<TypeParam>();}
@@ -281,6 +325,7 @@ TYPED_TEST_P(PackagedTaskTest, one_param_task) {tests::one_param_task<TypeParam>
 TYPED_TEST_P(PackagedTaskTest, two_param_task) {tests::two_param_task<TypeParam>();}
 TYPED_TEST_P(PackagedTaskTest, task_reset_simple) {tests::task_reset_simple<TypeParam>();}
 TYPED_TEST_P(PackagedTaskTest, task_reset_moveonly_func) {tests::task_reset_moveonly_func<TypeParam>();}
+TYPED_TEST_P(PackagedTaskTest, geterogenious_tasks_collection) {tests::geterogenious_tasks_collection<TypeParam>();}
 REGISTER_TYPED_TEST_CASE_P(
   PackagedTaskTest,
   default_constructed_is_invalid,
@@ -298,7 +343,8 @@ REGISTER_TYPED_TEST_CASE_P(
   one_param_task,
   two_param_task,
   task_reset_simple,
-  task_reset_moveonly_func
+  task_reset_moveonly_func,
+  geterogenious_tasks_collection
 );
 
 INSTANTIATE_TYPED_TEST_CASE_P(VoidType, PackagedTaskTest, void);
