@@ -3,6 +3,7 @@
 \usepackage{listings}
 \usepackage{underscore}
 \usepackage{hyperref}
+\usepackage[T1]{fontenc}
 
 \title{Posibility to erase std::packaged\_task return type}
 \date{2017-02-04}
@@ -12,7 +13,7 @@
 
 \begin{document}
 
-\lstset{language=C++}
+\lstset{language=C++, basicstyle=\scriptsize}
 
 \makeatletter
 \hfill\begin{tabular}{ll}
@@ -35,13 +36,14 @@ b\kern-1.2pta\kern1ptd\hspace{1.5em}for\kern-3ptmat\kern0.6ptti\raise0.15ex\hbox
 
 \section{Introduction}
 
-This document proposes to add partial specialization of the std::packaged_task class template which
-destoys information on a type returned by a function wrapped into the task. The main purpose of
-this specialization is to allow sotre tasks with the same argument types but differernt return
-types in the same collection.
+This document proposes to add partial specialization of the \mbox{std::packaged_task} class
+template which destroys information about the type returned by the function wrapped into the task.
+The main purpose of this specialization is to allow to sotre tasks with the same argument types but
+differernt return types in the same collection.
 
-Prove of concept implementation of the proposed feature is available on github:
-\url{https://github.com/VestniK/portable_concurrency/tree/result-erased-task-proposal}
+Prove of concept implementation of the proposed feature is available on github
+\footnote{\tiny \url{
+https://github.com/VestniK/portable_concurrency/tree/result-erased-task-proposal } }
 
 \section{Motivation}
 
@@ -53,25 +55,25 @@ function and function-like objects which:
  \item Make shared state ready with some predictable exception if object is destroyed
  without execution of the wrapped function.
  \item Store result of the wrapped function or any exception thrown in the shared state.
- \item Objects wrapping functions with the same argument types but different return type can
- be stored in a same collection.
+ \item Different objects wrapping functions with the same argument types but different return type
+can be stored in a same collection.
 \end{itemize}
 
-Template class std::packaged_task satisfy all of those requrements except the last one. Common
-workaround here is to wrap packaged_task into additional type-erasure for functions which leads to a
-code like this:
+Template class \mbox{std::packaged_task} satisfy all of those requrements except the last one. The
+worst way to overcome this limitation can look like this example:
 
 \begin{lstlisting}
+// some thread-safe queue which is processed by some
+// workers in multiple threads
 using task_queue =
   mt_queue<std::function<void()>>;
 
 template<typename F>
-auto
-post_function(task_queue& queue, F&& func) {
+auto post_function(task_queue& queue, F&& func) {
   using R = std::result_of_t<F()>;
   auto task = std::make_shared<
     std::packaged_task<R()>
-  >();
+  >(func);
   auto res = task->get_future();
   queue.push([task = std::move(task)]() {
     (*task)();
@@ -79,5 +81,93 @@ post_function(task_queue& queue, F&& func) {
   return res;
 }
 \end{lstlisting}
+
+This code introduce 2 extra allocations an 1 extra virtual call. Unfortunatelly I've seen the code
+like this more than once in a real life projects.
+
+Better solution is to create type erasure class satisfying requirements above. However it's hard or
+impossible \footnote{There are no requirements on \mbox{std::packaged_task} to have same size and
+aligment for different instantiations. User code relying on such assumptions to avoid allocation
+can be broken by the compiler update.} to avoid 1 extra allocation and introduce 1 extra virtual
+call using this approach.
+
+Best solution should be zero const and perform no extra indirection or allocation.
+
+\section{Proposed somution}
+
+This document proposes to add tag-type \mbox{std::ignore_t} which is unusable for any other
+purposes and provide partial specialization of the \mbox{std::packaged_task} class template:
+
+\begin{lstlisting}
+template<typename... A>
+class packaged_task<ignore_t(A...)>;
+\end{lstlisting}
+
+It can be move constructed from \mbox{std::packaged_task<R(A...)>} with the same argument types
+and any return type. This partial specialization performs type-erasure of the task result type.
+
+Proposed partial specialization has the same members with the same behaviour as generic template
+with the following exceptions:
+\begin{itemize}
+ \item No direct constructors from function or function-like objects provided.
+ \item No \mbox{get_future} method provided.
+ \item No reset method provided. \footnote{There is no way to get a future to receive the result of
+the function wrapped in the \mbox{std::packaged_task} after reset is called on result-erased
+specialization so it's proposed to not provide this member for it.}
+ \item Provides constructor:
+ \begin{lstlisting}
+template<typename... A>
+template<typename R>
+packaged_task<ignore_t(A...)>::packaged_task(
+  packaged_task<R(A...)>&& rhs
+);
+ \end{lstlisting}
+ with the following behavior:
+ \begin{itemize}
+  \item Constructs a std::packaged_task with the shared state and task formerly owned by rhs,
+leaving rhs with no shared state and a moved-from task.
+  \item Throws exception of the type \mbox{std::future_error} with the code
+\mbox{std::future_errc::broken_promise} if rhs has shared state but the future pointing to it was
+not yet obtained via \mbox{rhs.get_future()}.
+ \end{itemize}
+
+ \item Provides assigment operator:
+ \begin{lstlisting}
+template<typename... A>
+template<typename R>
+packaged_task<ignore_t(A...)>::operator= (
+  packaged_task<R(A...)>&& rhs
+);
+ \end{lstlisting}
+ with the following behavior:
+ \begin{itemize}
+  \item Releases the shared state, if any, destroys the previously-held task, and moves the shared
+state and the task owned by rhs into *this. rhs is left without a shared state and with a moved-from
+task.
+  \item Throws exception of the type \mbox{std::future_error} with the code
+\mbox{std::future_errc::broken_promise} if rhs has shared state but the future pointing to it was
+not yet obtained via \mbox{rhs.get_future()}.
+ \end{itemize}
+\end{itemize}
+
+Proposed result-erased partial specialization for the \mbox{std::packaged_task} allows to implement
+example from the motivation section in the following way:
+
+\begin{lstlisting}
+// some thread-safe queue which is processed by some
+// workers in multiple threads
+using task_queue =
+  mt_queue<std::packaged_task<std::ignore_t()>>;
+
+template<typename F>
+auto post_function(task_queue& queue, F&& func) {
+  using R = std::result_of_t<F()>;
+  auto task = std::packaged_task<R()>(func);
+  auto res = task->get_future();
+  queue.push(task);
+  return res;
+}
+\end{lstlisting}
+this code is simple, readable and deliver task to a worker without avoidable overhead.
 
 \end{document}
