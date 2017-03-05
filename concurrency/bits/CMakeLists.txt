@@ -1,5 +1,6 @@
 set(HEADERS
   async.h
+  continuation.h
   future.h
   fwd.h
   invoke.h

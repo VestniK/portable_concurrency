@@ -77,7 +77,7 @@ std::shared_ptr<action> make_deferred_action(
 } // namespace detail
 
 template<typename F, typename... A>
-future<detail::async_res_t<F, A...>> async(std::launch launch, F&& f, A&&... a) {
+auto async(std::launch launch, F&& f, A&&... a) {
   if (launch == std::launch::async) {
     throw std::system_error(
       std::make_error_code(std::errc::resource_unavailable_try_again),
@@ -90,7 +90,7 @@ future<detail::async_res_t<F, A...>> async(std::launch launch, F&& f, A&&... a) 
   state->set_deferred_action(
     detail::make_deferred_action(state, std::forward<F>(f), std::forward<A>(a)...)
   );
-  return detail::make_future(std::move(state));
+  return future<detail::async_res_t<F, A...>>{std::move(state)};
 }
 
 template<typename F, typename... A>

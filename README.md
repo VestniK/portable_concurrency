@@ -20,7 +20,7 @@ Attempt to write portable implementation of the C++ Extensions for Concurrency, 
 
 ## TODO
 
- * shared_future continuation
+ * shared_future continuation (in progress)
  * when_any implementation
  * when_all implementation
  * implicit unwrap for continuations

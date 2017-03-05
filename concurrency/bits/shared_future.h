@@ -4,6 +4,9 @@
 
 #include "fwd.h"
 
+#include "continuation.h"
+#include "utils.h"
+
 namespace experimental {
 inline namespace concurrency_v1 {
 
@@ -55,6 +58,27 @@ public:
       throw std::future_error(std::future_errc::no_state);
     return state_->is_ready();
   }
+
+  template<typename F>
+  auto then(F&& f) {
+    if (!state_)
+      throw std::future_error(std::future_errc::no_state);
+    return future<detail::continuation_result_t<shared_future, F, T>>{
+      detail::continuation_state<shared_future, F, T>::make(
+        std::forward<F>(f), detail::decay_copy(state_)
+      )
+    };
+  }
+
+  // Implementation detail
+  shared_future(std::shared_ptr<detail::shared_state<T>>&& state) noexcept:
+    state_(std::move(state))
+  {}
+
+  // Implementation detail
+  shared_future(const std::shared_ptr<detail::shared_state<T>>& state) noexcept:
+    state_(state)
+  {}
 
 private:
   std::shared_ptr<detail::shared_state<T>> state_;

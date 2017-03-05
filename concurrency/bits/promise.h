@@ -14,7 +14,7 @@ public:
   future<T> get_future() {
     if (state_.use_count() != 1)
       throw std::future_error(std::future_errc::future_already_retrieved);
-    return make_future(decay_copy(state_));
+    return {decay_copy(state_)};
   }
 
   void set_exception(std::exception_ptr error) {

@@ -66,7 +66,7 @@ public:
       throw std::future_error(std::future_errc::no_state);
     if (state_.use_count() != 1)
       throw std::future_error(std::future_errc::future_already_retrieved);
-    return detail::make_future(std::static_pointer_cast<detail::shared_state<R>>(state_));
+    return {std::static_pointer_cast<detail::shared_state<R>>(state_)};
   }
 
   void operator() (A... a) {
