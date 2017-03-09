@@ -7,3 +7,4 @@
 #include "shared_future_continuation.hpp"
 #include "test_tools.hpp"
 #include "unwrap_constructor.hpp"
+#include "when_any.hpp"

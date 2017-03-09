@@ -11,6 +11,7 @@ set(HEADERS
   shared_future.h
   shared_state.h
   utils.h
+  when_any.h
 )
 
 install(FILES ${HEADERS}

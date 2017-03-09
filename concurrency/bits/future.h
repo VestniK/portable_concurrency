@@ -12,6 +12,13 @@
 namespace experimental {
 inline namespace concurrency_v1 {
 
+namespace detail {
+
+template<typename T>
+shared_state<T>* state_of(future<T>&);
+
+} // namespace detail
+
 template<typename T>
 class future {
 public:
@@ -104,6 +111,7 @@ public:
 
 private:
   friend class shared_future<T>;
+  friend detail::shared_state<T>* detail::state_of<T>(future<T>&);
 
 private:
   std::shared_ptr<detail::shared_state<T>> state_;
