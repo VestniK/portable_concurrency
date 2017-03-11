@@ -9,10 +9,10 @@ namespace experimental {
 inline namespace concurrency_v1 {
 namespace detail {
 
-template<template<typename> typename Future, typename Func, typename T>
+template<template<typename> class Future, typename Func, typename T>
 using continuation_result_t = std::result_of_t<Func(Future<T>)>;
 
-template<template<typename> typename Future, typename F, typename T>
+template<template<typename> class Future, typename F, typename T>
 class continuation_state:
   public shared_state<continuation_result_t<Future, F, T>>,
   public continuation
