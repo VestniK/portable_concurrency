@@ -70,8 +70,8 @@ public:
   auto then(F&& f) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return future<detail::continuation_result_t<shared_future, F, T>>{
-      detail::continuation_state<shared_future, F, T>::make(
+    return future<detail::continuation_result_t<experimental::concurrency_v1::shared_future, F, T>>{
+      detail::continuation_state<experimental::concurrency_v1::shared_future, F, T>::make(
         std::forward<F>(f), detail::decay_copy(state_)
       )
     };

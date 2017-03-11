@@ -99,8 +99,8 @@ public:
   auto then(F&& f) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return future<detail::continuation_result_t<future, F, T>>{
-      detail::continuation_state<future, F, T>::make(std::forward<F>(f), std::move(state_))
+    return future<detail::continuation_result_t<experimental::concurrency_v1::future, F, T>>{
+      detail::continuation_state<experimental::concurrency_v1::future, F, T>::make(std::forward<F>(f), std::move(state_))
     };
   }
 
