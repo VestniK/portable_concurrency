@@ -140,23 +140,25 @@ public:
   void invoke() override {
     if (barrier_.fetch_sub(1) != 1)
       return;
-    this->emplace(when_any_result<Sequence>{
-      sequence_traits<Sequence>::index_of_ready(futures_),
-      std::move(futures_)
-    });
+    set();
   }
 
   static std::shared_ptr<shared_state<when_any_result<Sequence>>> make(Sequence&& seq) {
     const int seq_sz = sequence_traits<Sequence>::size(seq);
     auto state = std::make_shared<when_any_state<Sequence>>(std::move(seq));
     sequence_traits<Sequence>::attach_continuation(state->futures_, state);
-    if (state->barrier_.fetch_sub(seq_sz) > seq_sz)
-      return state;
-    state->emplace(when_any_result<Sequence>{
-      sequence_traits<Sequence>::index_of_ready(state->futures_),
-      std::move(state->futures_)
-    });
+    if (state->barrier_.fetch_sub(seq_sz) <= seq_sz)
+      state->set();
     return state;
+  }
+
+private:
+  void set() {
+    const auto ready_idx = sequence_traits<Sequence>::index_of_ready(futures_);
+    this->emplace(when_any_result<Sequence>{
+      ready_idx,
+      std::move(futures_)
+    });
   }
 
 private:
