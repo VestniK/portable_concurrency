@@ -133,7 +133,7 @@ class when_any_state:
 public:
   when_any_state(Sequence&& futures):
     futures_(std::move(futures)),
-    barrier_(sequence_traits<Sequence>::size(futures_) + 1)
+    barrier_(static_cast<int>(sequence_traits<Sequence>::size(futures_)) + 1)
   {}
 
   // threadsafe
@@ -144,8 +144,15 @@ public:
   }
 
   static std::shared_ptr<shared_state<when_any_result<Sequence>>> make(Sequence&& seq) {
-    const int seq_sz = sequence_traits<Sequence>::size(seq);
+    const int seq_sz = static_cast<int>(sequence_traits<Sequence>::size(seq));
+#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 3900
+    // looks like std::make_shared is affected by https://bugs.llvm.org/show_bug.cgi?id=22806
+    auto state = std::shared_ptr<when_any_state<Sequence>>{
+      new when_any_state<Sequence>{std::move(seq)}
+    };
+#else
     auto state = std::make_shared<when_any_state<Sequence>>(std::move(seq));
+#endif
     sequence_traits<Sequence>::attach_continuation(state->futures_, state);
     if (state->barrier_.fetch_sub(seq_sz) <= seq_sz)
       state->set();
