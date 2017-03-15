@@ -1,17 +1,10 @@
 #pragma once
 
 #include <type_traits>
-#include <functional>
 
 namespace experimental {
 inline namespace concurrency_v1 {
 namespace detail {
-
-#if __cpp_lib_invoke >= 201411
-
-using std::invoke;
-
-#else
 
 template<typename T>
 struct is_reference_wrapper: std::false_type {};
@@ -103,7 +96,6 @@ auto invoke(F&& f, A&&... args)
   return std::forward<F>(f)(std::forward<A>(args)...);
 }
 
-#endif // __cpp_lib_invoke >= 201411
 } // namespace detail
 } // inline namespace concurrency_v1
 } // namespace experimental
