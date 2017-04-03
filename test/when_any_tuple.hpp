@@ -8,9 +8,9 @@
 
 namespace {
 
-class WhenAnyTest: public ::testing::TestWithParam<size_t> {};
+class WhenAnyTupleTest: public ::testing::TestWithParam<size_t> {};
 
-TEST(WhenAnyTest, empty_sequence) {
+TEST(WhenAnyTupleTest, empty_sequence) {
   auto res_fut = experimental::when_any();
   ASSERT_TRUE(res_fut.valid());
   ASSERT_TRUE(res_fut.is_ready());
@@ -20,7 +20,7 @@ TEST(WhenAnyTest, empty_sequence) {
   EXPECT_EQ(std::tuple_size<decltype(res.futures)>::value, 0u);
 }
 
-TEST(WhenAnyTest, single_future) {
+TEST(WhenAnyTupleTest, single_future) {
   experimental::promise<int> p;
   auto raw_f = p.get_future();
   auto f = experimental::when_any(std::move(raw_f));
@@ -40,7 +40,7 @@ TEST(WhenAnyTest, single_future) {
   EXPECT_EQ(std::get<0>(res.futures).get(), 42);
 }
 
-TEST(WhenAnyTest, single_shared_future) {
+TEST(WhenAnyTupleTest, single_shared_future) {
   experimental::promise<int> p;
   auto raw_f = p.get_future().share();
   auto f = experimental::when_any(raw_f);
@@ -60,7 +60,7 @@ TEST(WhenAnyTest, single_shared_future) {
   EXPECT_EQ(std::get<0>(res.futures).get(), 42);
 }
 
-TEST(WhenAnyTest, single_ready_future) {
+TEST(WhenAnyTupleTest, single_ready_future) {
   auto raw_f = experimental::make_ready_future(123);
   auto f = experimental::when_any(std::move(raw_f));
   ASSERT_TRUE(f.valid());
@@ -76,7 +76,7 @@ TEST(WhenAnyTest, single_ready_future) {
   EXPECT_EQ(std::get<0>(res.futures).get(), 123);
 }
 
-TEST(WhenAnyTest, single_ready_shared_future) {
+TEST(WhenAnyTupleTest, single_ready_shared_future) {
   auto raw_f = experimental::make_ready_future(123).share();
   auto f = experimental::when_any(raw_f);
   ASSERT_TRUE(f.valid());
@@ -92,7 +92,7 @@ TEST(WhenAnyTest, single_ready_shared_future) {
   EXPECT_EQ(std::get<0>(res.futures).get(), 123);
 }
 
-TEST(WhenAnyTest, single_error_future) {
+TEST(WhenAnyTupleTest, single_error_future) {
   auto raw_f = experimental::make_exceptional_future<int>(std::runtime_error("future with error"));
   auto f = experimental::when_any(std::move(raw_f));
   ASSERT_TRUE(f.valid());
@@ -108,7 +108,7 @@ TEST(WhenAnyTest, single_error_future) {
   EXPECT_RUNTIME_ERROR(std::get<0>(res.futures), "future with error");
 }
 
-TEST(WhenAnyTest, single_error_shared_future) {
+TEST(WhenAnyTupleTest, single_error_shared_future) {
   auto raw_f = experimental::make_exceptional_future<int>(std::runtime_error("future with error")).share();
   auto f = experimental::when_any(raw_f);
   ASSERT_TRUE(f.valid());
@@ -124,7 +124,7 @@ TEST(WhenAnyTest, single_error_shared_future) {
   EXPECT_RUNTIME_ERROR(std::get<0>(res.futures), "future with error");
 }
 
-TEST_P(WhenAnyTest, multiple_futures) {
+TEST_P(WhenAnyTupleTest, multiple_futures) {
   experimental::promise<int> p0;
   auto raw_f0 = p0.get_future();
   experimental::promise<std::string> p1;
@@ -186,7 +186,7 @@ TEST_P(WhenAnyTest, multiple_futures) {
   }
 }
 
-TEST_P(WhenAnyTest, multiple_futures_one_initially_ready) {
+TEST_P(WhenAnyTupleTest, multiple_futures_one_initially_ready) {
   experimental::promise<int> p0;
   experimental::promise<std::string> p1;
   experimental::promise<std::unique_ptr<int>> p2;
@@ -250,6 +250,6 @@ TEST_P(WhenAnyTest, multiple_futures_one_initially_ready) {
 }
 
 size_t first_idx_vals[] = {0, 1, 2, 3, 4};
-INSTANTIATE_TEST_CASE_P(AllVals, WhenAnyTest, ::testing::ValuesIn(first_idx_vals));
+INSTANTIATE_TEST_CASE_P(AllVals, WhenAnyTupleTest, ::testing::ValuesIn(first_idx_vals));
 
 } // anonymous namespace

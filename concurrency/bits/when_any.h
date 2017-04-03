@@ -23,13 +23,19 @@ struct when_any_result {
 namespace detail {
 
 template<typename F>
-struct is_future: std::false_type {};
+struct is_unique_future: std::false_type {};
 
 template<typename T>
-struct is_future<future<T>>: std::true_type {};
+struct is_unique_future<future<T>>: std::true_type {};
+
+template<typename F>
+struct is_shared_future: std::false_type {};
 
 template<typename T>
-struct is_future<shared_future<T>>: std::true_type {};
+struct is_shared_future<shared_future<T>>: std::true_type {};
+
+template<typename F>
+using is_future = std::integral_constant<bool, is_unique_future<F>::value || is_shared_future<F>::value>;
 
 template<typename... F>
 struct are_futures;
@@ -78,7 +84,7 @@ struct sequence_traits<std::vector<Future>> {
     std::vector<Future>& seq,
     const std::shared_ptr<continuation>& cnt
   ) {
-    for (const auto& f: seq)
+    for (auto& f: seq)
       ::experimental::concurrency_v1::detail::state_of(f)->add_continuation(cnt);
   }
 };
@@ -175,6 +181,7 @@ private:
 
 } // namespace detail
 
+inline
 future<when_any_result<std::tuple<>>> when_any() {
   return make_ready_future(when_any_result<std::tuple<>>{
     static_cast<std::size_t>(-1),
@@ -192,6 +199,36 @@ auto when_any(Futures&&... futures) ->
   using Sequence = std::tuple<std::decay_t<Futures>...>;
   return future<when_any_result<Sequence>>{detail::when_any_state<Sequence>::make(
     Sequence{std::forward<Futures>(futures)...}
+  )};
+}
+
+template<typename InputIt>
+auto when_any(InputIt first, InputIt last) ->
+  std::enable_if_t<
+    detail::is_unique_future<typename std::iterator_traits<InputIt>::value_type>::value,
+    future<when_any_result<std::vector<typename std::iterator_traits<InputIt>::value_type>>>
+  >
+{
+  using Sequence = std::vector<typename std::iterator_traits<InputIt>::value_type>;
+  if (first == last)
+    return make_ready_future(when_any_result<Sequence>{static_cast<std::size_t>(-1), {}});
+  return future<when_any_result<Sequence>>{detail::when_any_state<Sequence>::make(
+    Sequence{std::make_move_iterator(first), std::make_move_iterator(last)}
+  )};
+}
+
+template<typename InputIt>
+auto when_any(InputIt first, InputIt last) ->
+  std::enable_if_t<
+    detail::is_shared_future<typename std::iterator_traits<InputIt>::value_type>::value,
+    future<when_any_result<std::vector<typename std::iterator_traits<InputIt>::value_type>>>
+  >
+{
+  using Sequence = std::vector<typename std::iterator_traits<InputIt>::value_type>;
+  if (first == last)
+    return make_ready_future(when_any_result<Sequence>{static_cast<std::size_t>(-1), {}});
+  return future<when_any_result<Sequence>>{detail::when_any_state<Sequence>::make(
+    Sequence{first, last}
   )};
 }
 
