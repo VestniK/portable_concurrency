@@ -20,8 +20,7 @@ Attempt to write portable implementation of the C++ Extensions for Concurrency, 
 
 ## TODO
 
- * shared_future continuation
- * when_any implementation
+ * when_any implementation (in progress)
  * when_all implementation
  * implicit unwrap for continuations
  * make_ready_at_thread_exit for promise and packaged_task

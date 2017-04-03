@@ -53,42 +53,13 @@ experimental::future<void> make_some_ready_future() {
 }
 
 template<typename T, typename R, typename P>
-auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
-  -> std::enable_if_t<
-    !std::is_void<T>::value,
-    experimental::future<T>
-  >
-{
-  experimental::promise<T> promise;
-  auto res = promise.get_future();
-
-  g_future_tests_env->run_async([sleep_duration](
-    experimental::promise<T>& promise
-  ) {
+auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration) {
+  auto task = experimental::packaged_task<T()>{[sleep_duration]() -> T {
     std::this_thread::sleep_for(sleep_duration);
-    promise.set_value(some_value<T>());
-  }, std::move(promise));
-
-  return res;
-}
-
-template<typename T, typename R, typename P>
-auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration)
-  -> std::enable_if_t<
-    std::is_void<T>::value,
-    experimental::future<void>
-  >
-{
-  experimental::promise<void> promise;
-  auto res = promise.get_future();
-
-  g_future_tests_env->run_async([sleep_duration](
-    experimental::promise<void>& promise
-  ) {
-    std::this_thread::sleep_for(sleep_duration);
-    promise.set_value();
-  }, std::move(promise));
-
+    return some_value<T>();
+  }};
+  auto res = task.get_future();
+  g_future_tests_env->run_async(std::move(task));
   return res;
 }
 

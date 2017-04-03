@@ -5,7 +5,7 @@
 
 #include "fwd.h"
 
-#include "invoke.h"
+#include "continuation.h"
 #include "shared_state.h"
 #include "utils.h"
 
@@ -15,48 +15,7 @@ inline namespace concurrency_v1 {
 namespace detail {
 
 template<typename T>
-future<T> make_future(std::shared_ptr<shared_state<T>>&& state);
-
-template<typename F, typename T>
-using continuation_result_t = std::result_of_t<F(future<T>)>;
-
-template<typename F, typename T>
-class continuation_state:
-  public shared_state<continuation_result_t<F, T>>,
-  public continuation
-{
-public:
-  using result_t = continuation_result_t<F, T>;
-
-  continuation_state(F&& f, std::shared_ptr<shared_state<T>>&& parent):
-    func_(std::forward<F>(f)),
-    parent_(std::move(parent))
-  {
-    // using this-> to prevent ADL
-    this->set_deferred_action(parent_->get_deferred_action());
-  }
-
-  static std::shared_ptr<shared_state<continuation_result_t<F, T>>> make(
-    F&& func,
-    std::shared_ptr<shared_state<T>>&& parent
-  ) {
-    auto res = std::make_shared<continuation_state>(std::forward<F>(func), std::move(parent));
-    res->parent_->add_continuation(res);
-    return res;
-  }
-
-  void invoke() override {
-    ::experimental::concurrency_v1::detail::set_state_value(
-      *this,
-      std::move(func_),
-      make_future(std::move(parent_))
-    );
-  }
-
-private:
-  std::decay_t<F> func_;
-  std::shared_ptr<shared_state<T>> parent_;
-};
+shared_state<T>* state_of(future<T>&);
 
 } // namespace detail
 
@@ -140,18 +99,19 @@ public:
   auto then(F&& f) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return detail::make_future(detail::continuation_state<F, T>::make(
-      std::forward<F>(f), std::move(state_)
-    ));
+    return future<detail::continuation_result_t<experimental::concurrency_v1::future, F, T>>{
+      detail::continuation_state<experimental::concurrency_v1::future, F, T>::make(std::forward<F>(f), std::move(state_))
+    };
   }
+
+  // implementation detail
+  future(std::shared_ptr<detail::shared_state<T>>&& state) noexcept:
+    state_(std::move(state))
+  {}
 
 private:
   friend class shared_future<T>;
-  friend future<T> detail::make_future<T>(std::shared_ptr<detail::shared_state<T>>&& state);
-
-  explicit future(std::shared_ptr<detail::shared_state<T>>&& state) noexcept:
-    state_(std::move(state))
-  {}
+  friend detail::shared_state<T>* detail::state_of<T>(future<T>&);
 
 private:
   std::shared_ptr<detail::shared_state<T>> state_;

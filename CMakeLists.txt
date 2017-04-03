@@ -4,6 +4,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 option(BUILD_SHARED_LIBS "Specify to build shared or static library." Off)
 option(ENABLE_UBSAN "Enables undefined behaviour sanitizer for clang and gcc" Off)
+option(ENABLE_ADDRSAN "Enables address sanitizer for clang and gcc" Off)
+option(ENABLE_THREADSAN "Enables thread sanitizer for clang and gcc" Off)
 
 include(conanbuildinfo.cmake)
 conan_basic_setup()
@@ -11,6 +13,8 @@ conan_basic_setup()
 set(CMAKE_CXX_STANDARD 14)
 if (NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
   add_definitions(-Werror=all)
+else()
+  add_definitions(/bigobj)
 endif()
 
 add_subdirectory(concurrency)

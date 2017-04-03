@@ -1,5 +1,6 @@
 set(HEADERS
   async.h
+  continuation.h
   future.h
   fwd.h
   invoke.h
@@ -10,6 +11,7 @@ set(HEADERS
   shared_future.h
   shared_state.h
   utils.h
+  when_any.h
 )
 
 install(FILES ${HEADERS}
