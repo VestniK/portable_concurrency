@@ -24,8 +24,6 @@ public:
     func_(std::forward<F>(f)),
     parent_(std::move(parent))
   {
-    // using this-> to prevent ADL
-    this->set_deferred_action(parent_->get_deferred_action());
   }
 
   static std::shared_ptr<shared_state<continuation_result_t<Future, F, T>>> make(

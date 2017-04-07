@@ -1,7 +1,6 @@
 // <future> -*- C++ -*-
 #pragma once
 
-#include "bits/async.h"
 #include "bits/future.h"
 #include "bits/packaged_task.h"
 #include "bits/promise.h"

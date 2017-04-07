@@ -1,4 +1,3 @@
-#include "deferred.hpp"
 #include "future.hpp"
 #include "future_continuation.hpp"
 #include "packaged_task.hpp"
