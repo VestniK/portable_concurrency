@@ -2,7 +2,16 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
 set(SRC
-  tests.cpp
+  future_continuation.cpp
+  future.cpp
+  packaged_task.cpp
+  promise.cpp
+  shared_future_continuation.cpp
+  shared_future.cpp
+  test_tools.cpp
+  unwrap_constructor.cpp
+  when_any_tuple.cpp
+  when_any_vector.cpp
 )
 
 add_executable(unit_tests ${SRC})

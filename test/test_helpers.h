@@ -13,18 +13,23 @@ template<typename T>
 T some_value() {static_assert(sizeof(T) == 0, "some_value<T> is deleted");}
 
 template<>
+inline
 int some_value<int>() {return 42;}
 
 template<>
+inline
 std::string some_value<std::string>() {return "hello";}
 
 template<>
+inline
 std::unique_ptr<int> some_value<std::unique_ptr<int>>() {return std::make_unique<int>(42);}
 
 template<>
+inline
 future_tests_env& some_value<future_tests_env&>() {return *g_future_tests_env;}
 
 template<>
+inline
 void some_value<void>() {}
 
 template<typename T>
@@ -33,6 +38,7 @@ void set_promise_value(experimental::promise<T>& p) {
 }
 
 template<>
+inline
 void set_promise_value<void>(experimental::promise<void>& p) {
   p.set_value();
 }
@@ -43,11 +49,13 @@ experimental::future<T> make_some_ready_future() {
 }
 
 template<>
+inline
 experimental::future<future_tests_env&> make_some_ready_future() {
   return experimental::make_ready_future(std::ref(some_value<future_tests_env&>()));
 }
 
 template<>
+inline
 experimental::future<void> make_some_ready_future() {
   return experimental::make_ready_future();
 }
@@ -83,18 +91,22 @@ auto set_error_in_other_thread(
   return res;
 }
 
+inline
 std::string to_string(int val) {
   return std::to_string(val);
 }
 
+inline
 std::string to_string(const std::unique_ptr<int>& val) {
   return val ? std::to_string(*val) : "nullptr"s;
 }
 
+inline
 std::string to_string(const future_tests_env& val) {
   return std::to_string(reinterpret_cast<uintptr_t>(&val));
 }
 
+inline
 std::string to_string(const std::string& val) {
   return val;
 }

@@ -59,7 +59,7 @@ shared_state<T>* state_of(shared_future<T>& f) {
   return f.state_.get();
 }
 
-void swallow(...) {}
+inline void swallow(...) {}
 
 template<typename Sequence>
 struct sequence_traits;

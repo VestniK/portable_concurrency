@@ -1,5 +1,3 @@
-#pragma once
-
 #include <string>
 #include <memory>
 
@@ -7,6 +5,7 @@
 
 #include "concurrency/future"
 
+#include "test_helpers.h"
 #include "test_tools.h"
 
 namespace {

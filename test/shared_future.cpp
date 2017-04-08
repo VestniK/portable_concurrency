@@ -1,5 +1,3 @@
-#pragma once
-
 #include <chrono>
 #include <iostream>
 #include <memory>
@@ -10,6 +8,7 @@
 
 #include "concurrency/future"
 
+#include "test_helpers.h"
 #include "test_tools.h"
 
 using namespace std::literals;

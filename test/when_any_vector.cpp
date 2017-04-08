@@ -1,11 +1,11 @@
-#pragma once
-
 #include <algorithm>
 #include <list>
 
 #include <gtest/gtest.h>
 
 #include <concurrency/future>
+
+#include "test_helpers.h"
 
 namespace {
 

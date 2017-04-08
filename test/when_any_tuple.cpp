@@ -1,10 +1,10 @@
-#pragma once
-
 #include <gtest/gtest.h>
 
 #include "concurrency/future"
 
 #include "test_tools.h"
+
+using namespace std::literals;
 
 namespace {
 
