@@ -61,6 +61,74 @@ TEST(WhenAnyVectorTest, single_shared_future) {
   EXPECT_EQ(*res.futures[0].get(), 42);
 }
 
+TEST(WhenAnyVectorTest, single_ready_future) {
+  auto raw_f = experimental::make_ready_future(123);
+  auto f = experimental::when_any(&raw_f, &raw_f + 1);
+  ASSERT_TRUE(f.valid());
+  EXPECT_FALSE(raw_f.valid());
+  ASSERT_TRUE(f.is_ready());
+
+  auto res = f.get();
+  EXPECT_EQ(res.index, 0u);
+  EXPECT_EQ(res.futures.size(), 1u);
+
+  ASSERT_TRUE(res.futures[0].valid());
+  ASSERT_TRUE(res.futures[0].is_ready());
+  EXPECT_EQ(res.futures[0].get(), 123);
+}
+
+TEST(WhenAnyVectorTest, single_ready_shared_future) {
+  auto raw_f = experimental::make_ready_future(123).share();
+  auto f = experimental::when_any(&raw_f, &raw_f + 1);
+  ASSERT_TRUE(f.valid());
+  EXPECT_TRUE(raw_f.valid());
+  ASSERT_TRUE(f.is_ready());
+
+  auto res = f.get();
+  EXPECT_EQ(res.index, 0u);
+  EXPECT_EQ(res.futures.size(), 1u);
+
+  ASSERT_TRUE(res.futures[0].valid());
+  ASSERT_TRUE(res.futures[0].is_ready());
+  EXPECT_EQ(res.futures[0].get(), 123);
+}
+
+TEST(WhenAnyVectorTest, single_error_future) {
+  auto raw_f = experimental::make_exceptional_future<future_tests_env&>(
+    std::runtime_error("panic")
+  );
+  auto f = experimental::when_any(&raw_f, &raw_f + 1);
+  ASSERT_TRUE(f.valid());
+  EXPECT_FALSE(raw_f.valid());
+  ASSERT_TRUE(f.is_ready());
+
+  auto res = f.get();
+  EXPECT_EQ(res.index, 0u);
+  EXPECT_EQ(res.futures.size(), 1u);
+
+  ASSERT_TRUE(res.futures[0].valid());
+  ASSERT_TRUE(res.futures[0].is_ready());
+  EXPECT_RUNTIME_ERROR(res.futures[0], "panic");
+}
+
+TEST(WhenAnyVectorTest, single_error_shared_future) {
+  auto raw_f = experimental::make_exceptional_future<future_tests_env&>(
+    std::runtime_error("panic")
+  ).share();
+  auto f = experimental::when_any(&raw_f, &raw_f + 1);
+  ASSERT_TRUE(f.valid());
+  EXPECT_TRUE(raw_f.valid());
+  ASSERT_TRUE(f.is_ready());
+
+  auto res = f.get();
+  EXPECT_EQ(res.index, 0u);
+  EXPECT_EQ(res.futures.size(), 1u);
+
+  ASSERT_TRUE(res.futures[0].valid());
+  ASSERT_TRUE(res.futures[0].is_ready());
+  EXPECT_RUNTIME_ERROR(res.futures[0], "panic");
+}
+
 TEST(WhenAnyVectorTest, simple) {
   experimental::promise<int> ps[5];
   experimental::future<int> fs[5];
