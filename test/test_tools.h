@@ -25,26 +25,9 @@
 
 class future_tests_env: public ::testing::Environment {
 public:
-  void SetUp() override {
-    worker_ = std::thread([](closable_queue<task>& queue) {
-      while (true) try {
-        auto t = queue.pop();
-        t();
-      } catch (const queue_closed&) {
-        break;
-      } catch (const std::exception& e) {
-        ADD_FAILURE() << "Uncaught exception in worker thread: " << e.what();
-      } catch (...) {
-        ADD_FAILURE() << "Uncaught exception of unknown type in worker thread";
-      }
-    }, std::ref(queue_));
-  }
+  void SetUp() override;
 
-  void TearDown() override {
-    queue_.close();
-    if (worker_.joinable())
-      worker_.join();
-  }
+  void TearDown() override;
 
   template<typename F, typename... A>
   void run_async(F&& f, A&&... a) {
@@ -52,7 +35,7 @@ public:
   }
 
 private:
-  std::thread worker_;
+  std::thread workers_[2];
   closable_queue<task> queue_;
 };
 
@@ -136,3 +119,6 @@ void expect_future_exception(experimental::shared_future<void>& future, const st
 }
 
 #define EXPECT_RUNTIME_ERROR(future, what) expect_future_exception(future, what)
+
+template<typename C, typename T>
+using member_ptr = T C::*;

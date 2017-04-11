@@ -124,6 +124,79 @@ TEST(WhenAnyTupleTest, single_error_shared_future) {
   EXPECT_RUNTIME_ERROR(std::get<0>(res.futures), "future with error");
 }
 
+TEST(WhenAnyTupleTest, next_ready_futures_dont_affect_result_before_get) {
+  experimental::promise<int> p0;
+  experimental::promise<std::string> p1;
+  experimental::promise<void> p2;
+
+  auto f = experimental::when_any(p0.get_future(), p1.get_future(), p2.get_future());
+  ASSERT_TRUE(f.valid());
+  EXPECT_FALSE(f.is_ready());
+
+  p0.set_value(12345);
+  ASSERT_TRUE(f.valid());
+  EXPECT_TRUE(f.is_ready());
+
+  p1.set_value("qwe");
+  ASSERT_TRUE(f.valid());
+  EXPECT_TRUE(f.is_ready());
+
+  p2.set_value();
+  ASSERT_TRUE(f.valid());
+  ASSERT_TRUE(f.is_ready());
+
+  auto res = f.get();
+  EXPECT_EQ(res.index, 0u);
+}
+
+TEST(WhenAnyTupleTest, next_ready_futures_dont_affect_result_after_get) {
+  experimental::promise<int> p0;
+  experimental::promise<std::string> p1;
+  experimental::promise<void> p2;
+
+  auto f = experimental::when_any(p0.get_future(), p1.get_future(), p2.get_future());
+  ASSERT_TRUE(f.valid());
+  EXPECT_FALSE(f.is_ready());
+
+  p1.set_value("qwe");
+  ASSERT_TRUE(f.valid());
+  ASSERT_TRUE(f.is_ready());
+
+  auto res = f.get();
+  EXPECT_EQ(res.index, 1u);
+  EXPECT_TRUE(std::get<1>(res.futures).is_ready());
+
+  EXPECT_FALSE(std::get<0>(res.futures).is_ready());
+  p0.set_value(12345);
+  EXPECT_FALSE(f.valid());
+  EXPECT_TRUE(std::get<0>(res.futures).is_ready());
+
+  EXPECT_FALSE(std::get<2>(res.futures).is_ready());
+  p2.set_value();
+  EXPECT_FALSE(f.valid());
+  EXPECT_TRUE(std::get<2>(res.futures).is_ready());
+}
+
+TEST(WhenAnyTupleTest, concurrent_result_delivery) {
+  experimental::promise<int> p0;
+  experimental::promise<std::string> p1;
+  experimental::promise<void> p2;
+
+  auto f = experimental::when_any(p0.get_future(), p1.get_future(), p2.get_future());
+  ASSERT_TRUE(f.valid());
+  EXPECT_FALSE(f.is_ready());
+
+  g_future_tests_env->run_async(
+    static_cast<member_ptr<experimental::promise<int>, void(const int&)>>(&experimental::promise<int>::set_value),
+    std::move(p0),
+    42
+  );
+  g_future_tests_env->run_async(&experimental::promise<void>::set_value, std::move(p2));
+
+  auto res = f.get();
+  EXPECT_TRUE(res.index == 0u || res.index == 2u) << "unexpected index: " << res.index;
+}
+
 TEST_P(WhenAnyTupleTest, multiple_futures) {
   experimental::promise<int> p0;
   auto raw_f0 = p0.get_future();
