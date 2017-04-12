@@ -249,5 +249,133 @@ TEST(WhenAnyVectorTest, multiple_shared_futures_one_initionally_ready) {
   EXPECT_EQ(&res.futures[res.index].get(), &some_var);
 }
 
+TEST(WhenAnyVectorTest, multiple_futures_one_initionally_error) {
+  experimental::promise<std::unique_ptr<int>> ps[5];
+  experimental::future<std::unique_ptr<int>> fs[5];
+
+  std::transform(
+    std::begin(ps), std::end(ps),
+    std::begin(fs),
+    std::mem_fn(&experimental::promise<std::unique_ptr<int>>::get_future)
+  );
+  ps[4].set_exception(std::make_exception_ptr(std::runtime_error("epic fail")));
+  ASSERT_TRUE(fs[4].is_ready());
+
+  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  ASSERT_TRUE(f.valid());
+  ASSERT_TRUE(f.is_ready());
+
+  auto res = f.get();
+  EXPECT_EQ(res.index, 4u);
+  EXPECT_EQ(res.futures.size(), 5u);
+  std::size_t idx = 0;
+  for (auto& fc: res.futures)
+  {
+    ASSERT_TRUE(fc.valid());
+    EXPECT_EQ(fc.is_ready(), idx++ == res.index);
+  }
+  EXPECT_RUNTIME_ERROR(res.futures[res.index], "epic fail");
+}
+
+TEST(WhenAnyVectorTest, multiple_shared_futures_one_initionally_error) {
+  experimental::promise<int> ps[5];
+  experimental::shared_future<int> fs[5];
+
+  std::transform(
+    std::begin(ps), std::end(ps),
+    std::begin(fs),
+    std::mem_fn(&experimental::promise<int>::get_future)
+  );
+  ps[4].set_exception(std::make_exception_ptr(std::runtime_error("epic fail")));
+  ASSERT_TRUE(fs[4].is_ready());
+
+  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  ASSERT_TRUE(f.valid());
+  ASSERT_TRUE(f.is_ready());
+
+  auto res = f.get();
+  EXPECT_EQ(res.index, 4u);
+  EXPECT_EQ(res.futures.size(), 5u);
+  std::size_t idx = 0;
+  for (auto& fc: res.futures)
+  {
+    ASSERT_TRUE(fc.valid());
+    EXPECT_EQ(fc.is_ready(), idx++ == res.index);
+  }
+  EXPECT_RUNTIME_ERROR(res.futures[res.index], "epic fail");
+}
+
+TEST(WhenAnyVectorTest, next_ready_futures_dont_affect_result_before_get) {
+  experimental::promise<size_t> ps[5];
+  experimental::shared_future<size_t> fs[5];
+
+  std::transform(
+    std::begin(ps), std::end(ps),
+    std::begin(fs),
+    std::mem_fn(&experimental::promise<size_t>::get_future)
+  );
+
+  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  ASSERT_TRUE(f.valid());
+  EXPECT_FALSE(f.is_ready());
+
+  for (size_t pos = 0; pos < 5; ++pos)
+  {
+    ps[(pos + 3)%5].set_value(pos + 3);
+    ASSERT_TRUE(f.is_ready());
+  }
+  auto res = f.get();
+  EXPECT_EQ(res.index, 3u);
+}
+
+TEST(WhenAnyVectorTest, next_ready_futures_dont_affect_result_after_get) {
+  experimental::promise<size_t> ps[5];
+  experimental::shared_future<size_t> fs[5];
+
+  std::transform(
+    std::begin(ps), std::end(ps),
+    std::begin(fs),
+    std::mem_fn(&experimental::promise<size_t>::get_future)
+  );
+
+  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  ASSERT_TRUE(f.valid());
+  EXPECT_FALSE(f.is_ready());
+
+  ps[2].set_value(42);
+  ASSERT_TRUE(f.is_ready());
+  auto res = f.get();
+  EXPECT_EQ(res.index, 2u);
+
+  for (size_t pos = 0; pos < 4; ++pos)
+  {
+    ps[(pos + 3)%5].set_value(pos + 100500);
+    EXPECT_EQ(res.index, 2u);
+  }
+}
+
+TEST(WhenAnyVectorTest, futures_becomes_ready_concurrently) {
+  experimental::promise<size_t> ps[3];
+  experimental::shared_future<size_t> fs[3];
+
+  std::transform(
+    std::begin(ps), std::end(ps),
+    std::begin(fs),
+    std::mem_fn(&experimental::promise<size_t>::get_future)
+  );
+  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  ASSERT_TRUE(f.valid());
+  EXPECT_FALSE(f.is_ready());
+
+  auto set_value = static_cast<member_ptr<experimental::promise<size_t>, void(const size_t&)>>(
+    &experimental::promise<size_t>::set_value
+  );
+
+  g_future_tests_env->run_async(set_value, std::move(ps[1]), 123);
+  g_future_tests_env->run_async(set_value, std::move(ps[2]), 345);
+  auto res = f.get();
+  EXPECT_TRUE(res.index == 1 || res.index == 2) << "unexpected index: " << res.index;
+}
+
 }
 
