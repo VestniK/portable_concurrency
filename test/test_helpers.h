@@ -80,7 +80,7 @@ auto set_error_in_other_thread(
   auto res = promise.get_future();
 
   g_future_tests_env->run_async([](
-    experimental::promise<T>& promise,
+    experimental::promise<T>&& promise,
     E worker_err,
     std::chrono::duration<R, P> tm
   ) {

@@ -22,7 +22,7 @@ template<typename T>
 void future_async_async() {
   experimental::promise<experimental::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>& p) {
+  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>&& p) {
     std::this_thread::sleep_for(15ms);
     p.set_value(set_value_in_other_thread<T>(15ms));
   }, std::move(p));
@@ -39,7 +39,7 @@ template<typename T>
 void future_async_ready() {
   experimental::promise<experimental::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>& p) {
+  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>&& p) {
     std::this_thread::sleep_for(15ms);
     p.set_value(make_some_ready_future<T>());
   }, std::move(p));
@@ -56,7 +56,7 @@ template<typename T>
 void future_async_invalid() {
   experimental::promise<experimental::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>& p) {
+  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>&& p) {
     std::this_thread::sleep_for(15ms);
     p.set_value(experimental::future<T>{});
   }, std::move(p));
@@ -115,7 +115,7 @@ template<typename T>
 void future_async_async_error() {
   experimental::promise<experimental::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>& p) {
+  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>&& p) {
     std::this_thread::sleep_for(15ms);
     p.set_value(set_error_in_other_thread<T>(15ms, std::runtime_error("test error")));
   }, std::move(p));
@@ -132,7 +132,7 @@ template<typename T>
 void future_async_ready_error() {
   experimental::promise<experimental::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>& p) {
+  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>&& p) {
     std::this_thread::sleep_for(15ms);
     p.set_value(experimental::make_exceptional_future<T>(std::runtime_error("test error")));
   }, std::move(p));
