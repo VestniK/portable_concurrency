@@ -64,7 +64,7 @@ public:
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
     auto state = std::move(state_);
-    return state->get();
+    return std::move(state->get());
   }
 
   void wait() const {
@@ -116,6 +116,15 @@ private:
 private:
   std::shared_ptr<detail::shared_state<T>> state_;
 };
+
+template<>
+inline
+void future<void>::get() {
+  if (!state_)
+    throw std::future_error(std::future_errc::no_state);
+  auto state = std::move(state_);
+  state->get();
+}
 
 template<>
 inline

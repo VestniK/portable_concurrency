@@ -18,14 +18,14 @@ public:
   virtual void invoke() = 0;
 };
 
-template<typename T>
-class shared_state {
+template<typename Box>
+class shared_state_base {
 public:
-  shared_state() = default;
-  virtual ~shared_state() = default;
+  shared_state_base() = default;
+  virtual ~shared_state_base() = default;
 
-  shared_state(const shared_state&) = delete;
-  shared_state(shared_state&&) = delete;
+  shared_state_base(const shared_state_base&) = delete;
+  shared_state_base(shared_state_base&&) = delete;
 
   template<typename... U>
   void emplace(U&&... u) {
@@ -73,41 +73,74 @@ public:
     return wait_res ? std::future_status::ready : std::future_status::timeout;
   }
 
-  T get() {
-    std::unique_lock<std::mutex> lock(mutex_);
-    cv_.wait(lock, [this] {
-      return box_.get_state() != detail::box_state::empty;
-    });
-    return box_.get();
-  }
-
-  decltype(auto) shared_get() {
-    std::unique_lock<std::mutex> lock(mutex_);
-    cv_.wait(lock, [this] {
-      return box_.get_state() != detail::box_state::empty;
-    });
-    return box_.shared_get();
-  }
-
   bool is_ready() {
     std::lock_guard<std::mutex> guard(mutex_);
     return box_.get_state() != detail::box_state::empty;
   }
 
   void add_continuation(const std::shared_ptr<continuation>& cnt) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    if (box_.get_state() != detail::box_state::empty) {
-      lock.unlock();
-      cnt->invoke();
-    } else
-      continuations_.emplace_back(std::move(cnt));
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      if (box_.get_state() == detail::box_state::empty) {
+        continuations_.emplace_back(cnt);
+        return;
+      }
+    }
+    cnt->invoke();
   }
+
+  void add_continuation(std::shared_ptr<continuation>&& cnt) {
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      if (box_.get_state() == detail::box_state::empty) {
+        continuations_.emplace_back(std::move(cnt));
+        return;
+      }
+    }
+    cnt->invoke();
+  }
+
+protected:
+  Box& box() {return box_;}
 
 private:
   std::mutex mutex_;
   std::condition_variable cv_;
-  result_box<T> box_;
+  Box box_;
   std::deque<std::shared_ptr<continuation>> continuations_;
+};
+
+template<typename T>
+class shared_state: public shared_state_base<result_box<T>> {
+public:
+  shared_state() = default;
+
+  T& get() {
+    this->wait();
+    return this->box().get();
+  }
+};
+
+template<typename T>
+class shared_state<T&>: public shared_state_base<result_box<std::reference_wrapper<T>>> {
+public:
+  shared_state() = default;
+
+  std::reference_wrapper<T> get() {
+    this->wait();
+    return this->box().get();
+  }
+};
+
+template<>
+class shared_state<void>: public shared_state_base<result_box<void>> {
+public:
+  shared_state() = default;
+
+  void get() {
+    this->wait();
+    this->box().get();
+  }
 };
 
 } // namespace detail

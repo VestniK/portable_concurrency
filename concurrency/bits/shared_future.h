@@ -54,10 +54,10 @@ public:
 
   bool valid() const noexcept {return static_cast<bool>(state_);}
 
-  decltype(auto) get() {
+  std::add_lvalue_reference_t<std::add_const_t<T>> get() {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return state_->shared_get();
+    return state_->get();
   }
 
   bool is_ready() const {
