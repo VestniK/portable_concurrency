@@ -16,7 +16,7 @@ enum class box_state {
 template<typename T>
 class result_box {
 public:
-  result_box() {}
+  result_box() noexcept {}
 
   result_box(const result_box&) = delete;
   result_box(result_box&&) = delete;
@@ -65,7 +65,7 @@ private:
 template<>
 class result_box<void> {
 public:
-  result_box() {}
+  result_box() noexcept {}
 
   result_box(const result_box&) = delete;
   result_box(result_box&&) = delete;
