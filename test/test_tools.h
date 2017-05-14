@@ -3,6 +3,7 @@
 #include <functional>
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 
 #include <gtest/gtest.h>
 
@@ -31,11 +32,13 @@ public:
 
   template<typename F, typename... A>
   void run_async(F&& f, A&&... a) {
-    queue_.emplace(std::forward<F>(f), std::forward<A>(a)...);
+    queue_.push({std::forward<F>(f), std::forward<A>(a)...});
   }
 
+  size_t threads_count() const {return workers_.size();}
+
 private:
-  std::thread workers_[2];
+  std::vector<std::thread> workers_;
   closable_queue<task> queue_;
 };
 

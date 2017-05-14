@@ -19,11 +19,12 @@ void worker_function(closable_queue<task>& queue) {
   }
 }
 
-}
+} // anonymous namespace
 
 void future_tests_env::SetUp() {
-  for (auto& worker: workers_)
-    worker = std::thread(worker_function, std::ref(queue_));
+  const auto threads_count = std::max(2u, std::thread::hardware_concurrency());
+  for (workers_.reserve(threads_count); workers_.size() < threads_count;)
+    workers_.emplace_back(worker_function, std::ref(queue_));
 }
 
 void future_tests_env::TearDown() {

@@ -23,12 +23,11 @@ public:
     return res;
   }
 
-  template<typename... A>
-  void emplace(A&&... a) {
+  void push(T&& val) {
     std::lock_guard<std::mutex> guard(mutex_);
     if (closed_)
       throw queue_closed();
-    queue_.emplace(std::forward<A>(a)...);
+    queue_.emplace(std::move(val));
     cv_.notify_one();
   }
   
