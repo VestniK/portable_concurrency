@@ -6,6 +6,7 @@
 #include <deque>
 #include <mutex>
 
+#include "once_consumable_queue.h"
 #include "result_box.h"
 
 namespace experimental {
@@ -18,6 +19,8 @@ public:
   virtual void invoke() = 0;
 };
 
+using continuations_queue = once_consumable_queue<std::shared_ptr<continuation>>;
+
 template<typename Box>
 class shared_state_base {
 public:
@@ -29,23 +32,23 @@ public:
 
   template<typename... U>
   void emplace(U&&... u) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    box_.emplace(std::forward<U>(u)...);
-    cv_.notify_all();
-    auto continuations = std::move(continuations_);
-    lock.unlock();
-    for (auto& cont: continuations)
-      cont->invoke();
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      box_.emplace(std::forward<U>(u)...);
+      cv_.notify_all();
+    }
+    for (auto& cnt: continuations_.consume())
+      cnt->invoke();
   }
 
   void set_exception(std::exception_ptr error) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    box_.set_exception(error);
-    cv_.notify_all();
-    auto continuations = std::move(continuations_);
-    lock.unlock();
-    for (auto& cont: continuations)
-      cont->invoke();
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      box_.set_exception(error);
+      cv_.notify_all();
+    }
+    for (auto& cnt: continuations_.consume())
+      cnt->invoke();
   }
 
   void wait() {
@@ -78,26 +81,9 @@ public:
     return box_.get_state() != detail::box_state::empty;
   }
 
-  void add_continuation(const std::shared_ptr<continuation>& cnt) {
-    {
-      std::unique_lock<std::mutex> lock(mutex_);
-      if (box_.get_state() == detail::box_state::empty) {
-        continuations_.emplace_back(cnt);
-        return;
-      }
-    }
-    cnt->invoke();
-  }
-
-  void add_continuation(std::shared_ptr<continuation>&& cnt) {
-    {
-      std::unique_lock<std::mutex> lock(mutex_);
-      if (box_.get_state() == detail::box_state::empty) {
-        continuations_.emplace_back(std::move(cnt));
-        return;
-      }
-    }
-    cnt->invoke();
+  void add_continuation(std::shared_ptr<continuation> cnt) {
+    if (!continuations_.push(cnt))
+      cnt->invoke();
   }
 
 protected:
@@ -107,7 +93,7 @@ private:
   std::mutex mutex_;
   std::condition_variable cv_;
   Box box_;
-  std::deque<std::shared_ptr<continuation>> continuations_;
+  continuations_queue continuations_;
 };
 
 template<typename T>
