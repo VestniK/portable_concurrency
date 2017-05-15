@@ -95,6 +95,19 @@ private:
   forward_list_node<T>* head_ = nullptr;
 };
 
+/**
+ * @internal
+ *
+ * Multy-producer single-consumer atomic queue with extra properties:
+ * @li Consume operation can happen only once and switch the queue into @em consumed state.
+ * @li Attempt to enqueue new item into @em consumed queue failes. Item remains unchanged.
+ * @li When producer get the information that the queue is @em consumed all side effects
+ * of operations sequenced before consume operation in the consumer thread are observable
+ * in the thread of this particulair producer.
+ *
+ * Last requrement allows consumer atomically trasfer data to producers with a single
+ * operation of queue consumption.
+ */
 template<typename T>
 class once_consumable_queue {
 public:
@@ -108,6 +121,17 @@ public:
       forward_list<T>{head};
   }
 
+  /**
+   * Enqueue an object in to the queue in a thread safe way. If the queue is not yet
+   * @em consumed then this function moves the value from the paremeter @a val and
+   * returns true. Otherwise the value of the @a val object remains untoched and
+   * function returns true.
+   *
+   * @note Can be called from multiple threads.
+   *
+   * @note This function assumes that moving the value from an object and then moving
+   * it back remains an object in initial state.
+   */
   bool push(T& val) {
     auto* curr_head = head_.load(std::memory_order_acquire);
     if (curr_head == consumed_marker())
@@ -123,6 +147,11 @@ public:
     return true;
   }
 
+  /**
+   * Clear the queue in a thread safe way. Return false only if the queue id @em consumed
+   *
+   * @note Can be called from multiple threads.
+   */
   bool clear() {
     auto* old_head = head_.load(std::memory_order_acquire);
     do {
@@ -135,6 +164,17 @@ public:
     return true;
   }
 
+  /**
+   * Clean the queue and enqueu an object @a val in a thread safe way. If the queue
+   * is not yet @em consumed then this function moves the value from the paremeter
+   * @a val and returns true. Otherwise the value of the @a val object remains untoched
+   * and function returns true.
+   *
+   * @note Can be called from multiple threads.
+   *
+   * @note This function assumes that moving the value from an object and then moving
+   * it back remains an object in initial state.
+   */
   bool replace(T& val) {
     auto* old_head = head_.load(std::memory_order_acquire);
     if (old_head == consumed_marker())
@@ -151,11 +191,24 @@ public:
     return true;
   }
 
+  /**
+   * Checks if the queue is @em consumed.
+   *
+   * @note Can be called from multiple threads.
+   */
   bool is_consumed() const {
     auto* old_head = head_.load(std::memory_order_acquire);
     return old_head == consumed_marker();
   }
 
+  /**
+   * Consumes the queue and switch it into @em consumed state. Running this function
+   * concurrently with any other function in this class (instead of constructor or
+   * destructor) is safe.
+   *
+   * @note Must be called from a single thread. Must not be called twice on a same
+   * queue.
+   */
   forward_list<T> consume() {
     auto* curr_head = head_.exchange(consumed_marker(), std::memory_order_acq_rel);
     if (curr_head == consumed_marker())
@@ -165,7 +218,7 @@ public:
 
 private:
   // Return address of some valid object which can not alias with forward_list_node<T>
-  // instances. Can be used of marker in pointer compariaions but must never be
+  // instances. Can be used as marker in pointer compariaions but must never be
   // dereferenced.
   forward_list_node<T>* consumed_marker() {
     return reinterpret_cast<forward_list_node<T>*>(this);
