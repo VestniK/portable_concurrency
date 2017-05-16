@@ -2,6 +2,7 @@
 
 #include "fwd.h"
 
+#include "concurrency_type_traits.h"
 #include "shared_state.h"
 #include "utils.h"
 
@@ -31,7 +32,10 @@ public:
     std::shared_ptr<shared_state<T>>&& parent
   ) {
     auto res = std::make_shared<continuation_state>(std::forward<F>(func), std::move(parent));
-    res->parent_->add_continuation(res);
+    if (is_unique_future<Future<T>>::value)
+      res->parent_->set_continuation(res);
+    else
+      res->parent_->add_continuation(res);
     return res;
   }
 

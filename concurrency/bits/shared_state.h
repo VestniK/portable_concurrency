@@ -86,6 +86,11 @@ public:
       cnt->invoke();
   }
 
+  void set_continuation(std::shared_ptr<continuation> cnt) {
+    if (!continuations_.replace(cnt))
+      cnt->invoke();
+  }
+
 protected:
   Box& box() {return box_;}
 

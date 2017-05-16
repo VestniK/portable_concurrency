@@ -8,6 +8,7 @@
 #include "continuation.h"
 #include "shared_state.h"
 #include "utils.h"
+#include "wait_continuation.h"
 
 namespace experimental {
 inline namespace concurrency_v1 {
@@ -70,21 +71,36 @@ public:
   void wait() const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    state_->wait();
+    if (state_->is_ready())
+      return;
+
+    auto waiter = std::make_shared<detail::wait_continuaton>();
+    state_->set_continuation(waiter);
+    waiter->wait();
   }
 
   template<typename Rep, typename Period>
   std::future_status wait_for(const std::chrono::duration<Rep, Period>& rel_time) const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return state_->wait_for(rel_time);
+    if (state_->is_ready())
+      return std::future_status::ready;
+
+    auto waiter = std::make_shared<detail::wait_continuaton>();
+    state_->set_continuation(waiter);
+    return waiter->wait_for(rel_time) ? std::future_status::ready : std::future_status::timeout;
   }
 
   template <typename Clock, typename Duration>
   std::future_status wait_until(const std::chrono::time_point<Clock, Duration>& abs_time) const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return state_->wait_until(abs_time);
+    if (state_->is_ready())
+      return std::future_status::ready;
+
+    auto waiter = std::make_shared<detail::wait_continuaton>();
+    state_->set_continuation(waiter);
+    return waiter->wait_until(abs_time) ? std::future_status::ready : std::future_status::timeout;
   }
 
   bool valid() const noexcept {return static_cast<bool>(state_);}

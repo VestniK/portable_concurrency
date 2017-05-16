@@ -12,6 +12,7 @@ set(HEADERS
   shared_future.h
   shared_state.h
   utils.h
+  wait_continuation.h
   when_any.h
 )
 
