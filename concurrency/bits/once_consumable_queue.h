@@ -125,7 +125,7 @@ public:
    * Enqueue an object in to the queue in a thread safe way. If the queue is not yet
    * @em consumed then this function moves the value from the paremeter @a val and
    * returns true. Otherwise the value of the @a val object remains untoched and
-   * function returns true.
+   * function returns false.
    *
    * @note Can be called from multiple threads.
    *
@@ -148,7 +148,7 @@ public:
   }
 
   /**
-   * Clear the queue in a thread safe way. Return false only if the queue id @em consumed
+   * Clear the queue in a thread safe way. Return false only if the queue is @em consumed
    *
    * @note Can be called from multiple threads.
    */
@@ -168,7 +168,7 @@ public:
    * Clean the queue and enqueu an object @a val in a thread safe way. If the queue
    * is not yet @em consumed then this function moves the value from the paremeter
    * @a val and returns true. Otherwise the value of the @a val object remains untoched
-   * and function returns true.
+   * and function returns false.
    *
    * @note Can be called from multiple threads.
    *
