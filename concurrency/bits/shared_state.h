@@ -1,10 +1,6 @@
 #pragma once
 
 #include <cassert>
-#include <chrono>
-#include <condition_variable>
-#include <deque>
-#include <mutex>
 
 #include "once_consumable_queue.h"
 #include "result_box.h"
@@ -32,53 +28,19 @@ public:
 
   template<typename... U>
   void emplace(U&&... u) {
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-      box_.emplace(std::forward<U>(u)...);
-      cv_.notify_all();
-    }
+    box_.emplace(std::forward<U>(u)...);
     for (auto& cnt: continuations_.consume())
       cnt->invoke();
   }
 
   void set_exception(std::exception_ptr error) {
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-      box_.set_exception(error);
-      cv_.notify_all();
-    }
+    box_.set_exception(error);
     for (auto& cnt: continuations_.consume())
       cnt->invoke();
   }
 
-  void wait() {
-    std::unique_lock<std::mutex> lock(mutex_);
-    cv_.wait(lock, [this] {
-      return box_.get_state() != detail::box_state::empty;
-    });
-  }
-
-  template<typename Rep, typename Period>
-  std::future_status wait_for(const std::chrono::duration<Rep, Period>& rel_time) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    const bool wait_res = cv_.wait_for(lock, rel_time, [this] {
-      return box_.get_state() != detail::box_state::empty;
-    });
-    return wait_res ? std::future_status::ready : std::future_status::timeout;
-  }
-
-  template <typename Clock, typename Duration>
-  std::future_status wait_until(const std::chrono::time_point<Clock, Duration>& abs_time) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    const bool wait_res = cv_.wait_until(lock, abs_time, [this] {
-      return box_.get_state() != detail::box_state::empty;
-    });
-    return wait_res ? std::future_status::ready : std::future_status::timeout;
-  }
-
   bool is_ready() {
-    std::lock_guard<std::mutex> guard(mutex_);
-    return box_.get_state() != detail::box_state::empty;
+    return continuations_.is_consumed();
   }
 
   void add_continuation(std::shared_ptr<continuation> cnt) {
@@ -95,8 +57,6 @@ protected:
   Box& box() {return box_;}
 
 private:
-  std::mutex mutex_;
-  std::condition_variable cv_;
   Box box_;
   continuations_queue continuations_;
 };
@@ -106,8 +66,8 @@ class shared_state: public shared_state_base<result_box<T>> {
 public:
   shared_state() = default;
 
-  T& get() {
-    this->wait();
+  T& value_ref() {
+    assert(this->is_ready());
     return this->box().get();
   }
 };
@@ -117,8 +77,8 @@ class shared_state<T&>: public shared_state_base<result_box<std::reference_wrapp
 public:
   shared_state() = default;
 
-  std::reference_wrapper<T> get() {
-    this->wait();
+  std::reference_wrapper<T> value_ref() {
+    assert(this->is_ready());
     return this->box().get();
   }
 };
@@ -128,8 +88,8 @@ class shared_state<void>: public shared_state_base<result_box<void>> {
 public:
   shared_state() = default;
 
-  void get() {
-    this->wait();
+  void value_ref() {
+    assert(this->is_ready());
     this->box().get();
   }
 };

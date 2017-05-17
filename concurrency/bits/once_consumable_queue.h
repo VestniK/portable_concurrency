@@ -197,8 +197,7 @@ public:
    * @note Can be called from multiple threads.
    */
   bool is_consumed() const {
-    auto* old_head = head_.load(std::memory_order_acquire);
-    return old_head == consumed_marker();
+    return head_.load(std::memory_order_acquire) == consumed_marker();
   }
 
   /**
@@ -220,8 +219,8 @@ private:
   // Return address of some valid object which can not alias with forward_list_node<T>
   // instances. Can be used as marker in pointer compariaions but must never be
   // dereferenced.
-  forward_list_node<T>* consumed_marker() {
-    return reinterpret_cast<forward_list_node<T>*>(this);
+  forward_list_node<T>* consumed_marker() const {
+    return reinterpret_cast<forward_list_node<T>*>(const_cast<once_consumable_queue*>(this));
   }
 
 private:

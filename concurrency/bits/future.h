@@ -64,8 +64,9 @@ public:
   T get() {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
+    wait();
     auto state = std::move(state_);
-    return std::move(state->get());
+    return std::move(state->value_ref());
   }
 
   void wait() const {
@@ -138,8 +139,9 @@ inline
 void future<void>::get() {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
+  wait();
   auto state = std::move(state_);
-  state->get();
+  state->value_ref();
 }
 
 template<>
