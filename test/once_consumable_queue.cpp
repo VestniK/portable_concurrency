@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "concurrency/future"
+#include "concurrency/latch"
 
 #include "concurrency/bits/once_consumable_queue.h"
 
@@ -21,7 +22,11 @@ TEST(OnceConsumableQueueTests, concurrent_push_until_consume) {
     std::thread::id tid = std::this_thread::get_id();
   };
   queue<record> records_queue;
-  auto producer = [&records_queue]() {
+  experimental::latch latch{
+    static_cast<ptrdiff_t>(g_future_tests_env->threads_count())
+  };
+  auto producer = [&records_queue, &latch]() {
+    latch.count_down_and_wait();
     record rec = {};
     for (;rec.id < 1'000'000; ++rec.id) {
       auto rec_to_push = rec;

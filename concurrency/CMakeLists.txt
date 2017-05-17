@@ -4,6 +4,7 @@ add_subdirectory(bits)
 
 set(HEADERS
   future
+  latch
 )
 
 add_library(concurrency INTERFACE)
