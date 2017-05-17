@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <type_traits>
 
 #include "once_consumable_queue.h"
 #include "result_box.h"
@@ -17,14 +18,21 @@ public:
 
 using continuations_queue = once_consumable_queue<std::shared_ptr<continuation>>;
 
-template<typename Box>
-class shared_state_base {
-public:
-  shared_state_base() = default;
-  virtual ~shared_state_base() = default;
+template<typename T>
+using state_storage_t = std::conditional_t<
+  std::is_reference<T>::value,
+  std::reference_wrapper<std::remove_reference_t<T>>,
+  std::remove_const_t<T>
+>;
 
-  shared_state_base(const shared_state_base&) = delete;
-  shared_state_base(shared_state_base&&) = delete;
+template<typename T>
+class shared_state {
+public:
+  shared_state() = default;
+  virtual ~shared_state() = default;
+
+  shared_state(const shared_state&) = delete;
+  shared_state(shared_state&&) = delete;
 
   template<typename... U>
   void emplace(U&&... u) {
@@ -53,45 +61,14 @@ public:
       cnt->invoke();
   }
 
-protected:
-  Box& box() {return box_;}
+  std::add_lvalue_reference_t<state_storage_t<T>> value_ref() {
+    assert(is_ready());
+    return box_.get();
+  }
 
 private:
-  Box box_;
+  result_box<state_storage_t<T>> box_;
   continuations_queue continuations_;
-};
-
-template<typename T>
-class shared_state: public shared_state_base<result_box<T>> {
-public:
-  shared_state() = default;
-
-  T& value_ref() {
-    assert(this->is_ready());
-    return this->box().get();
-  }
-};
-
-template<typename T>
-class shared_state<T&>: public shared_state_base<result_box<std::reference_wrapper<T>>> {
-public:
-  shared_state() = default;
-
-  std::reference_wrapper<T> value_ref() {
-    assert(this->is_ready());
-    return this->box().get();
-  }
-};
-
-template<>
-class shared_state<void>: public shared_state_base<result_box<void>> {
-public:
-  shared_state() = default;
-
-  void value_ref() {
-    assert(this->is_ready());
-    this->box().get();
-  }
 };
 
 } // namespace detail
