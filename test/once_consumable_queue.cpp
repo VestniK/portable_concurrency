@@ -23,7 +23,7 @@ TEST(OnceConsumableQueueTests, concurrent_push_until_consume) {
   };
   queue<record> records_queue;
   experimental::latch latch{
-    static_cast<ptrdiff_t>(g_future_tests_env->threads_count())
+    static_cast<ptrdiff_t>(g_future_tests_env->threads_count() + 1)
   };
   auto producer = [&records_queue, &latch]() {
     latch.count_down_and_wait();
@@ -44,6 +44,7 @@ TEST(OnceConsumableQueueTests, concurrent_push_until_consume) {
     g_future_tests_env->run_async(std::move(task));
   }
 
+  latch.count_down_and_wait();
   std::this_thread::sleep_for(50ms);
   std::map<std::thread::id, size_t> max_thread_rec_id;
   for (const auto& rec: records_queue.consume()) {
