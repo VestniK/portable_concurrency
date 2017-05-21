@@ -24,12 +24,12 @@ struct when_any_result {
 namespace detail {
 
 template<typename T>
-shared_state<T>* state_of(future<T>& f) {
+future_state<T>* state_of(future<T>& f) {
   return f.state_.get();
 }
 
 template<typename T>
-shared_state<T>* state_of(shared_future<T>& f) {
+future_state<T>* state_of(shared_future<T>& f) {
   return f.state_.get();
 }
 

@@ -16,7 +16,7 @@ inline namespace concurrency_v1 {
 namespace detail {
 
 template<typename T>
-shared_state<T>* state_of(future<T>&);
+future_state<T>* state_of(future<T>&);
 
 } // namespace detail
 
@@ -122,16 +122,16 @@ public:
   }
 
   // implementation detail
-  future(std::shared_ptr<detail::shared_state<T>>&& state) noexcept:
+  future(std::shared_ptr<detail::future_state<T>>&& state) noexcept:
     state_(std::move(state))
   {}
 
 private:
   friend class shared_future<T>;
-  friend detail::shared_state<T>* detail::state_of<T>(future<T>&);
+  friend detail::future_state<T>* detail::state_of<T>(future<T>&);
 
 private:
-  std::shared_ptr<detail::shared_state<T>> state_;
+  std::shared_ptr<detail::future_state<T>> state_;
 };
 
 template<>

@@ -26,10 +26,20 @@ using state_storage_t = std::conditional_t<
 >;
 
 template<typename T>
-class shared_state {
+class future_state {
+public:
+  virtual ~future_state() = default;
+
+  virtual bool is_ready() const = 0;
+  virtual void add_continuation(std::shared_ptr<continuation> cnt) = 0;
+  virtual void set_continuation(std::shared_ptr<continuation> cnt) = 0;
+  virtual std::add_lvalue_reference_t<state_storage_t<T>> value_ref() = 0;
+};
+
+template<typename T>
+class shared_state: public future_state<T> {
 public:
   shared_state() = default;
-  virtual ~shared_state() = default;
 
   shared_state(const shared_state&) = delete;
   shared_state(shared_state&&) = delete;
@@ -47,21 +57,21 @@ public:
       cnt->invoke();
   }
 
-  bool is_ready() {
+  bool is_ready() const override {
     return continuations_.is_consumed();
   }
 
-  void add_continuation(std::shared_ptr<continuation> cnt) {
+  void add_continuation(std::shared_ptr<continuation> cnt) override {
     if (!continuations_.push(cnt))
       cnt->invoke();
   }
 
-  void set_continuation(std::shared_ptr<continuation> cnt) {
+  void set_continuation(std::shared_ptr<continuation> cnt) override {
     if (!continuations_.replace(cnt))
       cnt->invoke();
   }
 
-  std::add_lvalue_reference_t<state_storage_t<T>> value_ref() {
+  std::add_lvalue_reference_t<state_storage_t<T>> value_ref() override {
     assert(is_ready());
     return box_.get();
   }

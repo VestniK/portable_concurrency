@@ -21,7 +21,7 @@ class continuation_state:
 public:
   using result_t = continuation_result_t<Future, F, T>;
 
-  continuation_state(F&& f, std::shared_ptr<shared_state<T>>&& parent):
+  continuation_state(F&& f, std::shared_ptr<future_state<T>>&& parent):
     func_(std::forward<F>(f)),
     parent_(std::move(parent))
   {
@@ -29,7 +29,7 @@ public:
 
   static std::shared_ptr<shared_state<continuation_result_t<Future, F, T>>> make(
     F&& func,
-    std::shared_ptr<shared_state<T>>&& parent
+    std::shared_ptr<future_state<T>>&& parent
   ) {
     auto res = std::make_shared<continuation_state>(std::forward<F>(func), std::move(parent));
     if (is_unique_future<Future<T>>::value)
@@ -49,7 +49,7 @@ public:
 
 private:
   std::decay_t<F> func_;
-  std::shared_ptr<shared_state<T>> parent_;
+  std::shared_ptr<future_state<T>> parent_;
 };
 
 } // namespace detail
