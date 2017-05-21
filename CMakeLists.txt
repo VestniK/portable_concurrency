@@ -8,6 +8,7 @@ option(ENABLE_ADDRSAN "Enables address sanitizer for clang and gcc" Off)
 option(ENABLE_THREADSAN "Enables thread sanitizer for clang and gcc" Off)
 
 include(conanbuildinfo.cmake)
+set(CONAN_CMAKE_FIND_ROOT_PATH ${CONAN_CMAKE_MODULE_PATH})
 conan_basic_setup()
 
 set(CMAKE_CXX_STANDARD 14)
