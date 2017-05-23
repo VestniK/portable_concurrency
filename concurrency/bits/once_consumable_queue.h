@@ -14,7 +14,7 @@ struct forward_list_node {
   // make_unique can't use universal initialization so some garbage code requred :(
   template<typename U>
   forward_list_node(U&& val, forward_list_node* next = nullptr):
-    val(val),
+    val(std::forward<U>(val)),
     next(next)
   {}
 
