@@ -2,6 +2,7 @@ set(HEADERS
   concurrency_type_traits.h
   continuation.h
   future.h
+  future_sequence.h
   fwd.h
   invoke.h
   latch.h
@@ -15,6 +16,7 @@ set(HEADERS
   utils.h
   wait_continuation.h
   when_any.h
+  when_all.h
 )
 
 install(FILES ${HEADERS}
