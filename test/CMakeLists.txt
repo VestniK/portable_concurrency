@@ -11,6 +11,7 @@ set(SRC
   shared_future.cpp
   test_tools.cpp
   unwrap_constructor.cpp
+  when_all_tuple.cpp
   when_any_tuple.cpp
   when_any_vector.cpp
 )
