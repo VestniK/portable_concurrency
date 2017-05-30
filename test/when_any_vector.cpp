@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <concurrency/future>
+#include <concurrency/latch>
 
 #include "test_helpers.h"
 
@@ -367,12 +368,11 @@ TEST(WhenAnyVectorTest, futures_becomes_ready_concurrently) {
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
 
-  auto set_value = static_cast<member_ptr<experimental::promise<size_t>, void(const size_t&)>>(
-    &experimental::promise<size_t>::set_value
-  );
+  experimental::latch latch{3};
+  g_future_tests_env->run_async([&latch, &ps] {latch.count_down_and_wait(); ps[1].set_value(123);});
+  g_future_tests_env->run_async([&latch, &ps] {latch.count_down_and_wait(); ps[2].set_value(345);});
 
-  g_future_tests_env->run_async(set_value, std::move(ps[1]), 123);
-  g_future_tests_env->run_async(set_value, std::move(ps[2]), 345);
+  latch.count_down_and_wait();
   auto res = f.get();
   EXPECT_TRUE(res.index == 1 || res.index == 2) << "unexpected index: " << res.index;
 }

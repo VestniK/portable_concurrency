@@ -122,6 +122,3 @@ void expect_future_exception(experimental::shared_future<void>& future, const st
 }
 
 #define EXPECT_RUNTIME_ERROR(future, what) expect_future_exception(future, what)
-
-template<typename C, typename T>
-using member_ptr = T C::*;

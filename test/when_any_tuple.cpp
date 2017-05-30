@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "concurrency/future"
+#include "concurrency/latch"
 
 #include "test_tools.h"
 
@@ -178,21 +179,19 @@ TEST(WhenAnyTupleTest, next_ready_futures_dont_affect_result_after_get) {
 }
 
 TEST(WhenAnyTupleTest, concurrent_result_delivery) {
-  experimental::promise<int> p0;
+  experimental::latch latch{3};
+  experimental::packaged_task<int()> t0{[&latch] {latch.count_down_and_wait(); return 42;}};
   experimental::promise<std::string> p1;
-  experimental::promise<void> p2;
+  experimental::packaged_task<void()> t2{[&latch] {latch.count_down_and_wait();}};
 
-  auto f = experimental::when_any(p0.get_future(), p1.get_future(), p2.get_future());
+  auto f = experimental::when_any(t0.get_future(), p1.get_future(), t2.get_future());
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
 
-  g_future_tests_env->run_async(
-    static_cast<member_ptr<experimental::promise<int>, void(const int&)>>(&experimental::promise<int>::set_value),
-    std::move(p0),
-    42
-  );
-  g_future_tests_env->run_async(&experimental::promise<void>::set_value, std::move(p2));
+  g_future_tests_env->run_async(std::move(t0));
+  g_future_tests_env->run_async(std::move(t2));
 
+  latch.count_down_and_wait();
   auto res = f.get();
   EXPECT_TRUE(res.index == 0u || res.index == 2u) << "unexpected index: " << res.index;
 }

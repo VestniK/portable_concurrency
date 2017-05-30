@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "concurrency/future"
+#include "concurrency/latch"
 
 #include "test_tools.h"
 
@@ -150,9 +151,10 @@ TEST(WhenAllTupleTest, ready_on_all_only) {
 }
 
 TEST(WhenAllTupleTest, concurrent_result_delivery) {
-  experimental::packaged_task<int()> t0([] {return 42;});
-  experimental::packaged_task<std::string()> t1([] {return "qwe"s;});
-  experimental::packaged_task<void()> t2([] {});
+  experimental::latch latch{4};
+  experimental::packaged_task<int()> t0([&latch] {latch.count_down_and_wait(); return 42;});
+  experimental::packaged_task<std::string()> t1([&latch] {latch.count_down_and_wait(); return "qwe"s;});
+  experimental::packaged_task<void()> t2([&latch] {latch.count_down_and_wait();});
 
   auto f = experimental::when_all(t0.get_future().share(), t1.get_future(), t2.get_future());
   ASSERT_TRUE(f.valid());
@@ -162,6 +164,7 @@ TEST(WhenAllTupleTest, concurrent_result_delivery) {
   g_future_tests_env->run_async(std::move(t1));
   g_future_tests_env->run_async(std::move(t2));
 
+  latch.count_down_and_wait();
   auto res = f.get();
   ASSERT_TRUE(std::get<0>(res).is_ready());
   EXPECT_EQ(std::get<0>(res).get(), 42);
