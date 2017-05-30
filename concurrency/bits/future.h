@@ -16,7 +16,7 @@ inline namespace concurrency_v1 {
 namespace detail {
 
 template<typename T>
-future_state<T>* state_of(future<T>&);
+std::shared_ptr<future_state<T>>& state_of(future<T>&);
 
 } // namespace detail
 
@@ -27,30 +27,7 @@ public:
   future(future&&) noexcept = default;
   future(const future&) = delete;
 
-  // TODO: specification requires noexcept unwrap constructor
-  future(future<future<T>>&& wrapped) {
-    auto state = std::make_shared<detail::shared_state<T>>();
-    wrapped.then([state](future<future<T>>&& ready_wrapped) -> void {
-      try {
-        auto f = ready_wrapped.get();
-        if (!f.valid()) {
-          return state->set_exception(std::make_exception_ptr(
-            std::future_error(std::future_errc::broken_promise)
-          ));
-        }
-        f.then([state](future<T>&& ready_f) -> void {
-          try {
-            state->emplace(ready_f.get());
-          } catch(...) {
-            state->set_exception(std::current_exception());
-          }
-        });
-      } catch(...) {
-        state->set_exception(std::current_exception());
-      }
-    });
-    state_ = std::move(state);
-  }
+  future(future<future<T>>&& wrapped) noexcept;
 
   future& operator= (const future&) = delete;
   future& operator= (future&& rhs) noexcept = default;
@@ -128,7 +105,7 @@ public:
 
 private:
   friend class shared_future<T>;
-  friend detail::future_state<T>* detail::state_of<T>(future<T>&);
+  friend std::shared_ptr<detail::future_state<T>>& detail::state_of<T>(future<T>&);
 
 private:
   std::shared_ptr<detail::future_state<T>> state_;
@@ -144,32 +121,14 @@ void future<void>::get() {
   state->value_ref();
 }
 
-template<>
-inline
-future<void>::future(future<future<void>>&& wrapped) {
-  auto state = std::make_shared<detail::shared_state<void>>();
-  wrapped.then([state](future<future<void>>&& ready_wrapped) -> void {
-    try {
-      auto f = ready_wrapped.get();
-      if (!f.valid()) {
-        return state->set_exception(std::make_exception_ptr(
-          std::future_error(std::future_errc::broken_promise)
-        ));
-      }
-      f.then([state](future<void>&& ready_f) -> void {
-        try {
-          ready_f.get();
-          state->emplace();
-        } catch(...) {
-          state->set_exception(std::current_exception());
-        }
-      });
-    } catch(...) {
-      state->set_exception(std::current_exception());
-    }
-  });
-  state_ = std::move(state);
+namespace detail {
+
+template<typename T>
+std::shared_ptr<future_state<T>>& state_of(future<T>& f) {
+  return f.state_;
 }
+
+} // namespace detail
 
 } // inline namespace concurrency_v1
 } // namespace experimental

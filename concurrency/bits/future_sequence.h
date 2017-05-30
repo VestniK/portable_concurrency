@@ -14,11 +14,6 @@ inline namespace concurrency_v1 {
 namespace detail {
 
 template<typename T>
-future_state<T>* state_of(future<T>& f) {
-  return f.state_.get();
-}
-
-template<typename T>
 future_state<T>* state_of(shared_future<T>& f) {
   return f.state_.get();
 }

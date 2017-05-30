@@ -13,6 +13,7 @@ set(HEADERS
   result_box.h
   shared_future.h
   shared_state.h
+  unwrappable_state.h
   utils.h
   wait_continuation.h
   when_any.h
