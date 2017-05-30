@@ -22,7 +22,7 @@ void worker_function(closable_queue<task>& queue) {
 } // anonymous namespace
 
 void future_tests_env::SetUp() {
-  const auto threads_count = std::max(2u, std::thread::hardware_concurrency());
+  const auto threads_count = std::max(3u, std::thread::hardware_concurrency());
   for (workers_.reserve(threads_count); workers_.size() < threads_count;)
     workers_.emplace_back(worker_function, std::ref(queue_));
 }
