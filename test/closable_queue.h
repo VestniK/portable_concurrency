@@ -30,7 +30,7 @@ public:
     queue_.emplace(std::move(val));
     cv_.notify_one();
   }
-  
+
   void close() {
     std::lock_guard<std::mutex> guard(mutex_);
     closed_ = true;
