@@ -342,8 +342,8 @@ void multiple_continuations() {
   auto sf1 = set_value_in_other_thread<T>(25ms).share();
   auto sf2 = sf1;
 
-  unsigned call_count1 = 0;
-  unsigned call_count2 = 0;
+  std::atomic<unsigned> call_count1{0};
+  std::atomic<unsigned> call_count2{0};
 
   experimental::future<std::string> cf1 = sf1.then([&call_count1](experimental::shared_future<T>&& rf) {
     ++call_count1;
@@ -359,14 +359,14 @@ void multiple_continuations() {
   });
   ASSERT_TRUE(cf2.valid());
 
-  EXPECT_EQ(call_count1, 0u);
-  EXPECT_EQ(call_count2, 0u);
+  EXPECT_EQ(call_count1.load(), 0u);
+  EXPECT_EQ(call_count2.load(), 0u);
 
   EXPECT_EQ(cf1.get(), to_string(some_value<T>()));
   EXPECT_EQ(cf2.get(), to_string(some_value<T>()));
 
-  EXPECT_EQ(call_count1, 1u);
-  EXPECT_EQ(call_count2, 1u);
+  EXPECT_EQ(call_count1.load(), 1u);
+  EXPECT_EQ(call_count2.load(), 1u);
 }
 
 template<>
@@ -374,8 +374,8 @@ void multiple_continuations<void>() {
   auto sf1 = set_value_in_other_thread<void>(25ms).share();
   auto sf2 = sf1;
 
-  unsigned call_count1 = 0;
-  unsigned call_count2 = 0;
+  std::atomic<unsigned> call_count1{0};
+  std::atomic<unsigned> call_count2{0};
 
   experimental::future<std::string> cf1 = sf1.then([&call_count1](experimental::shared_future<void>&& rf) {
     ++call_count1;
@@ -393,14 +393,14 @@ void multiple_continuations<void>() {
   });
   ASSERT_TRUE(cf2.valid());
 
-  EXPECT_EQ(call_count1, 0u);
-  EXPECT_EQ(call_count2, 0u);
+  EXPECT_EQ(call_count1.load(), 0u);
+  EXPECT_EQ(call_count2.load(), 0u);
 
   EXPECT_EQ(cf1.get(), "void one"s);
   EXPECT_EQ(cf2.get(), "void two"s);
 
-  EXPECT_EQ(call_count1, 1u);
-  EXPECT_EQ(call_count2, 1u);
+  EXPECT_EQ(call_count1.load(), 1u);
+  EXPECT_EQ(call_count2.load(), 1u);
 }
 
 } // namespace tests
