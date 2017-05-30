@@ -369,8 +369,14 @@ TEST(WhenAnyVectorTest, futures_becomes_ready_concurrently) {
   EXPECT_FALSE(f.is_ready());
 
   experimental::latch latch{3};
-  g_future_tests_env->run_async([&latch, &ps] {latch.count_down_and_wait(); ps[1].set_value(123);});
-  g_future_tests_env->run_async([&latch, &ps] {latch.count_down_and_wait(); ps[2].set_value(345);});
+  g_future_tests_env->run_async([&latch, p = std::move(ps[1])]() mutable {
+    latch.count_down_and_wait();
+    p.set_value(123);
+  });
+  g_future_tests_env->run_async([&latch, p = std::move(ps[2])]() mutable {
+    latch.count_down_and_wait();
+    p.set_value(345);
+  });
 
   latch.count_down_and_wait();
   auto res = f.get();
