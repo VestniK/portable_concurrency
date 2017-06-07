@@ -17,5 +17,8 @@ build_script:
     cmake --build . --config Release
 
 test_script:
-- cmd: .\bin\unit_tests.exe
+- cmd: >-
+    cmake --build . --config Release --target RUN_TESTS
+
+    curl -i -X POST -F "data=@Reports/unit_tests.xml" https://ci.appveyor.com/api/testresults/junit/%APPVEYOR_JOB_ID%
 
