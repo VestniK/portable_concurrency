@@ -153,8 +153,7 @@ TEST(WhenAnyVectorTest, multiple_futures) {
   EXPECT_EQ(res.index, 3u);
   EXPECT_EQ(res.futures.size(), 5u);
   std::size_t idx = 0;
-  for (auto& fc: res.futures)
-  {
+  for (auto& fc: res.futures) {
     ASSERT_TRUE(fc.valid());
     EXPECT_EQ(fc.is_ready(), idx++ == res.index);
   }
@@ -184,8 +183,7 @@ TEST(WhenAnyVectorTest, multiple_shared_futures) {
   EXPECT_EQ(res.index, 2u);
   EXPECT_EQ(res.futures.size(), 5u);
   std::size_t idx = 0;
-  for (auto& fc: res.futures)
-  {
+  for (auto& fc: res.futures) {
     ASSERT_TRUE(fc.valid());
     EXPECT_EQ(fc.is_ready(), idx++ == res.index);
   }
@@ -212,8 +210,7 @@ TEST(WhenAnyVectorTest, multiple_futures_one_initionally_ready) {
   EXPECT_EQ(res.index, 1u);
   EXPECT_EQ(res.futures.size(), 5u);
   std::size_t idx = 0;
-  for (auto& fc: res.futures)
-  {
+  for (auto& fc: res.futures) {
     ASSERT_TRUE(fc.valid());
     EXPECT_EQ(fc.is_ready(), idx++ == res.index);
   }
@@ -242,8 +239,7 @@ TEST(WhenAnyVectorTest, multiple_shared_futures_one_initionally_ready) {
   EXPECT_EQ(res.index, 0u);
   EXPECT_EQ(res.futures.size(), 5u);
   std::size_t idx = 0;
-  for (auto& fc: res.futures)
-  {
+  for (auto& fc: res.futures) {
     ASSERT_TRUE(fc.valid());
     EXPECT_EQ(fc.is_ready(), idx++ == res.index);
   }
@@ -270,8 +266,7 @@ TEST(WhenAnyVectorTest, multiple_futures_one_initionally_error) {
   EXPECT_EQ(res.index, 4u);
   EXPECT_EQ(res.futures.size(), 5u);
   std::size_t idx = 0;
-  for (auto& fc: res.futures)
-  {
+  for (auto& fc: res.futures) {
     ASSERT_TRUE(fc.valid());
     EXPECT_EQ(fc.is_ready(), idx++ == res.index);
   }
@@ -298,8 +293,7 @@ TEST(WhenAnyVectorTest, multiple_shared_futures_one_initionally_error) {
   EXPECT_EQ(res.index, 4u);
   EXPECT_EQ(res.futures.size(), 5u);
   std::size_t idx = 0;
-  for (auto& fc: res.futures)
-  {
+  for (auto& fc: res.futures) {
     ASSERT_TRUE(fc.valid());
     EXPECT_EQ(fc.is_ready(), idx++ == res.index);
   }
@@ -320,8 +314,7 @@ TEST(WhenAnyVectorTest, next_ready_futures_dont_affect_result_before_get) {
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
 
-  for (size_t pos = 0; pos < 5; ++pos)
-  {
+  for (size_t pos = 0; pos < 5; ++pos) {
     ps[(pos + 3)%5].set_value(pos + 3);
     ASSERT_TRUE(f.is_ready());
   }
@@ -348,8 +341,7 @@ TEST(WhenAnyVectorTest, next_ready_futures_dont_affect_result_after_get) {
   auto res = f.get();
   EXPECT_EQ(res.index, 2u);
 
-  for (size_t pos = 0; pos < 4; ++pos)
-  {
+  for (size_t pos = 0; pos < 4; ++pos) {
     ps[(pos + 3)%5].set_value(pos + 100500);
     EXPECT_EQ(res.index, 2u);
   }
@@ -383,5 +375,4 @@ TEST(WhenAnyVectorTest, futures_becomes_ready_concurrently) {
   EXPECT_TRUE(res.index == 1 || res.index == 2) << "unexpected index: " << res.index;
 }
 
-}
-
+} // anonymous namespace

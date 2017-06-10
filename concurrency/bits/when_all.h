@@ -78,7 +78,6 @@ auto when_all(InputIt first, InputIt last) ->
   using Sequence = std::vector<typename std::iterator_traits<InputIt>::value_type>;
   if (first == last)
     return make_ready_future(Sequence{});
-  Sequence seq(first, last);
   return {detail::when_all_state<Sequence>::make(
     Sequence{std::make_move_iterator(first), std::make_move_iterator(last)}
   )};
@@ -94,7 +93,6 @@ auto when_all(InputIt first, InputIt last) ->
   using Sequence = std::vector<typename std::iterator_traits<InputIt>::value_type>;
   if (first == last)
     return make_ready_future(Sequence{});
-  Sequence seq(first, last);
   return {detail::when_all_state<Sequence>::make(Sequence{first, last})};
 }
 
