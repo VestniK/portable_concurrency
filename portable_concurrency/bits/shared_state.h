@@ -3,6 +3,8 @@
 #include <cassert>
 #include <type_traits>
 
+#include "fwd.h"
+
 #include "once_consumable_queue.h"
 #include "result_box.h"
 
@@ -34,6 +36,7 @@ public:
   virtual void add_continuation(std::shared_ptr<continuation> cnt) = 0;
   virtual void set_continuation(std::shared_ptr<continuation> cnt) = 0;
   virtual std::add_lvalue_reference_t<state_storage_t<T>> value_ref() = 0;
+  virtual future_state<future<T>>* as_wrapped() {return nullptr;}
 };
 
 template<typename T>

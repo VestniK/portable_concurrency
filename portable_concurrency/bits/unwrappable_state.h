@@ -24,6 +24,10 @@ public:
   std::add_lvalue_reference_t<state_storage_t<T>> value_ref() override {
     return static_cast<Wrap*>(this)->unwrap_value_ref();
   }
+
+  future_state<future<T>>* as_wrapped() override {
+    return static_cast<Wrap*>(this)->unwrap_as_wrapped();
+  }
 };
 
 template<typename T>
@@ -70,11 +74,7 @@ public:
     box_.emplace(std::move(val));
     for (auto& cnt: continuations_.consume())
       cnt->invoke();
-
-    if (!box_.get().valid())
-      invoke();
-    else
-      detail::state_of(box_.get())->set_continuation(this->shared_from_this());
+    do_unwrap();
   }
 
   void set_exception(std::exception_ptr error) {
@@ -104,12 +104,11 @@ public:
     return box_.get();
   }
 
-  future_state<T>* as_unwrapped() override {
-    return this;
-  }
+  future_state<T>* as_unwrapped() override {return this;}
 
   // continuation implementation
   void invoke() override {
+    assert(wrap_is_ready());
     for (auto& cnt: unwraped_continuations_.consume())
       cnt->invoke();
   }
@@ -135,6 +134,19 @@ public:
     if (!inner_future.valid())
       throw std::future_error(std::future_errc::broken_promise);
     return state_of(inner_future)->value_ref();
+  }
+
+  future_state<future<T>>* unwrap_as_wrapped() {return this;}
+
+private:
+  void do_unwrap() {
+    assert(wrap_is_ready());
+    if (!box_.get().valid()) {
+      invoke();
+      return;
+    }
+
+    detail::state_of(box_.get())->set_continuation(this->shared_from_this());
   }
 
 private:
