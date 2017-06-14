@@ -2,8 +2,8 @@
 
 #include "future.h"
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 namespace detail {
 
 template<typename Wrap, typename T>
@@ -153,5 +153,5 @@ future<T>::future(future<future<T>>&& wrapped) noexcept:
   wrapped = {};
 }
 
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

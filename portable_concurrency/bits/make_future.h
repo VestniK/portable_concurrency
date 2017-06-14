@@ -5,8 +5,8 @@
 #include "promise.h"
 #include "future.h"
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 namespace detail {
 
 template<typename T>
@@ -50,5 +50,5 @@ future<T> make_exceptional_future(E error) {
   return promise.get_future();
 }
 
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

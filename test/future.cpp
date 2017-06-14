@@ -6,7 +6,7 @@
 
 #include <gtest/gtest.h>
 
-#include "concurrency/future"
+#include "portable_concurrency/future"
 
 #include "test_tools.h"
 #include "test_helpers.h"
@@ -22,30 +22,30 @@ class FutureTests: public ::testing::Test {};
 TYPED_TEST_CASE_P(FutureTests);
 
 TYPED_TEST_P(FutureTests, default_constructed_is_invalid) {
-  experimental::future<TypeParam> future;
+  pc::future<TypeParam> future;
   EXPECT_FALSE(future.valid());
 }
 
 TYPED_TEST_P(FutureTests, obtained_from_promise_is_valid) {
-  experimental::promise<TypeParam> promise;
+  pc::promise<TypeParam> promise;
   auto future = promise.get_future();
   EXPECT_TRUE(future.valid());
 }
 
 TYPED_TEST_P(FutureTests, moved_to_constructor_is_invalid) {
-  experimental::promise<TypeParam> promise;
+  pc::promise<TypeParam> promise;
   auto future = promise.get_future();
   EXPECT_TRUE(future.valid());
-  experimental::future<TypeParam> another_future{std::move(future)};
+  pc::future<TypeParam> another_future{std::move(future)};
   EXPECT_FALSE(future.valid());
   EXPECT_TRUE(another_future.valid());
 }
 
 TYPED_TEST_P(FutureTests, moved_to_assigment_to_invalid_is_invalid) {
-  experimental::promise<TypeParam> promise;
+  pc::promise<TypeParam> promise;
   auto future = promise.get_future();
   EXPECT_TRUE(future.valid());
-  experimental::future<TypeParam> another_future;
+  pc::future<TypeParam> another_future;
   EXPECT_FALSE(another_future.valid());
   another_future= std::move(future);
   EXPECT_FALSE(future.valid());
@@ -53,8 +53,8 @@ TYPED_TEST_P(FutureTests, moved_to_assigment_to_invalid_is_invalid) {
 }
 
 TYPED_TEST_P(FutureTests, moved_to_assigment_to_valid_is_invalid) {
-  experimental::promise<TypeParam> promise1;
-  experimental::promise<TypeParam> promise2;
+  pc::promise<TypeParam> promise1;
+  pc::promise<TypeParam> promise2;
   auto future1 = promise1.get_future();
   auto future2 = promise2.get_future();
   EXPECT_TRUE(future1.valid());
@@ -66,7 +66,7 @@ TYPED_TEST_P(FutureTests, moved_to_assigment_to_valid_is_invalid) {
 }
 
 TYPED_TEST_P(FutureTests, share_invalidates_future) {
-  experimental::promise<TypeParam> promise;
+  pc::promise<TypeParam> promise;
   auto future = promise.get_future();
   ASSERT_TRUE(future.valid());
   auto shared = future.share();
@@ -75,27 +75,27 @@ TYPED_TEST_P(FutureTests, share_invalidates_future) {
 }
 
 TYPED_TEST_P(FutureTests, is_ready_on_nonready) {
-  experimental::promise<TypeParam> promise;
+  pc::promise<TypeParam> promise;
   auto future = promise.get_future();
   EXPECT_FALSE(future.is_ready());
 }
 
 TYPED_TEST_P(FutureTests, is_ready_on_future_with_value) {
-  experimental::promise<TypeParam> promise;
+  pc::promise<TypeParam> promise;
   auto future = promise.get_future();
   set_promise_value<TypeParam>(promise);
   EXPECT_TRUE(future.is_ready());
 }
 
 TYPED_TEST_P(FutureTests, is_ready_on_future_with_error) {
-  experimental::promise<TypeParam> promise;
+  pc::promise<TypeParam> promise;
   auto future = promise.get_future();
   promise.set_exception(std::make_exception_ptr(std::runtime_error("test error")));
   EXPECT_TRUE(future.is_ready());
 }
 
 TYPED_TEST_P(FutureTests, get_on_invalid) {
-  experimental::future<TypeParam> future;
+  pc::future<TypeParam> future;
   ASSERT_FALSE(future.valid());
   EXPECT_FUTURE_ERROR(future.get(), std::future_errc::no_state);
 }
@@ -149,21 +149,21 @@ TYPED_TEST_P(FutureTests, retrieve_exception) {
 }
 
 TYPED_TEST_P(FutureTests, wait_on_invalid) {
-  experimental::future<TypeParam> future;
+  pc::future<TypeParam> future;
   ASSERT_FALSE(future.valid());
 
   EXPECT_FUTURE_ERROR(future.wait(), std::future_errc::no_state);
 }
 
 TYPED_TEST_P(FutureTests, wait_for_on_invalid) {
-  experimental::future<TypeParam> future;
+  pc::future<TypeParam> future;
   ASSERT_FALSE(future.valid());
 
   EXPECT_FUTURE_ERROR(future.wait_for(5s), std::future_errc::no_state);
 }
 
 TYPED_TEST_P(FutureTests, wait_until_on_invalid) {
-  experimental::future<TypeParam> future;
+  pc::future<TypeParam> future;
   ASSERT_FALSE(future.valid());
 
   EXPECT_FUTURE_ERROR(
@@ -173,7 +173,7 @@ TYPED_TEST_P(FutureTests, wait_until_on_invalid) {
 }
 
 TYPED_TEST_P(FutureTests, wait_on_ready_value) {
-  experimental::promise<TypeParam> promise;
+  pc::promise<TypeParam> promise;
   auto future = promise.get_future();
   set_promise_value<TypeParam>(promise);
   ASSERT_TRUE(future.valid());
@@ -195,7 +195,7 @@ TYPED_TEST_P(FutureTests, wait_on_ready_value) {
 }
 
 TYPED_TEST_P(FutureTests, wait_on_ready_error) {
-  experimental::promise<TypeParam> promise;
+  pc::promise<TypeParam> promise;
   auto future = promise.get_future();
   promise.set_exception(std::make_exception_ptr(std::runtime_error("test error")));
   ASSERT_TRUE(future.valid());
@@ -217,7 +217,7 @@ TYPED_TEST_P(FutureTests, wait_on_ready_error) {
 }
 
 TYPED_TEST_P(FutureTests, wait_timeout) {
-  experimental::promise<TypeParam> promise;
+  pc::promise<TypeParam> promise;
   auto future = promise.get_future();
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
@@ -298,7 +298,7 @@ void test_ready_future_maker() {static_assert(sizeof(T) == 0, "test_ready_future
 
 template<>
 void test_ready_future_maker<int>() {
-  auto future = experimental::make_ready_future(42);
+  auto future = pc::make_ready_future(42);
   ASSERT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
   EXPECT_EQ(42, future.get());
@@ -306,7 +306,7 @@ void test_ready_future_maker<int>() {
 
 template<>
 void test_ready_future_maker<std::string>() {
-  auto future = experimental::make_ready_future("hello"s);
+  auto future = pc::make_ready_future("hello"s);
   ASSERT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
   EXPECT_EQ("hello"s, future.get());
@@ -314,7 +314,7 @@ void test_ready_future_maker<std::string>() {
 
 template<>
 void test_ready_future_maker<std::unique_ptr<int>>() {
-  auto future = experimental::make_ready_future(std::make_unique<int>(42));
+  auto future = pc::make_ready_future(std::make_unique<int>(42));
   ASSERT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
   EXPECT_EQ(42, *future.get());
@@ -322,9 +322,9 @@ void test_ready_future_maker<std::unique_ptr<int>>() {
 
 template<>
 void test_ready_future_maker<future_tests_env&>() {
-  auto future = experimental::make_ready_future(std::ref(*g_future_tests_env));
+  auto future = pc::make_ready_future(std::ref(*g_future_tests_env));
   static_assert(
-    std::is_same<decltype(future), experimental::future<future_tests_env&>>::value,
+    std::is_same<decltype(future), pc::future<future_tests_env&>>::value,
     "Incorrect future type"
   );
   ASSERT_TRUE(future.valid());
@@ -334,7 +334,7 @@ void test_ready_future_maker<future_tests_env&>() {
 
 template<>
 void test_ready_future_maker<void>() {
-  auto future = experimental::make_ready_future();
+  auto future = pc::make_ready_future();
   ASSERT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
   EXPECT_NO_THROW(future.get());
@@ -345,7 +345,7 @@ TYPED_TEST_P(FutureTests, ready_future_maker) {
 }
 
 TYPED_TEST_P(FutureTests, error_future_maker_from_exception_val) {
-  auto future = experimental::make_exceptional_future<TypeParam>(std::runtime_error("test error"));
+  auto future = pc::make_exceptional_future<TypeParam>(std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
 
@@ -354,11 +354,11 @@ TYPED_TEST_P(FutureTests, error_future_maker_from_exception_val) {
 }
 
 TYPED_TEST_P(FutureTests, error_future_maker_from_caught_exception) {
-  experimental::future<TypeParam> future;
+  pc::future<TypeParam> future;
   try {
     throw std::runtime_error("test error");
   } catch(...) {
-    future = experimental::make_exceptional_future<TypeParam>(std::current_exception());
+    future = pc::make_exceptional_future<TypeParam>(std::current_exception());
   }
   ASSERT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());

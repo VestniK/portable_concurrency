@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include "concurrency/future"
+#include "portable_concurrency/future"
 
 #include "test_tools.h"
 #include "test_helpers.h"
@@ -20,11 +20,11 @@ namespace tests {
 
 template<typename T>
 void exception_from_continuation() {
-  experimental::promise<T> p;
+  pc::promise<T> p;
   auto f = p.get_future();
   ASSERT_TRUE(f.valid());
 
-  experimental::future<T> cont_f = f.then([](experimental::future<T>&& ready_f) -> T {
+  pc::future<T> cont_f = f.then([](pc::future<T>&& ready_f) -> T {
     EXPECT_TRUE(ready_f.is_ready());
     throw std::runtime_error("continuation error");
   });
@@ -39,11 +39,11 @@ void exception_from_continuation() {
 
 template<typename T>
 void continuation_call() {
-  experimental::promise<T> p;
+  pc::promise<T> p;
   auto f = p.get_future();
   ASSERT_TRUE(f.valid());
 
-  experimental::future<std::string> string_f = f.then([](experimental::future<T>&& ready_f) {
+  pc::future<std::string> string_f = f.then([](pc::future<T>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     return to_string(ready_f.get());
   });
@@ -58,11 +58,11 @@ void continuation_call() {
 
 template<>
 void continuation_call<void>() {
-  experimental::promise<void> p;
+  pc::promise<void> p;
   auto f = p.get_future();
   ASSERT_TRUE(f.valid());
 
-  experimental::future<std::string> string_f = f.then([](experimental::future<void>&& ready_f) {
+  pc::future<std::string> string_f = f.then([](pc::future<void>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     return "void value"s;
@@ -81,7 +81,7 @@ void async_continuation_call() {
   auto f = set_value_in_other_thread<T>(25ms);
   ASSERT_TRUE(f.valid());
 
-  experimental::future<std::string> string_f = f.then([](experimental::future<T>&& ready_f) {
+  pc::future<std::string> string_f = f.then([](pc::future<T>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     return to_string(ready_f.get());
   });
@@ -97,7 +97,7 @@ void async_continuation_call<void>() {
   auto f = set_value_in_other_thread<void>(25ms);
   ASSERT_TRUE(f.valid());
 
-  experimental::future<std::string> string_f = f.then([](experimental::future<void>&& ready_f) {
+  pc::future<std::string> string_f = f.then([](pc::future<void>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     return "void value"s;
@@ -111,9 +111,9 @@ void async_continuation_call<void>() {
 
 template<typename T>
 void ready_continuation_call() {
-  auto f = experimental::make_ready_future(some_value<T>());
+  auto f = pc::make_ready_future(some_value<T>());
 
-  experimental::future<std::string> string_f = f.then([](experimental::future<T>&& ready_f) {
+  pc::future<std::string> string_f = f.then([](pc::future<T>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     return to_string(ready_f.get());
   });
@@ -126,9 +126,9 @@ void ready_continuation_call() {
 
 template<>
 void ready_continuation_call<future_tests_env&>() {
-  auto f = experimental::make_ready_future(std::ref(some_value<future_tests_env&>()));
+  auto f = pc::make_ready_future(std::ref(some_value<future_tests_env&>()));
 
-  experimental::future<std::string> string_f = f.then([](experimental::future<future_tests_env&>&& ready_f) {
+  pc::future<std::string> string_f = f.then([](pc::future<future_tests_env&>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     return to_string(ready_f.get());
   });
@@ -144,7 +144,7 @@ void void_continuation() {
   auto f = set_value_in_other_thread<T>(25ms);
   bool executed = false;
 
-  experimental::future<void> void_f = f.then([&executed](experimental::future<T>&& ready_f) -> void {
+  pc::future<void> void_f = f.then([&executed](pc::future<T>&& ready_f) -> void {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     executed = true;
@@ -159,10 +159,10 @@ void void_continuation() {
 
 template<typename T>
 void ready_void_continuation() {
-  auto f = experimental::make_ready_future(some_value<T>());
+  auto f = pc::make_ready_future(some_value<T>());
   bool executed = false;
 
-  experimental::future<void> void_f = f.then([&executed](experimental::future<T>&& ready_f) -> void {
+  pc::future<void> void_f = f.then([&executed](pc::future<T>&& ready_f) -> void {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     executed = true;
@@ -177,10 +177,10 @@ void ready_void_continuation() {
 
 template<>
 void ready_void_continuation<future_tests_env&>() {
-  auto f = experimental::make_ready_future(std::ref(some_value<future_tests_env&>()));
+  auto f = pc::make_ready_future(std::ref(some_value<future_tests_env&>()));
   bool executed = false;
 
-  experimental::future<void> void_f = f.then([&executed](experimental::future<future_tests_env&>&& ready_f) -> void {
+  pc::future<void> void_f = f.then([&executed](pc::future<future_tests_env&>&& ready_f) -> void {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     executed = true;
@@ -195,10 +195,10 @@ void ready_void_continuation<future_tests_env&>() {
 
 template<>
 void ready_void_continuation<void>() {
-  auto f = experimental::make_ready_future();
+  auto f = pc::make_ready_future();
   bool executed = false;
 
-  experimental::future<void> void_f = f.then([&executed](experimental::future<void>&& ready_f) -> void {
+  pc::future<void> void_f = f.then([&executed](pc::future<void>&& ready_f) -> void {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     executed = true;
@@ -213,9 +213,9 @@ void ready_void_continuation<void>() {
 
 template<>
 void ready_continuation_call<void>() {
-  auto f = experimental::make_ready_future();
+  auto f = pc::make_ready_future();
 
-  experimental::future<std::string> string_f = f.then([](experimental::future<void>&& ready_f) {
+  pc::future<std::string> string_f = f.then([](pc::future<void>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     ready_f.get();
     return "void value"s;
@@ -231,7 +231,7 @@ template<typename T>
 void exception_to_continuation() {
   auto f = set_error_in_other_thread<T>(25ms, std::runtime_error("test error"));
 
-  experimental::future<std::string> string_f = f.then([](experimental::future<T>&& ready_f) {
+  pc::future<std::string> string_f = f.then([](pc::future<T>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     EXPECT_RUNTIME_ERROR(ready_f, "test error");
     return "Exception delivered"s;
@@ -245,9 +245,9 @@ void exception_to_continuation() {
 
 template<typename T>
 void exception_to_ready_continuation() {
-  auto f = experimental::make_exceptional_future<T>(std::runtime_error("test error"));
+  auto f = pc::make_exceptional_future<T>(std::runtime_error("test error"));
 
-  experimental::future<std::string> string_f = f.then([](experimental::future<T>&& ready_f) {
+  pc::future<std::string> string_f = f.then([](pc::future<T>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     EXPECT_RUNTIME_ERROR(ready_f, "test error");
     return "Exception delivered"s;

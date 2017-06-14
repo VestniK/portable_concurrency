@@ -3,16 +3,16 @@
 
 #include <gtest/gtest.h>
 
-#include <concurrency/future>
-#include <concurrency/latch>
+#include <portable_concurrency/future>
+#include <portable_concurrency/latch>
 
 #include "test_helpers.h"
 
 namespace {
 
 TEST(WhenAnyVectorTest, empty_sequence) {
-  std::list<experimental::future<int>> empty;
-  auto f = experimental::when_any(empty.begin(), empty.end());
+  std::list<pc::future<int>> empty;
+  auto f = pc::when_any(empty.begin(), empty.end());
 
   ASSERT_TRUE(f.valid());
   ASSERT_TRUE(f.is_ready());
@@ -23,9 +23,9 @@ TEST(WhenAnyVectorTest, empty_sequence) {
 }
 
 TEST(WhenAnyVectorTest, single_future) {
-  experimental::promise<std::string> p;
+  pc::promise<std::string> p;
   auto raw_f = p.get_future();
-  auto f = experimental::when_any(&raw_f, &raw_f + 1);
+  auto f = pc::when_any(&raw_f, &raw_f + 1);
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(raw_f.valid());
   EXPECT_FALSE(f.is_ready());
@@ -43,9 +43,9 @@ TEST(WhenAnyVectorTest, single_future) {
 }
 
 TEST(WhenAnyVectorTest, single_shared_future) {
-  experimental::promise<std::unique_ptr<int>> p;
+  pc::promise<std::unique_ptr<int>> p;
   auto raw_f = p.get_future().share();
-  auto f = experimental::when_any(&raw_f, &raw_f + 1);
+  auto f = pc::when_any(&raw_f, &raw_f + 1);
   ASSERT_TRUE(f.valid());
   EXPECT_TRUE(raw_f.valid());
   EXPECT_FALSE(f.is_ready());
@@ -63,8 +63,8 @@ TEST(WhenAnyVectorTest, single_shared_future) {
 }
 
 TEST(WhenAnyVectorTest, single_ready_future) {
-  auto raw_f = experimental::make_ready_future(123);
-  auto f = experimental::when_any(&raw_f, &raw_f + 1);
+  auto raw_f = pc::make_ready_future(123);
+  auto f = pc::when_any(&raw_f, &raw_f + 1);
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(raw_f.valid());
   ASSERT_TRUE(f.is_ready());
@@ -79,8 +79,8 @@ TEST(WhenAnyVectorTest, single_ready_future) {
 }
 
 TEST(WhenAnyVectorTest, single_ready_shared_future) {
-  auto raw_f = experimental::make_ready_future(123).share();
-  auto f = experimental::when_any(&raw_f, &raw_f + 1);
+  auto raw_f = pc::make_ready_future(123).share();
+  auto f = pc::when_any(&raw_f, &raw_f + 1);
   ASSERT_TRUE(f.valid());
   EXPECT_TRUE(raw_f.valid());
   ASSERT_TRUE(f.is_ready());
@@ -95,10 +95,10 @@ TEST(WhenAnyVectorTest, single_ready_shared_future) {
 }
 
 TEST(WhenAnyVectorTest, single_error_future) {
-  auto raw_f = experimental::make_exceptional_future<future_tests_env&>(
+  auto raw_f = pc::make_exceptional_future<future_tests_env&>(
     std::runtime_error("panic")
   );
-  auto f = experimental::when_any(&raw_f, &raw_f + 1);
+  auto f = pc::when_any(&raw_f, &raw_f + 1);
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(raw_f.valid());
   ASSERT_TRUE(f.is_ready());
@@ -113,10 +113,10 @@ TEST(WhenAnyVectorTest, single_error_future) {
 }
 
 TEST(WhenAnyVectorTest, single_error_shared_future) {
-  auto raw_f = experimental::make_exceptional_future<future_tests_env&>(
+  auto raw_f = pc::make_exceptional_future<future_tests_env&>(
     std::runtime_error("panic")
   ).share();
-  auto f = experimental::when_any(&raw_f, &raw_f + 1);
+  auto f = pc::when_any(&raw_f, &raw_f + 1);
   ASSERT_TRUE(f.valid());
   EXPECT_TRUE(raw_f.valid());
   ASSERT_TRUE(f.is_ready());
@@ -131,16 +131,16 @@ TEST(WhenAnyVectorTest, single_error_shared_future) {
 }
 
 TEST(WhenAnyVectorTest, multiple_futures) {
-  experimental::promise<int> ps[5];
-  experimental::future<int> fs[5];
+  pc::promise<int> ps[5];
+  pc::future<int> fs[5];
 
   std::transform(
     std::begin(ps), std::end(ps),
     std::begin(fs),
-    std::mem_fn(&experimental::promise<int>::get_future)
+    std::mem_fn(&pc::promise<int>::get_future)
   );
 
-  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  auto f = pc::when_any(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
   for (const auto& fi: fs)
@@ -161,16 +161,16 @@ TEST(WhenAnyVectorTest, multiple_futures) {
 }
 
 TEST(WhenAnyVectorTest, multiple_shared_futures) {
-  experimental::promise<std::string> ps[5];
-  experimental::shared_future<std::string> fs[5];
+  pc::promise<std::string> ps[5];
+  pc::shared_future<std::string> fs[5];
 
   std::transform(
     std::begin(ps), std::end(ps),
     std::begin(fs),
-    std::mem_fn(&experimental::promise<std::string>::get_future)
+    std::mem_fn(&pc::promise<std::string>::get_future)
   );
 
-  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  auto f = pc::when_any(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
   for (const auto& fi: fs)
@@ -191,18 +191,18 @@ TEST(WhenAnyVectorTest, multiple_shared_futures) {
 }
 
 TEST(WhenAnyVectorTest, multiple_futures_one_initionally_ready) {
-  experimental::promise<void> ps[5];
-  experimental::future<void> fs[5];
+  pc::promise<void> ps[5];
+  pc::future<void> fs[5];
 
   std::transform(
     std::begin(ps), std::end(ps),
     std::begin(fs),
-    std::mem_fn(&experimental::promise<void>::get_future)
+    std::mem_fn(&pc::promise<void>::get_future)
   );
   ps[1].set_value();
   ASSERT_TRUE(fs[1].is_ready());
 
-  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  auto f = pc::when_any(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
   ASSERT_TRUE(f.is_ready());
 
@@ -220,18 +220,18 @@ TEST(WhenAnyVectorTest, multiple_futures_one_initionally_ready) {
 TEST(WhenAnyVectorTest, multiple_shared_futures_one_initionally_ready) {
   int some_var = 42;
 
-  experimental::promise<int&> ps[5];
-  experimental::shared_future<int&> fs[5];
+  pc::promise<int&> ps[5];
+  pc::shared_future<int&> fs[5];
 
   std::transform(
     std::begin(ps), std::end(ps),
     std::begin(fs),
-    std::mem_fn(&experimental::promise<int&>::get_future)
+    std::mem_fn(&pc::promise<int&>::get_future)
   );
   ps[0].set_value(some_var);
   ASSERT_TRUE(fs[0].is_ready());
 
-  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  auto f = pc::when_any(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
   ASSERT_TRUE(f.is_ready());
 
@@ -247,18 +247,18 @@ TEST(WhenAnyVectorTest, multiple_shared_futures_one_initionally_ready) {
 }
 
 TEST(WhenAnyVectorTest, multiple_futures_one_initionally_error) {
-  experimental::promise<std::unique_ptr<int>> ps[5];
-  experimental::future<std::unique_ptr<int>> fs[5];
+  pc::promise<std::unique_ptr<int>> ps[5];
+  pc::future<std::unique_ptr<int>> fs[5];
 
   std::transform(
     std::begin(ps), std::end(ps),
     std::begin(fs),
-    std::mem_fn(&experimental::promise<std::unique_ptr<int>>::get_future)
+    std::mem_fn(&pc::promise<std::unique_ptr<int>>::get_future)
   );
   ps[4].set_exception(std::make_exception_ptr(std::runtime_error("epic fail")));
   ASSERT_TRUE(fs[4].is_ready());
 
-  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  auto f = pc::when_any(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
   ASSERT_TRUE(f.is_ready());
 
@@ -274,18 +274,18 @@ TEST(WhenAnyVectorTest, multiple_futures_one_initionally_error) {
 }
 
 TEST(WhenAnyVectorTest, multiple_shared_futures_one_initionally_error) {
-  experimental::promise<int> ps[5];
-  experimental::shared_future<int> fs[5];
+  pc::promise<int> ps[5];
+  pc::shared_future<int> fs[5];
 
   std::transform(
     std::begin(ps), std::end(ps),
     std::begin(fs),
-    std::mem_fn(&experimental::promise<int>::get_future)
+    std::mem_fn(&pc::promise<int>::get_future)
   );
   ps[4].set_exception(std::make_exception_ptr(std::runtime_error("epic fail")));
   ASSERT_TRUE(fs[4].is_ready());
 
-  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  auto f = pc::when_any(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
   ASSERT_TRUE(f.is_ready());
 
@@ -301,16 +301,16 @@ TEST(WhenAnyVectorTest, multiple_shared_futures_one_initionally_error) {
 }
 
 TEST(WhenAnyVectorTest, next_ready_futures_dont_affect_result_before_get) {
-  experimental::promise<size_t> ps[5];
-  experimental::shared_future<size_t> fs[5];
+  pc::promise<size_t> ps[5];
+  pc::shared_future<size_t> fs[5];
 
   std::transform(
     std::begin(ps), std::end(ps),
     std::begin(fs),
-    std::mem_fn(&experimental::promise<size_t>::get_future)
+    std::mem_fn(&pc::promise<size_t>::get_future)
   );
 
-  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  auto f = pc::when_any(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
 
@@ -323,16 +323,16 @@ TEST(WhenAnyVectorTest, next_ready_futures_dont_affect_result_before_get) {
 }
 
 TEST(WhenAnyVectorTest, next_ready_futures_dont_affect_result_after_get) {
-  experimental::promise<size_t> ps[5];
-  experimental::shared_future<size_t> fs[5];
+  pc::promise<size_t> ps[5];
+  pc::shared_future<size_t> fs[5];
 
   std::transform(
     std::begin(ps), std::end(ps),
     std::begin(fs),
-    std::mem_fn(&experimental::promise<size_t>::get_future)
+    std::mem_fn(&pc::promise<size_t>::get_future)
   );
 
-  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  auto f = pc::when_any(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
 
@@ -348,19 +348,19 @@ TEST(WhenAnyVectorTest, next_ready_futures_dont_affect_result_after_get) {
 }
 
 TEST(WhenAnyVectorTest, futures_becomes_ready_concurrently) {
-  experimental::promise<size_t> ps[3];
-  experimental::shared_future<size_t> fs[3];
+  pc::promise<size_t> ps[3];
+  pc::shared_future<size_t> fs[3];
 
   std::transform(
     std::begin(ps), std::end(ps),
     std::begin(fs),
-    std::mem_fn(&experimental::promise<size_t>::get_future)
+    std::mem_fn(&pc::promise<size_t>::get_future)
   );
-  auto f = experimental::when_any(std::begin(fs), std::end(fs));
+  auto f = pc::when_any(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
 
-  experimental::latch latch{3};
+  pc::latch latch{3};
   g_future_tests_env->run_async([&latch, p = std::move(ps[1])]() mutable {
     latch.count_down_and_wait();
     p.set_value(123);

@@ -10,8 +10,8 @@
 #include "utils.h"
 #include "wait_continuation.h"
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 
 namespace detail {
 
@@ -93,8 +93,8 @@ public:
   auto then(F&& f) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return future<detail::continuation_result_t<experimental::concurrency_v1::future, F, T>>{
-      detail::continuation_state<experimental::concurrency_v1::future, F, T>::make(std::forward<F>(f), std::move(state_))
+    return future<detail::continuation_result_t<portable_concurrency::cxx14_v1::future, F, T>>{
+      detail::continuation_state<portable_concurrency::cxx14_v1::future, F, T>::make(std::forward<F>(f), std::move(state_))
     };
   }
 
@@ -130,5 +130,5 @@ std::shared_ptr<future_state<T>>& state_of(future<T>& f) {
 
 } // namespace detail
 
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

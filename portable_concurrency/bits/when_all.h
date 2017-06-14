@@ -13,8 +13,8 @@
 #include "shared_future.h"
 #include "shared_state.h"
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 
 namespace detail {
 
@@ -96,5 +96,5 @@ auto when_all(InputIt first, InputIt last) ->
   return {detail::when_all_state<Sequence>::make(Sequence{first, last})};
 }
 
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

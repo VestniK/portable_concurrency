@@ -9,8 +9,8 @@
 #include "shared_future.h"
 #include "shared_state.h"
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 namespace detail {
 
 template<typename T>
@@ -45,7 +45,7 @@ struct sequence_traits<std::vector<Future>> {
   ) {
     // TODO: use set_continuation for future and add_continuation for shared_future
     for (auto& f: seq)
-      ::experimental::concurrency_v1::detail::state_of(f)->add_continuation(cnt);
+      ::portable_concurrency::cxx14_v1::detail::state_of(f)->add_continuation(cnt);
   }
 };
 
@@ -87,11 +87,11 @@ private:
   ) {
     // TODO: use set_continuation for future and add_continuation for shared_future
     swallow((
-      ::experimental::concurrency_v1::detail::state_of(std::get<I>(seq))->add_continuation(cnt), 0
+      ::portable_concurrency::cxx14_v1::detail::state_of(std::get<I>(seq))->add_continuation(cnt), 0
     )...);
   }
 };
 
 } // namespace detail
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

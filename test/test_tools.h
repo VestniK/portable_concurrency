@@ -7,10 +7,12 @@
 
 #include <gtest/gtest.h>
 
-#include <concurrency/future>
+#include <portable_concurrency/future>
 
 #include "closable_queue.h"
 #include "task.h"
+
+namespace pc = portable_concurrency;
 
 #define EXPECT_FUTURE_ERROR(statement, errc) \
   try { \
@@ -66,7 +68,7 @@ std::ostream& operator<< (std::ostream& out, const printable<future_tests_env&>&
 }
 
 template<typename T>
-void expect_future_exception(experimental::future<T>& future, const std::string& what) {
+void expect_future_exception(pc::future<T>& future, const std::string& what) {
   try {
     T unexpected_res = future.get();
     ADD_FAILURE() << "Value " << printable<T>{unexpected_res} << " was returned instead of exception";
@@ -80,7 +82,7 @@ void expect_future_exception(experimental::future<T>& future, const std::string&
 }
 
 template<typename T>
-void expect_future_exception(experimental::shared_future<T>& future, const std::string& what) {
+void expect_future_exception(pc::shared_future<T>& future, const std::string& what) {
   try {
     const T& unexpected_res = future.get();
     ADD_FAILURE() << "Value " << printable<T>{unexpected_res} << " was returned instead of exception";
@@ -94,7 +96,7 @@ void expect_future_exception(experimental::shared_future<T>& future, const std::
 }
 
 inline
-void expect_future_exception(experimental::future<void>& future, const std::string& what) {
+void expect_future_exception(pc::future<void>& future, const std::string& what) {
   try {
     future.get();
     ADD_FAILURE() << "void value was returned instead of exception";
@@ -108,7 +110,7 @@ void expect_future_exception(experimental::future<void>& future, const std::stri
 }
 
 inline
-void expect_future_exception(experimental::shared_future<void>& future, const std::string& what) {
+void expect_future_exception(pc::shared_future<void>& future, const std::string& what) {
   try {
     future.get();
     ADD_FAILURE() << "void value was returned instead of exception";

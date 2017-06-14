@@ -5,8 +5,8 @@
 #include <type_traits>
 #include <utility>
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 namespace detail {
 
 template<typename T>
@@ -227,6 +227,6 @@ private:
   std::atomic<forward_list_node<T>*> head_{nullptr};
 };
 
-} // inline namespace concurrency_v1
 } // namespace detail
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

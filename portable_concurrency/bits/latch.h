@@ -4,8 +4,8 @@
 #include <condition_variable>
 #include <mutex>
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 
 class latch {
 public:
@@ -57,5 +57,5 @@ private:
   mutable std::condition_variable cv_;
 };
 
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

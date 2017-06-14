@@ -8,8 +8,8 @@
 #include "utils.h"
 #include "wait_continuation.h"
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 
 namespace detail {
 
@@ -90,8 +90,8 @@ public:
   auto then(F&& f) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return future<detail::continuation_result_t<experimental::concurrency_v1::shared_future, F, T>>{
-      detail::continuation_state<experimental::concurrency_v1::shared_future, F, T>::make(
+    return future<detail::continuation_result_t<portable_concurrency::cxx14_v1::shared_future, F, T>>{
+      detail::continuation_state<portable_concurrency::cxx14_v1::shared_future, F, T>::make(
         std::forward<F>(f), detail::decay_copy(state_)
       )
     };
@@ -114,5 +114,5 @@ private:
   std::shared_ptr<detail::future_state<T>> state_;
 };
 
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

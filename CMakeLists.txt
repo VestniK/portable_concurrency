@@ -1,4 +1,4 @@
-project(concurrency)
+project(portable_concurrency)
 cmake_minimum_required(VERSION 3.0)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -18,16 +18,16 @@ else()
   add_definitions(/bigobj)
 endif()
 
-add_subdirectory(concurrency)
+add_subdirectory(portable_concurrency)
 
 enable_testing()
 add_subdirectory(test)
 
-file(WRITE ${CMAKE_BINARY_DIR}/concurrency-config.cmake
-  "include(\"\${CMAKE_CURRENT_LIST_DIR}/concurrency.cmake\")"
+file(WRITE ${CMAKE_BINARY_DIR}/portable_concurrency-config.cmake
+  "include(\"\${CMAKE_CURRENT_LIST_DIR}/portable_concurrency.cmake\")"
 )
-install(FILES ${CMAKE_BINARY_DIR}/concurrency-config.cmake
-  DESTINATION lib/cmake/concurrency
+install(FILES ${CMAKE_BINARY_DIR}/portable_concurrency-config.cmake
+  DESTINATION lib/cmake/portable_concurrency
   COMPONENT Devel
 )
-install(EXPORT concurrency NAMESPACE concurrency:: DESTINATION lib/cmake/concurrency)
+install(EXPORT portable_concurrency NAMESPACE portable_concurrency:: DESTINATION lib/cmake/portable_concurrency)

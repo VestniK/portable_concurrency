@@ -13,8 +13,8 @@
 #include "shared_future.h"
 #include "shared_state.h"
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 
 template<typename Sequence>
 struct when_any_result {
@@ -125,5 +125,5 @@ auto when_any(InputIt first, InputIt last) ->
   )};
 }
 
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

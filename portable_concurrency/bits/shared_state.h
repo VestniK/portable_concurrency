@@ -6,8 +6,8 @@
 #include "once_consumable_queue.h"
 #include "result_box.h"
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 namespace detail {
 
 class continuation {
@@ -82,5 +82,5 @@ private:
 };
 
 } // namespace detail
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

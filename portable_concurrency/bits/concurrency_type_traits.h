@@ -2,8 +2,8 @@
 
 #include <type_traits>
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 namespace detail {
 
 template<typename F>
@@ -34,5 +34,5 @@ struct are_futures<F0, F...>: std::integral_constant<
 > {};
 
 } // namespace detail
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

@@ -33,36 +33,36 @@ inline
 void some_value<void>() {}
 
 template<typename T>
-void set_promise_value(experimental::promise<T>& p) {
+void set_promise_value(pc::promise<T>& p) {
   p.set_value(some_value<T>());
 }
 
 template<>
 inline
-void set_promise_value<void>(experimental::promise<void>& p) {
+void set_promise_value<void>(pc::promise<void>& p) {
   p.set_value();
 }
 
 template<typename T>
-experimental::future<T> make_some_ready_future() {
-  return experimental::make_ready_future(some_value<T>());
+pc::future<T> make_some_ready_future() {
+  return pc::make_ready_future(some_value<T>());
 }
 
 template<>
 inline
-experimental::future<future_tests_env&> make_some_ready_future() {
-  return experimental::make_ready_future(std::ref(some_value<future_tests_env&>()));
+pc::future<future_tests_env&> make_some_ready_future() {
+  return pc::make_ready_future(std::ref(some_value<future_tests_env&>()));
 }
 
 template<>
 inline
-experimental::future<void> make_some_ready_future() {
-  return experimental::make_ready_future();
+pc::future<void> make_some_ready_future() {
+  return pc::make_ready_future();
 }
 
 template<typename T, typename R, typename P>
 auto set_value_in_other_thread(std::chrono::duration<R, P> sleep_duration) {
-  auto task = experimental::packaged_task<T()>{[sleep_duration]() -> T {
+  auto task = pc::packaged_task<T()>{[sleep_duration]() -> T {
     std::this_thread::sleep_for(sleep_duration);
     return some_value<T>();
   }};
@@ -76,11 +76,11 @@ auto set_error_in_other_thread(
   std::chrono::duration<R, P> sleep_duration,
   E err
 ) {
-  experimental::promise<T> promise;
+  pc::promise<T> promise;
   auto res = promise.get_future();
 
   g_future_tests_env->run_async([](
-    experimental::promise<T>&& promise,
+    pc::promise<T>&& promise,
     E worker_err,
     std::chrono::duration<R, P> tm
   ) {
@@ -114,42 +114,42 @@ std::string to_string(const std::string& val) {
 // EXPECT_SOME_VALUE test that std::future<T> is set with value of some_value<T>() function
 
 template<typename T>
-void expect_some_value(experimental::future<T>& f) {
+void expect_some_value(pc::future<T>& f) {
   EXPECT_EQ(some_value<T>(), f.get());
 }
 
 inline
-void expect_some_value(experimental::future<std::unique_ptr<int>>& f) {
+void expect_some_value(pc::future<std::unique_ptr<int>>& f) {
   EXPECT_EQ(*some_value<std::unique_ptr<int>>(), *f.get());
 }
 
 inline
-void expect_some_value(experimental::future<future_tests_env&>& f) {
+void expect_some_value(pc::future<future_tests_env&>& f) {
   EXPECT_EQ(&some_value<future_tests_env&>(), &f.get());
 }
 
 inline
-void expect_some_value(experimental::future<void>& f) {
+void expect_some_value(pc::future<void>& f) {
   EXPECT_NO_THROW(f.get());
 }
 
 template<typename T>
-void expect_some_value(experimental::shared_future<T>& f) {
+void expect_some_value(pc::shared_future<T>& f) {
   EXPECT_EQ(some_value<T>(), f.get());
 }
 
 inline
-void expect_some_value(experimental::shared_future<std::unique_ptr<int>>& f) {
+void expect_some_value(pc::shared_future<std::unique_ptr<int>>& f) {
   EXPECT_EQ(*some_value<std::unique_ptr<int>>(), *f.get());
 }
 
 inline
-void expect_some_value(experimental::shared_future<future_tests_env&>& f) {
+void expect_some_value(pc::shared_future<future_tests_env&>& f) {
   EXPECT_EQ(&some_value<future_tests_env&>(), &f.get());
 }
 
 inline
-void expect_some_value(experimental::shared_future<void>& f) {
+void expect_some_value(pc::shared_future<void>& f) {
   EXPECT_NO_THROW(f.get());
 }
 

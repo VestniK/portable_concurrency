@@ -5,8 +5,8 @@
 #include "invoke.h"
 #include "shared_state.h"
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 namespace detail {
 
 template<typename T>
@@ -16,7 +16,7 @@ template<typename R, typename F, typename... A>
 void set_state_value(shared_state<R>& state, F&& f, A&&... a) {
   bool executed = false;
   try {
-    auto&& res = ::experimental::concurrency_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
+    auto&& res = ::portable_concurrency::cxx14_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
     executed = true;
     state.emplace(std::move(res));
   } catch (...) {
@@ -30,7 +30,7 @@ template<typename R, typename F, typename... A>
 void set_state_value(shared_state<R&>& state, F&& f, A&&... a) {
   bool executed = false;
   try {
-    R& res = ::experimental::concurrency_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
+    R& res = ::portable_concurrency::cxx14_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
     executed = true;
     state.emplace(res);
   } catch (...) {
@@ -44,7 +44,7 @@ template<typename F, typename... A>
 void set_state_value(shared_state<void>& state, F&& f, A&&... a) {
   bool executed = false;
   try {
-    ::experimental::concurrency_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
+    ::portable_concurrency::cxx14_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
     executed = true;
     state.emplace();
   } catch (...) {
@@ -55,5 +55,5 @@ void set_state_value(shared_state<void>& state, F&& f, A&&... a) {
 }
 
 } // namespace detail
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

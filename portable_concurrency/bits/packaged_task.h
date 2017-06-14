@@ -8,8 +8,8 @@
 #include "shared_state.h"
 #include "utils.h"
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 
 namespace detail {
 template<typename R, typename... A>
@@ -26,7 +26,7 @@ public:
   task_state(U&& f): func_(std::forward<U>(f)) {}
 
   void invoke(A... a) override {
-    ::experimental::concurrency_v1::detail::set_state_value(*this, func_, std::forward<A>(a)...);
+    ::portable_concurrency::cxx14_v1::detail::set_state_value(*this, func_, std::forward<A>(a)...);
   }
 
   std::shared_ptr<task_state_base<R, A...>> reset() override {
@@ -83,6 +83,6 @@ private:
   std::shared_ptr<detail::task_state_base<R, A...>> state_;
 };
 
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency
 

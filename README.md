@@ -5,7 +5,7 @@
 
 Attempt to write portable implementation of the C++ Extensions for Concurrency, ISO/IEC TS 19571:2016
 
- * All of the classes required by TS namespace *std::experimental::concurrency_v1* resides in the namespace *experimental::concurrency_v1*.
+ * All of the classes required by TS namespace *std::experimental::concurrency_v1* resides in the namespace *portable_concurrency::cxx14_v1*.
  * The only public dependency: standard library.
  * The only build dependency: gtest
 

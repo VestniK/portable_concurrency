@@ -5,16 +5,16 @@
 
 #include <gtest/gtest.h>
 
-#include "concurrency/future"
-#include "concurrency/latch"
+#include "portable_concurrency/future"
+#include "portable_concurrency/latch"
 
-#include "concurrency/bits/once_consumable_queue.h"
+#include "../portable_concurrency/bits/once_consumable_queue.h"
 
 #include "test_tools.h"
 using namespace std::literals;
 
 template<typename T>
-using queue = experimental::detail::once_consumable_queue<T>;
+using queue = pc::detail::once_consumable_queue<T>;
 
 TEST(OnceConsumableQueueTests, concurrent_push_until_consume) {
   struct record {
@@ -22,7 +22,7 @@ TEST(OnceConsumableQueueTests, concurrent_push_until_consume) {
     std::thread::id tid = std::this_thread::get_id();
   };
   queue<record> records_queue;
-  experimental::latch latch{
+  pc::latch latch{
     static_cast<ptrdiff_t>(g_future_tests_env->threads_count() + 1)
   };
   auto producer = [&records_queue, &latch]() {
@@ -36,10 +36,10 @@ TEST(OnceConsumableQueueTests, concurrent_push_until_consume) {
     return rec;
   };
 
-  std::vector<experimental::future<record>> futures;
+  std::vector<pc::future<record>> futures;
   futures.reserve(g_future_tests_env->threads_count());
   for (size_t i = 0; i < g_future_tests_env->threads_count(); ++i) {
-    auto task = experimental::packaged_task<record()>{producer};
+    auto task = pc::packaged_task<record()>{producer};
     futures.push_back(task.get_future());
     g_future_tests_env->run_async(std::move(task));
   }

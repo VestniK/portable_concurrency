@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include "concurrency/future"
+#include "portable_concurrency/future"
 
 #include "test_tools.h"
 #include "test_helpers.h"
@@ -20,15 +20,15 @@ namespace tests {
 
 template<typename T>
 void future_async_async() {
-  experimental::promise<experimental::future<T>> p;
+  pc::promise<pc::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>&& p) {
+  g_future_tests_env->run_async([](pc::promise<pc::future<T>>&& p) {
     std::this_thread::sleep_for(15ms);
     p.set_value(set_value_in_other_thread<T>(15ms));
   }, std::move(p));
   ASSERT_TRUE(f.valid());
 
-  experimental::future<T> unwrapped_f(std::move(f));
+  pc::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -37,15 +37,15 @@ void future_async_async() {
 
 template<typename T>
 void future_async_ready() {
-  experimental::promise<experimental::future<T>> p;
+  pc::promise<pc::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>&& p) {
+  g_future_tests_env->run_async([](pc::promise<pc::future<T>>&& p) {
     std::this_thread::sleep_for(15ms);
     p.set_value(make_some_ready_future<T>());
   }, std::move(p));
   ASSERT_TRUE(f.valid());
 
-  experimental::future<T> unwrapped_f(std::move(f));
+  pc::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -54,15 +54,15 @@ void future_async_ready() {
 
 template<typename T>
 void future_async_invalid() {
-  experimental::promise<experimental::future<T>> p;
+  pc::promise<pc::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>&& p) {
+  g_future_tests_env->run_async([](pc::promise<pc::future<T>>&& p) {
     std::this_thread::sleep_for(15ms);
-    p.set_value(experimental::future<T>{});
+    p.set_value(pc::future<T>{});
   }, std::move(p));
   ASSERT_TRUE(f.valid());
 
-  experimental::future<T> unwrapped_f(std::move(f));
+  pc::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -71,13 +71,13 @@ void future_async_invalid() {
 
 template<typename T>
 void future_ready_async() {
-  experimental::future<experimental::future<T>> f = experimental::make_ready_future(
+  pc::future<pc::future<T>> f = pc::make_ready_future(
     set_value_in_other_thread<T>(15ms)
   );
   ASSERT_TRUE(f.valid());
   ASSERT_TRUE(f.is_ready());
 
-  experimental::future<T> unwrapped_f(std::move(f));
+  pc::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -86,13 +86,13 @@ void future_ready_async() {
 
 template<typename T>
 void future_ready_ready() {
-  experimental::future<experimental::future<T>> f = experimental::make_ready_future(
+  pc::future<pc::future<T>> f = pc::make_ready_future(
     make_some_ready_future<T>()
   );
   ASSERT_TRUE(f.valid());
   ASSERT_TRUE(f.is_ready());
 
-  experimental::future<T> unwrapped_f(std::move(f));
+  pc::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_TRUE(unwrapped_f.is_ready());
@@ -101,10 +101,10 @@ void future_ready_ready() {
 
 template<typename T>
 void future_ready_invalid() {
-  auto f = experimental::make_ready_future(experimental::future<T>{});
+  auto f = pc::make_ready_future(pc::future<T>{});
   ASSERT_TRUE(f.valid());
 
-  experimental::future<T> unwrapped_f(std::move(f));
+  pc::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_TRUE(unwrapped_f.is_ready());
@@ -113,15 +113,15 @@ void future_ready_invalid() {
 
 template<typename T>
 void future_async_async_error() {
-  experimental::promise<experimental::future<T>> p;
+  pc::promise<pc::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>&& p) {
+  g_future_tests_env->run_async([](pc::promise<pc::future<T>>&& p) {
     std::this_thread::sleep_for(15ms);
     p.set_value(set_error_in_other_thread<T>(15ms, std::runtime_error("test error")));
   }, std::move(p));
   ASSERT_TRUE(f.valid());
 
-  experimental::future<T> unwrapped_f(std::move(f));
+  pc::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -130,15 +130,15 @@ void future_async_async_error() {
 
 template<typename T>
 void future_async_ready_error() {
-  experimental::promise<experimental::future<T>> p;
+  pc::promise<pc::future<T>> p;
   auto f = p.get_future();
-  g_future_tests_env->run_async([](experimental::promise<experimental::future<T>>&& p) {
+  g_future_tests_env->run_async([](pc::promise<pc::future<T>>&& p) {
     std::this_thread::sleep_for(15ms);
-    p.set_value(experimental::make_exceptional_future<T>(std::runtime_error("test error")));
+    p.set_value(pc::make_exceptional_future<T>(std::runtime_error("test error")));
   }, std::move(p));
   ASSERT_TRUE(f.valid());
 
-  experimental::future<T> unwrapped_f(std::move(f));
+  pc::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -147,12 +147,12 @@ void future_async_ready_error() {
 
 template<typename T>
 void future_ready_async_error() {
-  experimental::future<experimental::future<T>> f = experimental::make_ready_future(
+  pc::future<pc::future<T>> f = pc::make_ready_future(
     set_error_in_other_thread<T>(15ms, std::runtime_error("test error"))
   );
   ASSERT_TRUE(f.valid());
 
-  experimental::future<T> unwrapped_f(std::move(f));
+  pc::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_FALSE(unwrapped_f.is_ready());
@@ -161,12 +161,12 @@ void future_ready_async_error() {
 
 template<typename T>
 void future_ready_ready_error() {
-  experimental::future<experimental::future<T>> f = experimental::make_ready_future(
-    experimental::make_exceptional_future<T>(std::runtime_error("test error"))
+  pc::future<pc::future<T>> f = pc::make_ready_future(
+    pc::make_exceptional_future<T>(std::runtime_error("test error"))
   );
   ASSERT_TRUE(f.valid());
 
-  experimental::future<T> unwrapped_f(std::move(f));
+  pc::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_TRUE(unwrapped_f.is_ready());
@@ -175,12 +175,12 @@ void future_ready_ready_error() {
 
 template<typename T>
 void future_ready_error() {
-  experimental::future<experimental::future<T>> f =
-    experimental::make_exceptional_future<experimental::future<T>>(std::runtime_error("test error"))
+  pc::future<pc::future<T>> f =
+    pc::make_exceptional_future<pc::future<T>>(std::runtime_error("test error"))
   ;
   ASSERT_TRUE(f.valid());
 
-  experimental::future<T> unwrapped_f(std::move(f));
+  pc::future<T> unwrapped_f(std::move(f));
   EXPECT_FALSE(f.valid());
   EXPECT_TRUE(unwrapped_f.valid());
   EXPECT_TRUE(unwrapped_f.is_ready());

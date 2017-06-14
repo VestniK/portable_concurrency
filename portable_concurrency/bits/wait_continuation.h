@@ -6,8 +6,8 @@
 
 #include "shared_state.h"
 
-namespace experimental {
-inline namespace concurrency_v1 {
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
 namespace detail {
 
 class wait_continuaton: public detail::continuation {
@@ -43,5 +43,5 @@ private:
 };
 
 } // namespace detail
-} // inline namespace concurrency_v1
-} // namespace experimental
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency
