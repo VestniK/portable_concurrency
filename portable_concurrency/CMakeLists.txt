@@ -1,6 +1,5 @@
  find_package(Threads REQUIRED)
 
-add_subdirectory(bits)
 
 set(HEADERS
   future
@@ -13,6 +12,9 @@ target_include_directories(portable_concurrency INTERFACE
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include>
 )
+headeronly_target_headers(portable_concurrency ${HEADERS})
+
+add_subdirectory(bits)
 
 install(TARGETS portable_concurrency EXPORT portable_concurrency
   RUNTIME DESTINATION bin

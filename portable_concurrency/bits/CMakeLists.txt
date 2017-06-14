@@ -19,6 +19,7 @@ set(HEADERS
   when_any.h
   when_all.h
 )
+headeronly_target_headers(portable_concurrency ${HEADERS})
 
 install(FILES ${HEADERS}
   DESTINATION include/concurency/bits COMPONENT Devel

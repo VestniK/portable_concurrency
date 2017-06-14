@@ -7,6 +7,7 @@ option(ENABLE_UBSAN "Enables undefined behaviour sanitizer for clang and gcc" Of
 option(ENABLE_ADDRSAN "Enables address sanitizer for clang and gcc" Off)
 option(ENABLE_THREADSAN "Enables thread sanitizer for clang and gcc" Off)
 
+include(HeaderOnlyTools)
 include(conanbuildinfo.cmake)
 set(CONAN_CMAKE_FIND_ROOT_PATH ${CONAN_CMAKE_MODULE_PATH})
 conan_basic_setup()
