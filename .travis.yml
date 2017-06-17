@@ -1,102 +1,13 @@
-language: cpp
+sudo: required
+services:
+  - docker
 
-matrix:
-  include:
-    # linux gcc 5 release
-    - os: linux
-      dist: trusty
-      compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - gcc-5
-            - g++-5
-      env:
-        - COMPILER_CXX=g++-5
-        - COMPILER_C=gcc-5
-        - CONAN_LIBCXX=libstdc++
-      install:
-        - export CXX=${COMPILER_CXX}
-        - export CC=${COMPILER_C}
-        - pip install conan
-        - conan install --build=missing -s compiler=gcc -s compiler.version=5.4 -s compiler.libcxx=${CONAN_LIBCXX}
+env:
+  - TRAVIS_DOCKER_FILE=gcc-5.4-libstdcxx11-release.dockerfile
+  - TRAVIS_DOCKER_FILE=clang-3.8-libcpp-release.dockerfile
 
-    # linux clang 3.8 release
-    - os: linux
-      dist: trusty
-      compiler: clang
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-3.8
-          packages:
-            - clang-3.8
-            - libc++-dev
-      env:
-        - COMPILER_CXX=clang++-3.8
-        - COMPILER_C=clang-3.8
-        - CMAKE_EXTRA_FLAGS=-DCMAKE_CXX_FLAGS=-stdlib=libc++
-        - CONAN_LIBCXX=libc++
-      install:
-        - export CXX=${COMPILER_CXX}
-        - export CC=${COMPILER_C}
-        - pip install conan
-        - conan install --build=missing -s compiler=clang -s compiler.version=3.8 -s compiler.libcxx=${CONAN_LIBCXX}
-
-  allow_failures:
-    # linux clang 3.8 ub-sanitizer
-    - os: linux
-      dist: trusty
-      compiler: clang
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-3.8
-          packages:
-            - clang-3.8
-            - libc++-dev
-      env:
-        - COMPILER_CXX=clang++-3.8
-        - COMPILER_C=clang-3.8
-        - CMAKE_EXTRA_FLAGS="-DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_BUILD_TYPE=Debug -DENABLE_UBSAN=On"
-        - CONAN_LIBCXX=libc++
-      install:
-        - export CXX=${COMPILER_CXX}
-        - export CC=${COMPILER_C}
-        - pip install conan
-        - conan install --build=missing -s compiler=clang -s compiler.version=3.8 -s compiler.libcxx=${CONAN_LIBCXX}
-
-    # linux gcc 6 ub-sanitizer
-    - os: linux
-      dist: trusty
-      compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - gcc-6
-            - g++-6
-      env:
-        - COMPILER_CXX=g++-6
-        - COMPILER_C=gcc-6
-        - CMAKE_EXTRA_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DENABLE_UBSAN=On"
-        - CONAN_LIBCXX=libstdc++
-      install:
-        - export CXX=${COMPILER_CXX}
-        - export CC=${COMPILER_C}
-        - pip install conan
-        - conan install --build=missing -s compiler=gcc -s compiler.version=6.2 -s compiler.libcxx=${CONAN_LIBCXX}
+before_install:
+  - docker pull ubuntu:16.04
 
 script:
-  - export CXX=${COMPILER_CXX}
-  - export CC=${COMPILER_C}
-  - mkdir build && cd build
-  - cmake -DCONAN_LIBCXX=${CONAN_LIBCXX} ${CMAKE_EXTRA_FLAGS} ..
-  - make VERBOSE=1
-  - ./bin/unit_tests
-
+  - docker build --file=.travis/${TRAVIS_DOCKER_FILE} .
