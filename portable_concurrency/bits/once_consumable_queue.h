@@ -148,50 +148,6 @@ public:
   }
 
   /**
-   * Clear the queue in a thread safe way. Return false only if the queue is @em consumed
-   *
-   * @note Can be called from multiple threads.
-   */
-  bool clear() {
-    auto* old_head = head_.load(std::memory_order_acquire);
-    do {
-      if (old_head == consumed_marker())
-        return false;
-      if (!old_head)
-        return true;
-    } while (!head_.compare_exchange_strong(old_head, nullptr, std::memory_order_acq_rel));
-    forward_list<T>{old_head}; // Destroys whole list properly
-    return true;
-  }
-
-  /**
-   * Clean the queue and enqueu an object @a val in a thread safe way. If the queue
-   * is not yet @em consumed then this function moves the value from the paremeter
-   * @a val and returns true. Otherwise the value of the @a val object remains untoched
-   * and function returns false.
-   *
-   * @note Can be called from multiple threads.
-   *
-   * @note This function assumes that moving the value from an object and then moving
-   * it back remains an object in initial state.
-   */
-  bool replace(T& val) {
-    auto* old_head = head_.load(std::memory_order_acquire);
-    if (old_head == consumed_marker())
-      return false;
-    auto new_head = std::make_unique<forward_list_node<T>>(std::move(val));
-    while (!head_.compare_exchange_strong(old_head, new_head.get(), std::memory_order_acq_rel)) {
-      if (old_head == consumed_marker()) {
-        val = std::move(new_head->val);
-        return false;
-      }
-    }
-    new_head.release();
-    forward_list<T>{old_head}; // Destroys whole list properly
-    return true;
-  }
-
-  /**
    * Checks if the queue is @em consumed.
    *
    * @note Can be called from multiple threads.

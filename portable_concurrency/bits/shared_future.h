@@ -4,7 +4,7 @@
 
 #include "fwd.h"
 
-#include "continuation.h"
+#include "continuation_state.h"
 #include "utils.h"
 #include "wait_continuation.h"
 
@@ -38,11 +38,7 @@ public:
       throw std::future_error(std::future_errc::no_state);
     if (state_->is_ready())
       return;
-
-    auto waiter = std::make_shared<detail::wait_continuaton>();
-    // TODO: prevent multiple waiters on the same state for shared_future
-    state_->add_continuation(waiter);
-    waiter->wait();
+    return state_->get_waiter().wait();
   }
 
   template<typename Rep, typename Period>
@@ -51,11 +47,7 @@ public:
       throw std::future_error(std::future_errc::no_state);
     if (state_->is_ready())
       return std::future_status::ready;
-
-    auto waiter = std::make_shared<detail::wait_continuaton>();
-    // TODO: prevent multiple waiters on the same state for shared_future
-    state_->add_continuation(waiter);
-    return waiter->wait_for(rel_time) ? std::future_status::ready : std::future_status::timeout;
+    return state_->get_waiter().wait_for(rel_time) ? std::future_status::ready : std::future_status::timeout;
   }
 
   template <typename Clock, typename Duration>
@@ -64,11 +56,7 @@ public:
       throw std::future_error(std::future_errc::no_state);
     if (state_->is_ready())
       return std::future_status::ready;
-
-    auto waiter = std::make_shared<detail::wait_continuaton>();
-    // TODO: prevent multiple waiters on the same state for shared_future
-    state_->add_continuation(waiter);
-    return waiter->wait_until(abs_time) ? std::future_status::ready : std::future_status::timeout;
+    return state_->get_waiter().wait_until(abs_time) ? std::future_status::ready : std::future_status::timeout;
   }
 
   bool valid() const noexcept {return static_cast<bool>(state_);}
@@ -92,7 +80,7 @@ public:
       throw std::future_error(std::future_errc::no_state);
     return future<detail::continuation_result_t<portable_concurrency::cxx14_v1::shared_future, F, T>>{
       detail::continuation_state<portable_concurrency::cxx14_v1::shared_future, F, T>::make(
-        std::forward<F>(f), detail::decay_copy(state_)
+        std::forward<F>(f), state_
       )
     };
   }
@@ -100,11 +88,6 @@ public:
   // Implementation detail
   shared_future(std::shared_ptr<detail::future_state<T>>&& state) noexcept:
     state_(std::move(state))
-  {}
-
-  // Implementation detail
-  shared_future(const std::shared_ptr<detail::shared_state<T>>& state) noexcept:
-    state_(state)
   {}
 
 private:

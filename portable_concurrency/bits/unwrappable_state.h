@@ -1,6 +1,7 @@
 #pragma once
 
 #include "future.h"
+#include "wait_continuation.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -17,12 +18,12 @@ public:
     return static_cast<Wrap*>(this)->unwrap_add_continuation(cnt);
   }
 
-  void set_continuation(std::shared_ptr<continuation> cnt) override {
-    return static_cast<Wrap*>(this)->unwrap_set_continuation(cnt);
-  }
-
   std::add_lvalue_reference_t<state_storage_t<T>> value_ref() override {
     return static_cast<Wrap*>(this)->unwrap_value_ref();
+  }
+
+  wait_continuation& get_waiter() override {
+    return static_cast<Wrap*>(this)->unwrap_get_waiter();
   }
 
   future_state<future<T>>* as_wrapped() override {
@@ -37,8 +38,8 @@ public:
 
   virtual bool is_ready() const = 0;
   virtual void add_continuation(std::shared_ptr<continuation> cnt) = 0;
-  virtual void set_continuation(std::shared_ptr<continuation> cnt) = 0;
   virtual future<T>& value_ref() = 0;
+  virtual wait_continuation& get_waiter() = 0;
   virtual future_state<T>* as_unwrapped() = 0;
 };
 
@@ -53,12 +54,12 @@ public:
     return static_cast<Wrap*>(this)->wrap_add_continuation(cnt);
   }
 
-  void set_continuation(std::shared_ptr<continuation> cnt) override {
-    return static_cast<Wrap*>(this)->wrap_set_continuation(cnt);
-  }
-
   future<T>& value_ref() override {
     return static_cast<Wrap*>(this)->wrap_value_ref();
+  }
+
+  wait_continuation& get_waiter() override {
+    return static_cast<Wrap*>(this)->wrap_get_waiter();
   }
 };
 
@@ -94,14 +95,13 @@ public:
       cnt->invoke();
   }
 
-  void wrap_set_continuation(std::shared_ptr<continuation> cnt) {
-    if (!continuations_.replace(cnt))
-      cnt->invoke();
-  }
-
   future<T>& wrap_value_ref() {
     assert(wrap_is_ready());
     return box_.get();
+  }
+
+  wait_continuation& wrap_get_waiter() {
+    return continuations_.get_waiter();
   }
 
   future_state<T>* as_unwrapped() override {return this;}
@@ -123,17 +123,16 @@ public:
       cnt->invoke();
   }
 
-  void unwrap_set_continuation(std::shared_ptr<continuation> cnt) {
-    if (!unwraped_continuations_.replace(cnt))
-      cnt->invoke();
-  }
-
   std::add_lvalue_reference_t<state_storage_t<T>> unwrap_value_ref() {
     assert(unwrap_is_ready());
     auto& inner_future = box_.get();
     if (!inner_future.valid())
       throw std::future_error(std::future_errc::broken_promise);
     return state_of(inner_future)->value_ref();
+  }
+
+  wait_continuation& unwrap_get_waiter() {
+    return unwraped_continuations_.get_waiter();
   }
 
   future_state<future<T>>* unwrap_as_wrapped() {return this;}
@@ -146,7 +145,7 @@ private:
       return;
     }
 
-    detail::state_of(box_.get())->set_continuation(this->shared_from_this());
+    detail::state_of(box_.get())->add_continuation(this->shared_from_this());
   }
 
 private:

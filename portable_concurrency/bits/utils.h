@@ -9,9 +9,6 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-template<typename T>
-std::decay_t<T> decay_copy(T&& t) {return std::forward<T>(t);}
-
 template<typename R, typename F, typename... A>
 void set_state_value(shared_state<R>& state, F&& f, A&&... a) {
   bool executed = false;

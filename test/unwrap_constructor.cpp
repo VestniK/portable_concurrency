@@ -187,6 +187,24 @@ void future_ready_error() {
   EXPECT_RUNTIME_ERROR(unwrapped_f, "test error");
 }
 
+template<typename T>
+void wait_before_and_after_unwrap() {
+  pc::promise<pc::future<T>> wrap_p;
+  pc::promise<T> p;
+
+  auto wrap_f = wrap_p.get_future();
+  EXPECT_EQ(wrap_f.wait_for(100us), std::future_status::timeout);
+
+  pc::future<T> f = std::move(wrap_f);
+  EXPECT_EQ(f.wait_for(100us), std::future_status::timeout);
+
+  wrap_p.set_value(p.get_future());
+  EXPECT_EQ(f.wait_for(100us), std::future_status::timeout);
+
+  set_promise_value(p);
+  EXPECT_EQ(f.wait_for(100us), std::future_status::ready);
+}
+
 } // namespace tests
 
 TYPED_TEST_P(UnwrapConstructorTest, future_async_async) {tests::future_async_async<TypeParam>();}
@@ -200,6 +218,7 @@ TYPED_TEST_P(UnwrapConstructorTest, future_async_ready_error) {tests::future_asy
 TYPED_TEST_P(UnwrapConstructorTest, future_ready_async_error) {tests::future_ready_async_error<TypeParam>();}
 TYPED_TEST_P(UnwrapConstructorTest, future_ready_ready_error) {tests::future_ready_ready_error<TypeParam>();}
 TYPED_TEST_P(UnwrapConstructorTest, future_ready_error) {tests::future_ready_error<TypeParam>();}
+TYPED_TEST_P(UnwrapConstructorTest, wait_before_and_after_unwrap) {tests::wait_before_and_after_unwrap<TypeParam>();}
 REGISTER_TYPED_TEST_CASE_P(
   UnwrapConstructorTest,
   future_async_async,
@@ -212,7 +231,8 @@ REGISTER_TYPED_TEST_CASE_P(
   future_async_ready_error,
   future_ready_async_error,
   future_ready_ready_error,
-  future_ready_error
+  future_ready_error,
+  wait_before_and_after_unwrap
 );
 
 INSTANTIATE_TYPED_TEST_CASE_P(VoidType, UnwrapConstructorTest, void);

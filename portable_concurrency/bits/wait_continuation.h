@@ -4,15 +4,15 @@
 #include <condition_variable>
 #include <mutex>
 
-#include "shared_state.h"
+#include "continuation.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-class wait_continuaton: public detail::continuation {
+class wait_continuation: public detail::continuation {
 public:
-  wait_continuaton() = default;
+  wait_continuation() = default;
 
   void invoke() override {
     std::lock_guard<std::mutex>{mutex_}, notified_ = true;

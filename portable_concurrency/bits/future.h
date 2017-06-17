@@ -5,10 +5,9 @@
 
 #include "fwd.h"
 
-#include "continuation.h"
+#include "continuation_state.h"
 #include "shared_state.h"
 #include "utils.h"
-#include "wait_continuation.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -51,10 +50,7 @@ public:
       throw std::future_error(std::future_errc::no_state);
     if (state_->is_ready())
       return;
-
-    auto waiter = std::make_shared<detail::wait_continuaton>();
-    state_->set_continuation(waiter);
-    waiter->wait();
+    state_->get_waiter().wait();
   }
 
   template<typename Rep, typename Period>
@@ -63,10 +59,7 @@ public:
       throw std::future_error(std::future_errc::no_state);
     if (state_->is_ready())
       return std::future_status::ready;
-
-    auto waiter = std::make_shared<detail::wait_continuaton>();
-    state_->set_continuation(waiter);
-    return waiter->wait_for(rel_time) ? std::future_status::ready : std::future_status::timeout;
+    return state_->get_waiter().wait_for(rel_time) ? std::future_status::ready : std::future_status::timeout;
   }
 
   template <typename Clock, typename Duration>
@@ -75,10 +68,7 @@ public:
       throw std::future_error(std::future_errc::no_state);
     if (state_->is_ready())
       return std::future_status::ready;
-
-    auto waiter = std::make_shared<detail::wait_continuaton>();
-    state_->set_continuation(waiter);
-    return waiter->wait_until(abs_time) ? std::future_status::ready : std::future_status::timeout;
+    return state_->get_waiter().wait_until(abs_time) ? std::future_status::ready : std::future_status::timeout;
   }
 
   bool valid() const noexcept {return static_cast<bool>(state_);}
@@ -94,7 +84,9 @@ public:
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
     return future<detail::continuation_result_t<portable_concurrency::cxx14_v1::future, F, T>>{
-      detail::continuation_state<portable_concurrency::cxx14_v1::future, F, T>::make(std::forward<F>(f), std::move(state_))
+      detail::continuation_state<portable_concurrency::cxx14_v1::future, F, T>::make(
+        std::forward<F>(f), std::move(state_)
+      )
     };
   }
 

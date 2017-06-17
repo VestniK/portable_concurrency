@@ -1,6 +1,7 @@
 set(HEADERS
   concurrency_type_traits.h
   continuation.h
+  continuation_state.h
   future.h
   future_sequence.h
   fwd.h
