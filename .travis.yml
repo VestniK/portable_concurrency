@@ -1,13 +1,11 @@
+language: cpp
+
 sudo: required
 services:
   - docker
 
-env:
-  - TRAVIS_DOCKER_FILE=gcc-5.4-libstdcxx11-release.dockerfile
-  - TRAVIS_DOCKER_FILE=clang-3.8-libcpp-release.dockerfile
-
 before_install:
-  - docker pull ubuntu:16.04
+  - docker pull sirvestnik/cxx-conan-gcc-6
 
 script:
-  - docker build --file=.travis/${TRAVIS_DOCKER_FILE} .
+  - docker run -v ${PWD}:/home/builder/src -w /home/builder/src --user builder sirvestnik/cxx-conan-gcc-6 /bin/sh .travis/autobuild.sh gcc-6 g++-6 libstdc++11 Release
