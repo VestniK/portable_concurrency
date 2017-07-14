@@ -10,7 +10,7 @@ option(ENABLE_THREADSAN "Enables thread sanitizer for clang and gcc" Off)
 include(HeaderOnlyTools)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 set(CONAN_CMAKE_FIND_ROOT_PATH ${CONAN_CMAKE_MODULE_PATH})
-conan_basic_setup()
+conan_basic_setup(TARGETS)
 
 set(CMAKE_CXX_STANDARD 14)
 if (NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")

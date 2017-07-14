@@ -13,3 +13,13 @@ RUN echo "deb http://mirror.yandex.ru/debian sid main" > /etc/apt/sources.list.d
     apt-get -y autoremove && \
     apt-get -y clean && \
     rm -rf /var/lib/apt/lists
+
+VOLUME /home/builder/src
+USER builder
+RUN mkdir /home/builder/build
+WORKDIR /home/builder/build
+ENV CC clang-3.8
+ENV CXX clang++-3.8
+
+CMD ["libstdc++11", "Release"]
+ENTRYPOINT ["/home/builder/src/.travis/autobuild.sh"]

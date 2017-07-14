@@ -68,7 +68,11 @@ class shared_state<future<T>>:
   public wrap_helper<shared_state<future<T>>, T>,
   public unwrap_helper<shared_state<future<T>>, T>,
   public continuation,
+#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 4000
+  public std::enable_shared_from_this<shared_state<future<T>>>
+#else
   public std::enable_shared_from_this<continuation>
+#endif
 {
 public:
   void emplace(future<T>&& val) {
