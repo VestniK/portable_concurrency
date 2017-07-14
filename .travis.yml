@@ -8,4 +8,4 @@ before_install:
   - docker pull sirvestnik/cxx-conan-gcc-5
 
 script:
-  - docker run -v ${PWD}:/home/builder/src -w /home/builder/src --user builder sirvestnik/cxx-conan-gcc-5 /bin/sh .travis/autobuild.sh gcc-5 g++-5 libstdc++11 Release
+  - docker run -v ${PWD}:/home/builder/src sirvestnik/cxx-conan-gcc-5 libstdc++11 Release
