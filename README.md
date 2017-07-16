@@ -11,15 +11,15 @@ Attempt to write portable implementation of the C++ Extensions for Concurrency, 
 
 ## Build
 
-    conan install --build=missing
     mkdir -p build/debug
     cd build/debug
+    conan install --build=missing ../..
     cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ../..
     ninja
     ninja test
 
 ## TODO
 
- * implicit unwrap for continuations
+ * implicit unwrap for continuations (in progress)
  * make_ready_at_thread_exit for promise and packaged_task
  * allocator support where required by the standard
