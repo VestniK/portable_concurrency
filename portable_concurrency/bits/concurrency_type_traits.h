@@ -33,6 +33,19 @@ struct are_futures<F0, F...>: std::integral_constant<
   is_future<F0>::value && are_futures<F...>::value
 > {};
 
+template<typename T>
+struct remove_future {
+  using type = T;
+};
+
+template<typename T>
+struct remove_future<future<T>> {
+  using type = T;
+};
+
+template<typename T>
+using remove_future_t = typename remove_future<T>::type;
+
 } // namespace detail
 } // inline namespace cxx14_v1
 } // namespace portable_concurrency

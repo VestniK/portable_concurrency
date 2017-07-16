@@ -75,7 +75,8 @@ public:
   }
 
   template<typename F>
-  auto then(F&& f) {
+  future<detail::remove_future_t<detail::continuation_result_t<portable_concurrency::cxx14_v1::shared_future, F, T>>>
+  then(F&& f) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
     return future<detail::continuation_result_t<portable_concurrency::cxx14_v1::shared_future, F, T>>{

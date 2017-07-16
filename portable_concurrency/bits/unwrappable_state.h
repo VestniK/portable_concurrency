@@ -110,13 +110,6 @@ public:
 
   future_state<T>* as_unwrapped() override {return this;}
 
-  // continuation implementation
-  void invoke() override {
-    assert(wrap_is_ready());
-    for (auto& cnt: unwraped_continuations_.consume())
-      cnt->invoke();
-  }
-
   // future_state<T> implementation
   bool unwrap_is_ready() const {
     return unwraped_continuations_.is_consumed();
@@ -140,6 +133,13 @@ public:
   }
 
   future_state<future<T>>* unwrap_as_wrapped() {return this;}
+
+  // continuation implementation
+  void invoke() override {
+    assert(wrap_is_ready());
+    for (auto& cnt: unwraped_continuations_.consume())
+      cnt->invoke();
+  }
 
 private:
   void do_unwrap() {
