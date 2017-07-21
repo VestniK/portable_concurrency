@@ -16,48 +16,84 @@ using namespace std::literals;
 template<typename T>
 using queue = pc::detail::once_consumable_queue<T>;
 
+namespace
+{
+
+struct record {
+  size_t id;
+  size_t task_id;
+};
+
+record producer(queue<record>& records_queue, pc::latch& latch, size_t task_id) {
+  latch.count_down_and_wait();
+  record rec = {0, task_id};
+  for (;rec.id < 1'000'000; ++rec.id) {
+    auto rec_to_push = rec;
+    if (!records_queue.push(rec_to_push))
+      break;
+  }
+  return rec;
+}
+
+template<typename It>
+::testing::AssertionResult monotonic_sequence_predicate(
+  const char*, const char*,
+  It first, It last
+) {
+  const auto it = std::adjacent_find(
+    first, last,
+    [](record lhs, record rhs) {return rhs.id - lhs.id != 1;}
+  );
+  if (it == last)
+    return ::testing::AssertionSuccess();
+
+  if (it->id == (it + 1)->id)
+    return ::testing::AssertionFailure() << "Dublicated record {task_id: " << it->task_id << ", id: " << it->id << "}";
+
+  return ::testing::AssertionFailure()
+    << "Task " << it->task_id << " has missing records between " << it->id << " and " << (it + 1)->id
+  ;
+}
+
+}
+
 TEST(OnceConsumableQueueTests, concurrent_push_until_consume) {
-  struct record {
-    size_t id = 0;
-    std::thread::id tid = std::this_thread::get_id();
-  };
   queue<record> records_queue;
   pc::latch latch{
     static_cast<ptrdiff_t>(g_future_tests_env->threads_count() + 1)
-  };
-  auto producer = [&records_queue, &latch]() {
-    latch.count_down_and_wait();
-    record rec = {};
-    for (;rec.id < 1'000'000; ++rec.id) {
-      auto rec_to_push = rec;
-      if (!records_queue.push(rec_to_push))
-        break;
-    }
-    return rec;
   };
 
   std::vector<pc::future<record>> futures;
   futures.reserve(g_future_tests_env->threads_count());
   for (size_t i = 0; i < g_future_tests_env->threads_count(); ++i) {
-    auto task = pc::packaged_task<record()>{producer};
+    auto task = pc::packaged_task<record(queue<record>&, pc::latch&, size_t)>{producer};
     futures.push_back(task.get_future());
-    g_future_tests_env->run_async(std::move(task));
+    g_future_tests_env->run_async(std::move(task), std::ref(records_queue), std::ref(latch), i);
   }
 
   latch.count_down_and_wait();
-  std::this_thread::sleep_for(50ms);
-  std::map<std::thread::id, size_t> max_thread_rec_id;
-  for (const auto& rec: records_queue.consume()) {
-    auto it = max_thread_rec_id.find(rec.tid);
-    if (it == max_thread_rec_id.end())
-      max_thread_rec_id.emplace(rec.tid, rec.id);
-    else
-      it->second = std::max(it->second, rec.id);
-  }
+  std::this_thread::sleep_for(25ms);
 
-  for (auto& rec_f: futures) {
-    auto rec = rec_f.get();
-    ASSERT_EQ(max_thread_rec_id.count(rec.tid), 1u);
-    EXPECT_EQ(max_thread_rec_id[rec.tid] + 1, rec.id);
+  std::deque<record> records;
+  for (const auto& rec: records_queue.consume())
+    records.push_back(rec);
+
+  std::sort(records.begin(), records.end(), [](record lhs, record rhs) {
+    return std::tie(lhs.task_id, lhs.id) < std::tie(rhs.task_id, rhs.id);
+  });
+
+  for (auto& f: futures) {
+    const record last = f.get();
+    auto ids_range = std::equal_range(
+      records.begin(), records.end(),
+      last,
+      [](record lhs, record rhs) {return lhs.task_id < rhs.task_id;}
+    );
+    if (ids_range.first == ids_range.second) {
+      EXPECT_EQ(last.id, 0u);
+      continue;
+    }
+    EXPECT_EQ((ids_range.second - 1)->id + 1, last.id);
+    EXPECT_PRED_FORMAT2(monotonic_sequence_predicate, ids_range.first, ids_range.second);
   }
 }
