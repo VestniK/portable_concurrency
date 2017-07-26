@@ -8,7 +8,7 @@ set(HEADERS
   invoke.h
   latch.h
   make_future.h
-  once_consumable_queue.h
+  once_consumable_stack.h
   packaged_task.h
   promise.h
   result_box.h

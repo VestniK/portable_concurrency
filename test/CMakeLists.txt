@@ -4,7 +4,7 @@ include_directories(${GTEST_INCLUDE_DIRS})
 set(SRC
   future_continuation.cpp
   future.cpp
-  once_consumable_queue.cpp
+  once_consumable_stack.cpp
   packaged_task.cpp
   promise.cpp
   shared_future_continuation.cpp

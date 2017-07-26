@@ -8,13 +8,13 @@
 #include "portable_concurrency/future"
 #include "portable_concurrency/latch"
 
-#include "../portable_concurrency/bits/once_consumable_queue.h"
+#include "../portable_concurrency/bits/once_consumable_stack.h"
 
 #include "test_tools.h"
 using namespace std::literals;
 
 template<typename T>
-using queue = pc::detail::once_consumable_queue<T>;
+using stack = pc::detail::once_consumable_stack<T>;
 
 namespace
 {
@@ -24,12 +24,12 @@ struct record {
   size_t task_id;
 };
 
-record producer(queue<record>& records_queue, pc::latch& latch, size_t task_id) {
+record producer(stack<record>& records_stack, pc::latch& latch, size_t task_id) {
   latch.count_down_and_wait();
   record rec = {0, task_id};
   for (;rec.id < 1'000'000; ++rec.id) {
     auto rec_to_push = rec;
-    if (!records_queue.push(rec_to_push))
+    if (!records_stack.push(rec_to_push))
       break;
   }
   return rec;
@@ -58,7 +58,7 @@ template<typename It>
 }
 
 TEST(OnceConsumableQueueTests, concurrent_push_until_consume) {
-  queue<record> records_queue;
+  stack<record> records_stack;
   pc::latch latch{
     static_cast<ptrdiff_t>(g_future_tests_env->threads_count() + 1)
   };
@@ -66,16 +66,16 @@ TEST(OnceConsumableQueueTests, concurrent_push_until_consume) {
   std::vector<pc::future<record>> futures;
   futures.reserve(g_future_tests_env->threads_count());
   for (size_t i = 0; i < g_future_tests_env->threads_count(); ++i) {
-    auto task = pc::packaged_task<record(queue<record>&, pc::latch&, size_t)>{producer};
+    auto task = pc::packaged_task<record(stack<record>&, pc::latch&, size_t)>{producer};
     futures.push_back(task.get_future());
-    g_future_tests_env->run_async(std::move(task), std::ref(records_queue), std::ref(latch), i);
+    g_future_tests_env->run_async(std::move(task), std::ref(records_stack), std::ref(latch), i);
   }
 
   latch.count_down_and_wait();
   std::this_thread::sleep_for(25ms);
 
   std::deque<record> records;
-  for (const auto& rec: records_queue.consume())
+  for (const auto& rec: records_stack.consume())
     records.push_back(rec);
 
   std::sort(records.begin(), records.end(), [](record lhs, record rhs) {

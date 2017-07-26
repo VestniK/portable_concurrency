@@ -51,7 +51,7 @@ private:
 };
 
 template<typename T>
-class once_consumable_queue;
+class once_consumable_stack;
 
 template<typename T>
 class forward_list {
@@ -88,7 +88,7 @@ public:
   }
 
 public:
-  friend class once_consumable_queue<T>;
+  friend class once_consumable_stack<T>;
   forward_list(forward_list_node<T>* head): head_(head) {}
 
 private:
@@ -98,23 +98,23 @@ private:
 /**
  * @internal
  *
- * Multy-producer single-consumer atomic queue with extra properties:
- * @li Consume operation can happen only once and switch the queue into @em consumed state.
- * @li Attempt to enqueue new item into @em consumed queue failes. Item remains unchanged.
- * @li When producer get the information that the queue is @em consumed all side effects
+ * Multy-producer single-consumer atomic stack with extra properties:
+ * @li Consume operation can happen only once and switch the stack into @em consumed state.
+ * @li Attempt to push new item into @em consumed stack failes. Item remains unchanged.
+ * @li When producer get the information that the stack is @em consumed all side effects
  * of operations sequenced before consume operation in the consumer thread are observable
  * in the thread of this particulair producer.
  *
  * Last requrement allows consumer atomically trasfer data to producers with a single
- * operation of queue consumption.
+ * operation of stack consumption.
  */
 template<typename T>
-class once_consumable_queue {
+class once_consumable_stack {
 public:
-  once_consumable_queue() = default;
-  ~once_consumable_queue() {
+  once_consumable_stack() = default;
+  ~once_consumable_stack() {
     // Create temporary forward_list which can destroy all nodes properly. Nobody
-    // else should access this class anymore at the momont of destruction so
+    // else should access this object anymore at the momont of destruction so
     // relaxed memory order is enough.
     auto* head = head_.load(std::memory_order_relaxed);
     if (head && head != consumed_marker())
@@ -122,7 +122,7 @@ public:
   }
 
   /**
-   * Enqueue an object in to the queue in a thread safe way. If the queue is not yet
+   * Push an object to the stack in a thread safe way. If the stack is not yet
    * @em consumed then this function moves the value from the paremeter @a val and
    * returns true. Otherwise the value of the @a val object remains untoched and
    * function returns false.
@@ -148,7 +148,7 @@ public:
   }
 
   /**
-   * Checks if the queue is @em consumed.
+   * Checks if the stack is @em consumed.
    *
    * @note Can be called from multiple threads.
    */
@@ -157,9 +157,9 @@ public:
   }
 
   /**
-   * Consumes the queue and switch it into @em consumed state. Running this function
-   * concurrently with any other function in this class (instead of constructor or
-   * destructor) is safe.
+   * Consumes the stack and switch it into @em consumed state. Running this function
+   * concurrently with any other function in this class (excpet constructor, destructor
+   * and consume function itself) is safe.
    *
    * @note Must be called from a single thread. Must not be called twice on a same
    * queue.
@@ -176,7 +176,7 @@ private:
   // instances. Can be used as marker in pointer compariaions but must never be
   // dereferenced.
   forward_list_node<T>* consumed_marker() const {
-    return reinterpret_cast<forward_list_node<T>*>(const_cast<once_consumable_queue*>(this));
+    return reinterpret_cast<forward_list_node<T>*>(const_cast<once_consumable_stack*>(this));
   }
 
 private:

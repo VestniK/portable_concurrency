@@ -154,9 +154,9 @@ private:
 
 private:
   result_box<future<T>> box_;
-  continuations_queue continuations_;
+  continuations_stack continuations_;
 
-  continuations_queue unwraped_continuations_;
+  continuations_stack unwraped_continuations_;
 };
 
 } // namespace detail

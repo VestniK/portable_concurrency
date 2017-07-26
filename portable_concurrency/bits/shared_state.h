@@ -6,7 +6,7 @@
 #include "fwd.h"
 
 #include "continuation.h"
-#include "once_consumable_queue.h"
+#include "once_consumable_stack.h"
 #include "result_box.h"
 #include "wait_continuation.h"
 
@@ -14,24 +14,24 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-class continuations_queue  {
+class continuations_stack  {
 public:
-  bool push(std::shared_ptr<continuation>& cnt) {return queue_.push(cnt);}
-  auto consume() {return queue_.consume();}
-  bool is_consumed() const {return queue_.is_consumed();}
+  bool push(std::shared_ptr<continuation>& cnt) {return stack_.push(cnt);}
+  auto consume() {return stack_.consume();}
+  bool is_consumed() const {return stack_.is_consumed();}
 
   wait_continuation& get_waiter() {
     std::call_once(waiter_init_, [this] {
       waiter_ = std::make_shared<wait_continuation>();
       std::shared_ptr<continuation> wait_cnt = waiter_;
-      if (!queue_.push(wait_cnt))
+      if (!stack_.push(wait_cnt))
         wait_cnt->invoke();
     });
     return *waiter_;
   }
 
 private:
-  once_consumable_queue<std::shared_ptr<continuation>> queue_;
+  once_consumable_stack<std::shared_ptr<continuation>> stack_;
   std::once_flag waiter_init_;
   std::shared_ptr<wait_continuation> waiter_;
 };
@@ -96,7 +96,7 @@ public:
 
 private:
   result_box<state_storage_t<T>> box_;
-  continuations_queue continuations_;
+  continuations_stack continuations_;
 };
 
 } // namespace detail
