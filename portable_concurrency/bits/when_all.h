@@ -39,10 +39,10 @@ public:
     return state;
   }
 
-  void invoke() override {
+  void invoke(const std::shared_ptr<continuation>& self) override {
     if (++ready_count_ < sequence_traits<Sequence>::size(futures_))
       return;
-    this->emplace(std::move(futures_));
+    shared_state<Sequence>::emplace(std::static_pointer_cast<when_all_state>(self), std::move(futures_));
   }
 
 private:

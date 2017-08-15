@@ -14,7 +14,7 @@ class wait_continuation: public detail::continuation {
 public:
   wait_continuation() = default;
 
-  void invoke() override {
+  void invoke(const std::shared_ptr<continuation>&) override {
     std::lock_guard<std::mutex>{mutex_}, notified_ = true;
     cv_.notify_one();
   }

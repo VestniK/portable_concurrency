@@ -34,7 +34,7 @@ public:
   void set_exception(std::exception_ptr error) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    state_->set_exception(error);
+    shared_state<T>::set_exception(state_, error);
   }
 };
 
@@ -55,13 +55,13 @@ public:
   void set_value(const T& val) {
     if (!this->state_)
       throw std::future_error(std::future_errc::no_state);
-    this->state_->emplace(val);
+    detail::shared_state<T>::emplace(this->state_, val);
   }
 
   void set_value(T&& val) {
     if (!this->state_)
       throw std::future_error(std::future_errc::no_state);
-    this->state_->emplace(std::move(val));
+    detail::shared_state<T>::emplace(this->state_, std::move(val));
   }
 };
 
@@ -80,7 +80,7 @@ public:
   void set_value(T& val) {
     if (!this->state_)
       throw std::future_error(std::future_errc::no_state);
-    this->state_->emplace(val);
+    detail::shared_state<T&>::emplace(this->state_, val);
   }
 };
 
@@ -99,7 +99,7 @@ public:
   void set_value() {
     if (!this->state_)
       throw std::future_error(std::future_errc::no_state);
-    this->state_->emplace();
+    detail::shared_state<void>::emplace(this->state_);
   }
 };
 

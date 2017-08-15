@@ -25,7 +25,7 @@ public:
       waiter_ = std::make_shared<wait_continuation>();
       std::shared_ptr<continuation> wait_cnt = waiter_;
       if (!stack_.push(wait_cnt))
-        wait_cnt->invoke();
+        wait_cnt->invoke(wait_cnt);
     });
     return *waiter_;
   }
@@ -64,16 +64,18 @@ public:
   shared_state(shared_state&&) = delete;
 
   template<typename... U>
-  void emplace(U&&... u) {
-    box_.emplace(std::forward<U>(u)...);
-    for (auto& cnt: continuations_.consume())
-      cnt->invoke();
+  static
+  void emplace(const std::shared_ptr<shared_state>& self, U&&... u) {
+    self->box_.emplace(std::forward<U>(u)...);
+    for (auto& cnt: self->continuations_.consume())
+      cnt->invoke(cnt);
   }
 
-  void set_exception(std::exception_ptr error) {
-    box_.set_exception(error);
-    for (auto& cnt: continuations_.consume())
-      cnt->invoke();
+  static
+  void set_exception(const std::shared_ptr<shared_state>& self, std::exception_ptr error) {
+    self->box_.set_exception(error);
+    for (auto& cnt: self->continuations_.consume())
+      cnt->invoke(cnt);
   }
 
   bool is_ready() const override {
@@ -82,7 +84,7 @@ public:
 
   void add_continuation(std::shared_ptr<continuation> cnt) override {
     if (!continuations_.push(cnt))
-      cnt->invoke();
+      cnt->invoke(cnt);
   }
 
   std::add_lvalue_reference_t<state_storage_t<T>> value_ref() override {

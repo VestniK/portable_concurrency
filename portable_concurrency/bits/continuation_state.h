@@ -37,9 +37,11 @@ class continuation_state:
     return res;
   }
 
-  void invoke() override {
+  void invoke(const std::shared_ptr<continuation>& self) override {
     ::portable_concurrency::cxx14_v1::detail::set_state_value(
-      *this,
+      std::static_pointer_cast<shared_state<continuation_result_t<Future, F, T>>>(
+        std::static_pointer_cast<continuation_state>(self)
+      ),
       std::move(func_),
       Future<T>(std::move(parent_))
     );

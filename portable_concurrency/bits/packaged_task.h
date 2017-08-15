@@ -15,7 +15,7 @@ namespace detail {
 template<typename R, typename... A>
 class task_state_base: public shared_state<R> {
 public:
-  virtual void invoke(A...) = 0;
+  virtual void invoke(const std::shared_ptr<shared_state<R>>& self, A...) = 0;
   virtual std::shared_ptr<task_state_base> reset() = 0;
 };
 
@@ -25,8 +25,8 @@ public:
   template<typename U>
   task_state(U&& f): func_(std::forward<U>(f)) {}
 
-  void invoke(A... a) override {
-    ::portable_concurrency::cxx14_v1::detail::set_state_value(*this, func_, std::forward<A>(a)...);
+  void invoke(const std::shared_ptr<shared_state<R>>& self, A... a) override {
+    ::portable_concurrency::cxx14_v1::detail::set_state_value(self, func_, std::forward<A>(a)...);
   }
 
   std::shared_ptr<task_state_base<R, A...>> reset() override {
@@ -72,7 +72,7 @@ public:
   void operator() (A... a) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    state_->invoke(a...);
+    state_->invoke(state_, a...);
   }
 
   void reset() {

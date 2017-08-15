@@ -67,26 +67,23 @@ template<typename T>
 class shared_state<future<T>>:
   public wrap_helper<shared_state<future<T>>, T>,
   public unwrap_helper<shared_state<future<T>>, T>,
-  public continuation,
-#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 4000
-  public std::enable_shared_from_this<shared_state<future<T>>>
-#else
-  public std::enable_shared_from_this<continuation>
-#endif
+  public continuation
 {
 public:
-  void emplace(future<T>&& val) {
-    box_.emplace(std::move(val));
-    for (auto& cnt: continuations_.consume())
-      cnt->invoke();
-    do_unwrap();
+  static
+  void emplace(const std::shared_ptr<shared_state<future<T>>>& self, future<T>&& val) {
+    self->box_.emplace(std::move(val));
+    for (auto& cnt: self->continuations_.consume())
+      cnt->invoke(cnt);
+    do_unwrap(self);
   }
 
-  void set_exception(std::exception_ptr error) {
-    box_.set_exception(error);
-    for (auto& cnt: continuations_.consume())
-      cnt->invoke();
-    invoke();
+  static
+  void set_exception(const std::shared_ptr<shared_state<future<T>>>& self, std::exception_ptr error) {
+    self->box_.set_exception(error);
+    for (auto& cnt: self->continuations_.consume())
+      cnt->invoke(cnt);
+    self->invoke(self);
   }
 
   // future_state<future<T>> implementation
@@ -96,7 +93,7 @@ public:
 
   void wrap_add_continuation(std::shared_ptr<continuation> cnt) {
     if (!continuations_.push(cnt))
-      cnt->invoke();
+      cnt->invoke(cnt);
   }
 
   future<T>& wrap_value_ref() {
@@ -117,7 +114,7 @@ public:
 
   void unwrap_add_continuation(std::shared_ptr<continuation> cnt) {
     if (!unwraped_continuations_.push(cnt))
-      cnt->invoke();
+      cnt->invoke(cnt);
   }
 
   std::add_lvalue_reference_t<state_storage_t<T>> unwrap_value_ref() {
@@ -135,21 +132,22 @@ public:
   future_state<future<T>>* unwrap_as_wrapped() {return this;}
 
   // continuation implementation
-  void invoke() override {
+  void invoke(const std::shared_ptr<continuation>&) override {
     assert(wrap_is_ready());
     for (auto& cnt: unwraped_continuations_.consume())
-      cnt->invoke();
+      cnt->invoke(cnt);
   }
 
 private:
-  void do_unwrap() {
-    assert(wrap_is_ready());
-    if (!box_.get().valid()) {
-      invoke();
+  static
+  void do_unwrap(const std::shared_ptr<shared_state<future<T>>>& self) {
+    assert(self->wrap_is_ready());
+    if (!self->box_.get().valid()) {
+      self->invoke(self);
       return;
     }
 
-    detail::state_of(box_.get())->add_continuation(this->shared_from_this());
+    detail::state_of(self->box_.get())->add_continuation(self);
   }
 
 private:

@@ -36,10 +36,10 @@ public:
   {}
 
   // threadsafe
-  void invoke() override {
+  void invoke(const std::shared_ptr<continuation>& self) override {
     if (barrier_.fetch_sub(1) != 1)
       return;
-    set();
+    set(std::static_pointer_cast<when_any_state>(self));
   }
 
   static std::shared_ptr<shared_state<when_any_result<Sequence>>> make(Sequence&& seq) {
@@ -54,17 +54,17 @@ public:
 #endif
     sequence_traits<Sequence>::attach_continuation(state->futures_, state);
     if (state->barrier_.fetch_sub(seq_sz) <= seq_sz)
-      state->set();
+      state->set(state);
     return state;
   }
 
 private:
-  void set() {
+  void set(const std::shared_ptr<when_any_state>& self) {
     const auto ready_idx = sequence_traits<Sequence>::index_of_ready(futures_);
-    this->emplace(when_any_result<Sequence>{
-      ready_idx,
-      std::move(futures_)
-    });
+    shared_state<when_any_result<Sequence>>::emplace(
+      self,
+      when_any_result<Sequence>{ready_idx, std::move(futures_)}
+    );
   }
 
 private:
