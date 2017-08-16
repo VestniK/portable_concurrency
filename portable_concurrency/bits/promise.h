@@ -14,13 +14,13 @@ namespace detail {
 template<typename T>
 class promise_base {
 protected:
-  // TODO: find the way to avoid enable_shared_from_this in the future<future<T>>
-  // and use aggregation with aliasing shared_ptr constructor instead of deriving from
-  // shared_state
-  struct promise_state: public shared_state<T> {
+  struct promise_state {
+    shared_state<T> state;
     bool future_retreived = false;
   };
   std::shared_ptr<promise_state> state_ = std::make_shared<promise_state>();
+
+  std::shared_ptr<shared_state<T>> get_state_ptr() {return {state_, &state_->state};}
 
 public:
   future<T> get_future() {
@@ -28,13 +28,13 @@ public:
       throw std::future_error(std::future_errc::no_state);
     if (std::exchange(state_->future_retreived, true) != false)
       throw std::future_error(std::future_errc::future_already_retrieved);
-    return {state_};
+    return {get_state_ptr()};
   }
 
   void set_exception(std::exception_ptr error) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    shared_state<T>::set_exception(state_, error);
+    shared_state<T>::set_exception(get_state_ptr(), error);
   }
 };
 
@@ -55,13 +55,13 @@ public:
   void set_value(const T& val) {
     if (!this->state_)
       throw std::future_error(std::future_errc::no_state);
-    detail::shared_state<T>::emplace(this->state_, val);
+    detail::shared_state<T>::emplace(this->get_state_ptr(), val);
   }
 
   void set_value(T&& val) {
     if (!this->state_)
       throw std::future_error(std::future_errc::no_state);
-    detail::shared_state<T>::emplace(this->state_, std::move(val));
+    detail::shared_state<T>::emplace(this->get_state_ptr(), std::move(val));
   }
 };
 
@@ -80,7 +80,7 @@ public:
   void set_value(T& val) {
     if (!this->state_)
       throw std::future_error(std::future_errc::no_state);
-    detail::shared_state<T&>::emplace(this->state_, val);
+    detail::shared_state<T&>::emplace(this->get_state_ptr(), val);
   }
 };
 
@@ -99,7 +99,7 @@ public:
   void set_value() {
     if (!this->state_)
       throw std::future_error(std::future_errc::no_state);
-    detail::shared_state<void>::emplace(this->state_);
+    detail::shared_state<void>::emplace(this->get_state_ptr());
   }
 };
 
