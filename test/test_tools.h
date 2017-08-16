@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 
+#include <portable_concurrency/functional>
 #include <portable_concurrency/future>
 
 #include "closable_queue.h"
@@ -34,14 +35,14 @@ public:
 
   template<typename F, typename... A>
   void run_async(F&& f, A&&... a) {
-    queue_.push({std::forward<F>(f), std::forward<A>(a)...});
+    queue_.push(make_task(std::forward<F>(f), std::forward<A>(a)...));
   }
 
   size_t threads_count() const {return workers_.size();}
 
 private:
   std::vector<std::thread> workers_;
-  closable_queue<task> queue_;
+  closable_queue<pc::unique_function<void()>> queue_;
 };
 
 extern

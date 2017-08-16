@@ -15,6 +15,7 @@ set(HEADERS
   shared_future.h
   shared_state.h
   unwrappable_state.h
+  unique_function.h
   utils.h
   wait_continuation.h
   when_any.h

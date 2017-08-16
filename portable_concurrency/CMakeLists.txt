@@ -2,6 +2,7 @@
 
 
 set(HEADERS
+  functional
   future
   latch
 )

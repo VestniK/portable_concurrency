@@ -6,7 +6,7 @@ future_tests_env* g_future_tests_env = static_cast<future_tests_env*>(
 
 namespace {
 
-void worker_function(closable_queue<task>& queue) {
+void worker_function(closable_queue<pc::unique_function<void()>>& queue) {
   while (true) try {
     auto t = queue.pop();
     t();

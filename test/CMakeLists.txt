@@ -17,7 +17,14 @@ set(SRC
   when_any_vector.cpp
 )
 
-add_executable(unit_tests ${SRC})
+set(HEADERS
+  closable_queue.h
+  task.h
+  test_helpers.h
+  test_tools.h
+)
+
+add_executable(unit_tests ${SRC} ${HEADERS})
 target_link_libraries(unit_tests portable_concurrency ${GTEST_BOTH_LIBRARIES})
 add_test(NAME unit_tests
   COMMAND unit_tests --gtest_output=xml:${CMAKE_BINARY_DIR}/Reports/unit_tests.xml
