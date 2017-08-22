@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <functional>
 #include <memory>
 #include <type_traits>
@@ -42,10 +43,7 @@ public:
 
   template<typename F>
   unique_function(F&& f): unique_function() {
-    new (&heap_invokable_) std::unique_ptr<detail::invokable<R, A...>>{
-      std::make_unique<detail::invokable_wrapper<F, R, A...>>(std::forward<F>(f))
-    };
-    type_ = stored_type::heap_invokable;
+    init(std::forward<F>(f));
   }
 
   unique_function(std::function<R(A...)> f): unique_function() {
@@ -121,6 +119,22 @@ private:
     case stored_type::std_function: std_function_.~function(); return;
     case stored_type::heap_invokable: heap_invokable_.~unique_ptr(); return;
     }
+  }
+
+  template<typename F>
+  std::enable_if_t<std::is_function<F>::value> init(F&& f) {
+    assert(type_ == stored_type::empty);
+    new (&std_function_) std::function<R(A...)>(std::forward<F>(f));
+    type_ = stored_type::std_function;
+  }
+
+  template<typename F>
+  std::enable_if_t<!std::is_function<F>::value> init(F&& f) {
+    assert(type_ == stored_type::empty);
+    new (&heap_invokable_) std::unique_ptr<detail::invokable<R, A...>>{
+      std::make_unique<detail::invokable_wrapper<F, R, A...>>(std::forward<F>(f))
+    };
+    type_ = stored_type::heap_invokable;
   }
 
 private:
