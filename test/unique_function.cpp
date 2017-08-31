@@ -37,6 +37,15 @@ TEST(UniqueFunctionTest, empty_std_func_constructed_is_empty) {
   ASSERT_THROW(f("qwe"), std::bad_function_call);
 }
 
+TEST(UniqueFunctionTest, null_member_func_pointer_is_empty) {
+  using mem_fn_ptr_t = decltype(&std::string::size);
+  mem_fn_ptr_t null_mem_fn = nullptr;
+
+  pc::unique_function<size_t(std::string)> f = null_mem_fn;
+  EXPECT_FALSE(f);
+  ASSERT_THROW(f("qwe"), std::bad_function_call);
+}
+
 } // namespace test
 
 } // anonymous namespace

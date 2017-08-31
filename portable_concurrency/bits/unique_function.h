@@ -55,6 +55,7 @@ class unique_function<R(A...)> {
         detail::is_std_function<F>::value ||
         std::is_function<F>::value ||
         std::is_function<std::remove_pointer_t<F>>::value ||
+        std::is_member_function_pointer<F>::value ||
         detail::is_reference_wrapper<F>::value
       )?
         stored_type::std_function:
