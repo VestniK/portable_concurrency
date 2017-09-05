@@ -10,6 +10,7 @@ set(SRC
   shared_future_continuation.cpp
   shared_future.cpp
   test_tools.cpp
+  type_erasure_owner.cpp
   unique_function.cpp
   unwrap_constructor.cpp
   when_all_tuple.cpp

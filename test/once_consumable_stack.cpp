@@ -11,13 +11,13 @@
 #include "../portable_concurrency/bits/once_consumable_stack.h"
 
 #include "test_tools.h"
+
 using namespace std::literals;
 
 template<typename T>
 using stack = pc::detail::once_consumable_stack<T>;
 
-namespace
-{
+namespace {
 
 struct record {
   size_t id;

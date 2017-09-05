@@ -14,6 +14,7 @@ set(HEADERS
   result_box.h
   shared_future.h
   shared_state.h
+  type_erasure_owner.h
   unwrappable_state.h
   unique_function.h
   utils.h
