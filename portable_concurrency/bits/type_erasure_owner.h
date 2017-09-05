@@ -74,7 +74,7 @@ public:
     // HINT builtin comparision operators do not establish total ordering for pointers and it's UB to compare pointers
     // to unrelated objects. std::less and other std comparators however provide consistent total order for pointers
     // to make them be usable in ordered containers like std::set and std::map. Using std::less to prevent UB.
-    const std::less<const void*> cmp;
+    const std::less<const void*> cmp{};
     return !cmp(obj_loc, storage_start) && cmp(obj_loc, storage_end);
   }
 
