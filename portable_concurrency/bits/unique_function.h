@@ -21,6 +21,7 @@ struct is_std_function<std::function<S>>: std::true_type {};
 template<typename R, typename... A>
 class invokable {
 public:
+  virtual ~invokable() = default;
   virtual R invoke(A... a) = 0;
 };
 
