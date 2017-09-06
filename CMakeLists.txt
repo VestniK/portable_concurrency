@@ -13,10 +13,10 @@ set(CONAN_CMAKE_FIND_ROOT_PATH ${CONAN_CMAKE_MODULE_PATH})
 conan_basic_setup(TARGETS)
 
 set(CMAKE_CXX_STANDARD 14)
-if (NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
-  add_definitions(-Werror=all)
-else()
+if (MSVC)
   add_definitions(/bigobj)
+else()
+  add_definitions(-Werror=all)
 endif()
 
 add_subdirectory(portable_concurrency)
