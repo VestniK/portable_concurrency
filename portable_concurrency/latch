@@ -1,4 +1,4 @@
-// <future> -*- C++ -*-
+// <latch> -*- C++ -*-
 #pragma once
 
 #include "bits/latch.h"
