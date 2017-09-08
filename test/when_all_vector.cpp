@@ -141,7 +141,7 @@ TEST(WhenAllVectorTest, multiple_futures) {
 
   for (std::size_t pos: {3, 0, 1, 4, 2}) {
     EXPECT_FALSE(f.is_ready());
-    ps[pos].set_value(42*pos);
+    ps[pos].set_value(static_cast<int>(42*pos));
   }
   ASSERT_TRUE(f.is_ready());
 

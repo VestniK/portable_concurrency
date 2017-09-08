@@ -16,10 +16,10 @@ RUN echo "deb http://mirror.yandex.ru/debian sid main" > /etc/apt/sources.list.d
 
 VOLUME /home/builder/src
 USER builder
-RUN mkdir /home/builder/build
-WORKDIR /home/builder/build
 ENV CC clang-3.8
 ENV CXX clang++-3.8
+RUN mkdir /home/builder/build && conan install || true
+WORKDIR /home/builder/build
 
 CMD ["libstdc++11", "Release"]
 ENTRYPOINT ["/home/builder/src/.travis/autobuild.sh"]
