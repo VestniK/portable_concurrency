@@ -99,8 +99,15 @@ private:
 #if defined(_MSC_VER)
 template<typename Iface, template<typename> class Adapter, typename... T>
 struct type_erasure_owner_t_helper {
+#if _MSC_VER > 1900
   static constexpr size_t storage_size = std::max(std::initializer_list<size_t>{sizeof(Adapter<T>)...});
   static constexpr size_t storage_align = std::max(std::initializer_list<size_t>{alignof(Adapter<T>)...});
+#else
+  enum: size_t {
+    storage_size = std::max(std::initializer_list<size_t>{sizeof(Adapter<T>)...});
+    storage_align = std::max(std::initializer_list<size_t>{alignof(Adapter<T>)...});
+  };
+#endif
   using type = type_erasure_owner<Iface, storage_size, storage_align>;
 };
 
