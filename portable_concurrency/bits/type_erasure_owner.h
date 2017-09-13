@@ -103,10 +103,15 @@ struct type_erasure_owner_t_helper {
   static constexpr size_t storage_size = std::max(std::initializer_list<size_t>{sizeof(Adapter<T>)...});
   static constexpr size_t storage_align = std::max(std::initializer_list<size_t>{alignof(Adapter<T>)...});
 #else
-  enum: size_t {
-    storage_size = std::max(std::initializer_list<size_t>{sizeof(Adapter<T>)...}),
-    storage_align = std::max(std::initializer_list<size_t>{alignof(Adapter<T>)...})
-  };
+  constexpr static size_t max_sz(size_t sz) {return sz;}
+
+  template<typename... Size_t>
+  constexpr static size_t max_sz(size_t sz, Size_t... szs) {
+    return sz > max_sz(szs...) ? sz : max_sz(szs...);
+  }
+
+  static constexpr size_t storage_size = max_sz(sizeof(Adapter<T>)...);
+  static constexpr size_t storage_align = max_sz(alignof(Adapter<T>)...);
 #endif
   using type = type_erasure_owner<Iface, storage_size, storage_align>;
 };
