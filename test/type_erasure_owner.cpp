@@ -13,8 +13,13 @@ namespace {
 namespace pc = portable_concurrency;
 
 struct stringifiable {
+  stringifiable() = default;
+  stringifiable(const stringifiable&) = delete;
+  stringifiable(stringifiable&&) = default;
+
   virtual ~stringifiable() = default;
-  virtual stringifiable* move_to(char*) && noexcept = 0;
+
+  virtual stringifiable* move_to(char*) noexcept = 0;
   virtual std::string to_string() const = 0;
 };
 
@@ -117,7 +122,7 @@ class stringifiable_adapter<unique_str>:
 {
 public:
   stringifiable_adapter(const char* str):
-    val_(new char[std::strlen(str)])
+    val_(new char[std::strlen(str) + 1])
   {
     std::strcpy(val_.get(), str);
   }
@@ -135,6 +140,55 @@ TEST(TypeErasureOwner, non_copyable_small_type) {
   EXPECT_NE(var.get(), nullptr);
   EXPECT_TRUE(var.is_embeded());
   EXPECT_EQ(var.get()->to_string(), "Unique str");
+}
+
+TEST(TypeErasureOwner, move_first_enlisted_type) {
+  type_erasure_owner src{emplace_t<std::string>{}, "Hello"};
+
+  type_erasure_owner dest = std::move(src);
+  EXPECT_NE(dest.get(), nullptr);
+  EXPECT_EQ(src.get(), nullptr);
+  EXPECT_TRUE(dest.is_embeded());
+  EXPECT_EQ(dest.get()->to_string(), "Hello");
+}
+
+TEST(TypeErasureOwner, move_second_enlisted_type) {
+  type_erasure_owner src{emplace_t<const char*>{}, "Hello C str"};
+
+  type_erasure_owner dest = std::move(src);
+  EXPECT_NE(dest.get(), nullptr);
+  EXPECT_EQ(src.get(), nullptr);
+  EXPECT_TRUE(dest.is_embeded());
+  EXPECT_EQ(dest.get()->to_string(), "Hello C str");
+}
+
+TEST(TypeErasureOwner, move_small_type) {
+  static_assert(
+    sizeof(double) < sizeof(std::string),
+    "Test assumptions on types size are not satisfied"
+  );
+  static_assert(
+    alignof(double) <= alignof(std::string),
+    "Test assumptions on types alignment are not satisfied"
+  );
+  type_erasure_owner src{emplace_t<double>{}, 2.37};
+
+  type_erasure_owner dest = std::move(src);
+  EXPECT_NE(dest.get(), nullptr);
+  EXPECT_EQ(src.get(), nullptr);
+  EXPECT_TRUE(dest.is_embeded());
+  EXPECT_EQ(dest.get()->to_string(), "2.37");
+}
+
+TEST(TypeErasureOwner, move_big_type) {
+  const auto ec = std::make_error_code(std::errc::permission_denied);
+  type_erasure_owner src{emplace_t<error>{}, error{"open", ec}};
+
+  type_erasure_owner dest = std::move(src);
+  EXPECT_NE(dest.get(), nullptr);
+  EXPECT_EQ(src.get(), nullptr);
+  EXPECT_FALSE(dest.is_embeded());
+  EXPECT_EQ(dest.get()->to_string(), "open: " + ec.message());
 }
 
 }

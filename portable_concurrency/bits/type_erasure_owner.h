@@ -45,7 +45,8 @@ public:
       return;
     }
     ptr_ = rhs.ptr_->move_to(
-      reinterpret_cast<char*>(&embeded_buf_) + (rhs.ptr_ - reinterpret_cast<char*>(&rhs.embeded_buf_))
+      reinterpret_cast<char*>(&embeded_buf_) +
+      (reinterpret_cast<char*>(rhs.ptr_) - reinterpret_cast<char*>(&rhs.embeded_buf_))
     );
     rhs.destroy();
   }
@@ -133,7 +134,7 @@ using type_erasure_owner_t = type_erasure_owner<
 template<typename Iface, typename Impl>
 class move_erased: public Iface {
 public:
-  Iface* move_to(char* location) && noexcept override {
+  Iface* move_to(char* location) noexcept override {
     return new(location) Impl{std::move(*static_cast<Impl*>(this))};
   }
 };
