@@ -1,16 +1,13 @@
 project(portable_concurrency)
 cmake_minimum_required(VERSION 3.0)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(HeaderOnlyTools)
+include(ConanDeps)
 
 option(BUILD_SHARED_LIBS "Specify to build shared or static library." Off)
 option(ENABLE_UBSAN "Enables undefined behaviour sanitizer for clang and gcc" Off)
 option(ENABLE_ADDRSAN "Enables address sanitizer for clang and gcc" Off)
 option(ENABLE_THREADSAN "Enables thread sanitizer for clang and gcc" Off)
-
-include(HeaderOnlyTools)
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-set(CONAN_CMAKE_FIND_ROOT_PATH ${CONAN_CMAKE_MODULE_PATH})
-conan_basic_setup(TARGETS)
 
 set(CMAKE_CXX_STANDARD 14)
 if (MSVC)

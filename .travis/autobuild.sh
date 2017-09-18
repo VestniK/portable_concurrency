@@ -30,6 +30,7 @@ conan profile show default
 conan install -s build_type=${BUILD_TYPE} --build=missing ${SRCDIR}
 
 cmake -G Ninja ${SRCDIR} \
+  -DCONAN=On \
   -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
   -DCONAN_LIBCXX=$(conan_profile_get compiler.libcxx default) \
   -DCONAN_COMPILER=$(conan_profile_get compiler default) \
