@@ -1,5 +1,4 @@
- find_package(Threads REQUIRED)
-
+find_package(Threads REQUIRED)
 
 set(HEADERS
   functional
@@ -10,7 +9,7 @@ set(HEADERS
 add_library(portable_concurrency INTERFACE)
 target_link_libraries(portable_concurrency INTERFACE Threads::Threads)
 target_include_directories(portable_concurrency INTERFACE
-  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${portable_concurrency_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include>
 )
 headeronly_target_headers(portable_concurrency ${HEADERS})
