@@ -2,6 +2,7 @@ project(portable_concurrency)
 cmake_minimum_required(VERSION 3.0)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(HeaderOnlyTools)
+include(BuildTypes)
 include(ConanDeps)
 
 option(BUILD_SHARED_LIBS "Specify to build shared or static library." Off)
