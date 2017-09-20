@@ -2,38 +2,78 @@
 
 #include <cassert>
 #include <functional>
-#include <memory>
 #include <type_traits>
 
 #include "invoke.h"
+#include "type_erasure_owner.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
 namespace detail {
 
-template<typename T>
-struct is_std_function: std::false_type {};
-
 template<typename S>
-struct is_std_function<std::function<S>>: std::true_type {};
+class callable;
 
 template<typename R, typename... A>
-class invokable {
+class callable<R(A...)> {
 public:
-  virtual ~invokable() = default;
-  virtual R invoke(A... a) = 0;
+  virtual ~callable() = default;
+  virtual callable* move_to(char* location) noexcept = 0;
+  virtual R call(A... a) = 0;
 };
 
+template<typename F, typename S>
+class callable_wrapper;
+
 template<typename F, typename R, typename... A>
-class invokable_wrapper final: public invokable<R, A...> {
+class callable_wrapper<F, R(A...)> final:
+  public move_erased<callable<R(A...)>, callable_wrapper<F, R(A...)>>
+{
 public:
-  invokable_wrapper(F&& f): func_(std::forward<F>(f)) {}
-  R invoke(A... a) override {return portable_concurrency::cxx14_v1::detail::invoke(func_, a...);}
+  callable_wrapper(F&& f): func_(std::forward<F>(f)) {}
+  R call(A... a) override {return invoke(func_, a...);}
 
 private:
   std::decay_t<F> func_;
 };
+
+template<template<typename...> class Tmpl, typename T>
+struct is_instantiation_of: std::false_type {};
+template<template<typename...> class Tmpl, typename... P>
+struct is_instantiation_of<Tmpl, Tmpl<P...>>: std::true_type {};
+
+template<typename F>
+using is_raw_nullable_functor = std::integral_constant<
+  bool,
+  std::is_member_function_pointer<F>::value ||
+  std::is_member_object_pointer<F>::value ||
+  (std::is_pointer<F>::value && std::is_function<std::remove_pointer_t<F>>::value) ||
+  is_instantiation_of<std::function, F>::value
+>;
+
+template<typename F>
+struct is_nullable_functor_ref: std::false_type {};
+template<typename F>
+struct is_nullable_functor_ref<std::reference_wrapper<F>>:
+  is_raw_nullable_functor<std::decay_t<F>>
+{};
+
+template<typename F>
+using is_nullable_functor = std::integral_constant<
+  bool,
+  is_raw_nullable_functor<F>::value || is_nullable_functor_ref<F>::value
+>;
+
+template<typename F>
+bool is_null_func(F&& f) noexcept {
+  return f == nullptr;
+}
+
+template<typename F>
+bool is_null_func(std::reference_wrapper<F> f) noexcept {
+  return f.get() == nullptr;
+}
 
 } // namespace detail
 
@@ -44,143 +84,50 @@ class unique_function;
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4543.pdf
 template<typename R, typename... A>
 class unique_function<R(A...)> {
-  enum class stored_type {empty, std_function, heap_invokable};
-  struct empty_t {};
-
-  template<typename F>
-  using stored_type_t = std::integral_constant<
-    stored_type,
-    std::is_same<F, std::nullptr_t>::value ?
-      stored_type::empty:
-      (
-        detail::is_std_function<F>::value ||
-        std::is_function<F>::value ||
-        std::is_function<std::remove_pointer_t<F>>::value ||
-        std::is_member_function_pointer<F>::value ||
-        detail::is_reference_wrapper<F>::value
-      )?
-        stored_type::std_function:
-        stored_type::heap_invokable
+  using type_erasure_t = detail::type_erasure_owner<
+    detail::callable<R(A...)>,
+    sizeof(std::function<R(A...)>),
+    alignof(std::function<R(A...)>)
   >;
+  template<typename F>
+  using emplace_t = detail::emplace_t<detail::callable_wrapper<F, R(A...)>>;
 public:
-  unique_function() noexcept {}
+  unique_function() noexcept = default;
+  unique_function(std::nullptr_t) noexcept: type_erasure_() {}
 
   template<typename F>
-  unique_function(F&& f): unique_function() {
-    init(std::forward<F>(f));
-  }
+  unique_function(F&& f):
+    unique_function(std::forward<F>(f), detail::is_nullable_functor<std::decay_t<F>>{})
+  {}
 
-  ~unique_function() {
-    destroy_stored_object();
-  }
+  ~unique_function() = default;
 
-  unique_function(unique_function&& rhs) noexcept(std::is_nothrow_move_constructible<std::function<R(A...)>>::value):
-    unique_function()
-  {
-    switch (rhs.type_) {
-    case stored_type::empty: return;
+  unique_function(unique_function&& rhs) noexcept = default;
 
-    case stored_type::std_function:
-      new (&std_function_) std::function<R(A...)>{std::move(rhs.std_function_)};
-      type_ = stored_type::std_function;
-    return;
-
-    case stored_type::heap_invokable:
-      new (&heap_invokable_) std::unique_ptr<detail::invokable<R, A...>>{std::move(rhs.heap_invokable_)};
-      type_ = stored_type::heap_invokable;
-    return;
-    }
-  }
-
-  unique_function& operator= (unique_function&& rhs)
-    noexcept(std::is_nothrow_move_assignable<std::function<R(A...)>>::value)
-  {
-    if (type_ == rhs.type_) {
-      switch (type_) {
-      case stored_type::empty: break;
-      case stored_type::std_function: std_function_ = std::move(rhs.std_function_); break;
-      case stored_type::heap_invokable: heap_invokable_ = std::move(rhs.heap_invokable_); break;
-      }
-      return *this;
-    }
-
-    destroy_stored_object();
-    type_ = stored_type::empty;
-
-    switch (rhs.type_) {
-    case stored_type::empty: break;
-
-    case stored_type::std_function:
-      new (&std_function_) std::function<R(A...)>{std::move(rhs.std_function_)};
-      type_ = stored_type::std_function;
-    break;
-
-    case stored_type::heap_invokable:
-      new (&heap_invokable_) std::unique_ptr<detail::invokable<R, A...>>{std::move(rhs.heap_invokable_)};
-      type_ = stored_type::heap_invokable;
-    break;
-    }
-    return *this;
-  }
+  unique_function& operator= (unique_function&& rhs) noexcept = default;
 
   R operator() (A... args) {
-    switch (type_) {
-    case stored_type::empty: break;
-    case stored_type::std_function: return std_function_(args...);
-    case stored_type::heap_invokable:
-      if (heap_invokable_)
-        return heap_invokable_->invoke(args...);
-    break;
-    }
-    throw std::bad_function_call{};
+    if (!type_erasure_.get())
+      throw std::bad_function_call{};
+    return type_erasure_.get()->call(args...);
   }
 
-  explicit operator bool () const {
-    switch (type_) {
-    case stored_type::empty: break;
-    case stored_type::std_function: return static_cast<bool>(std_function_);
-    case stored_type::heap_invokable: return static_cast<bool>(heap_invokable_);
-    }
-    return false;
+  explicit operator bool () const noexcept {
+    return type_erasure_.get();
   }
 
 private:
-  void destroy_stored_object() noexcept {
-    switch (type_) {
-    case stored_type::empty: return;
-    case stored_type::std_function: std_function_.~function(); return;
-    case stored_type::heap_invokable: heap_invokable_.~unique_ptr(); return;
-    }
-  }
+  template<typename F>
+  unique_function(F&& f, std::false_type): type_erasure_(emplace_t<F>{}, std::forward<F>(f)) {}
 
   template<typename F>
-  std::enable_if_t<stored_type_t<F>::value == stored_type::empty> init(F&&) {
-    assert(type_ == stored_type::empty);
-  }
-
-  template<typename F>
-  std::enable_if_t<stored_type_t<std::decay_t<F>>::value == stored_type::std_function> init(F&& f) {
-    assert(type_ == stored_type::empty);
-    new (&std_function_) std::function<R(A...)>(std::forward<F>(f));
-    type_ = stored_type::std_function;
-  }
-
-  template<typename F>
-  std::enable_if_t<stored_type_t<std::decay_t<F>>::value == stored_type::heap_invokable> init(F&& f) {
-    assert(type_ == stored_type::empty);
-    new (&heap_invokable_) std::unique_ptr<detail::invokable<R, A...>>{
-      std::make_unique<detail::invokable_wrapper<F, R, A...>>(std::forward<F>(f))
-    };
-    type_ = stored_type::heap_invokable;
+  unique_function(F&& f, std::true_type) {
+    if (!detail::is_null_func(f))
+      type_erasure_.emplace(emplace_t<F>{}, std::forward<F>(f));
   }
 
 private:
-  stored_type type_ = stored_type::empty;
-  union {
-    empty_t empty_;
-    std::function<R(A...)> std_function_;
-    std::unique_ptr<detail::invokable<R, A...>> heap_invokable_;
-  };
+  type_erasure_t type_erasure_;
 };
 
 } // inline namespace cxx14_v1

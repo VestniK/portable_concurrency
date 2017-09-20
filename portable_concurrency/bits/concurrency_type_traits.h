@@ -2,6 +2,8 @@
 
 #include <type_traits>
 
+#include "fwd.h"
+
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {

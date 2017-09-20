@@ -19,20 +19,8 @@ public:
   type_erasure_owner(std::nullptr_t): type_erasure_owner() {}
 
   template<typename T, typename... A>
-  type_erasure_owner(emplace_t<T>, A&&... a) {
-    static_assert(std::is_base_of<Iface, T>::value, "T must be derived from Iface");
-
-    constexpr size_t align_offset = (alignof(T) - Align%alignof(T))%alignof(T);
-    if (
-      std::is_nothrow_move_constructible<T>::value &&
-      std::is_nothrow_destructible<T>::value &&
-      sizeof(T) > Len - align_offset
-    )
-      ptr_ = new T{std::forward<A>(a)...};
-    else {
-      char* obj_start = reinterpret_cast<char*>(&embeded_buf_) + align_offset;
-      ptr_ = new(obj_start) T{std::forward<A>(a)...};
-    }
+  type_erasure_owner(emplace_t<T> tag, A&&... a) {
+    emplace(tag, std::forward<A>(a)...);
   }
 
   ~type_erasure_owner() {
@@ -64,7 +52,25 @@ public:
     return *this;
   }
 
-  Iface* get() const {
+  template<typename T, typename... A>
+  void emplace(emplace_t<T>, A&&... a) {
+    destroy();
+    static_assert(std::is_base_of<Iface, T>::value, "T must be derived from Iface");
+
+    constexpr size_t align_offset = (alignof(T) - Align%alignof(T))%alignof(T);
+    if (
+      std::is_nothrow_move_constructible<T>::value &&
+      std::is_nothrow_destructible<T>::value &&
+      sizeof(T) > Len - align_offset
+    )
+      ptr_ = new T{std::forward<A>(a)...};
+    else {
+      char* obj_start = reinterpret_cast<char*>(&embeded_buf_) + align_offset;
+      ptr_ = new(obj_start) T{std::forward<A>(a)...};
+    }
+  }
+
+  Iface* get() const noexcept {
     return ptr_;
   }
 
@@ -97,44 +103,13 @@ private:
   std::aligned_storage_t<Len, Align> embeded_buf_;
 };
 
-#if defined(_MSC_VER)
-template<typename Iface, template<typename> class Adapter, typename... T>
-struct type_erasure_owner_t_helper {
-#if _MSC_VER > 1900
-  static constexpr size_t storage_size = std::max(std::initializer_list<size_t>{sizeof(Adapter<T>)...});
-  static constexpr size_t storage_align = std::max(std::initializer_list<size_t>{alignof(Adapter<T>)...});
-#else
-  constexpr static size_t max_sz(size_t sz) {return sz;}
-
-  template<typename... Size_t>
-  constexpr static size_t max_sz(size_t sz, Size_t... szs) {
-    return sz > max_sz(szs...) ? sz : max_sz(szs...);
-  }
-
-  static constexpr size_t storage_size = max_sz(sizeof(Adapter<T>)...);
-  static constexpr size_t storage_align = max_sz(alignof(Adapter<T>)...);
-#endif
-  using type = type_erasure_owner<Iface, storage_size, storage_align>;
-};
-
-template<typename Iface, template<typename> class Adapter, typename... T>
-using type_erasure_owner_t = typename type_erasure_owner_t_helper<Iface, Adapter, T...>::type;
-#else
-template<typename Iface, template<typename> class Adapter, typename... T>
-using type_erasure_owner_t = type_erasure_owner<
-  Iface,
-  std::max({sizeof(Adapter<T>)...}),
-  std::max({alignof(Adapter<T>)...})
->;
-#endif
-
 /**
  * CRTP helper to erase move constructor to make class usable with type_erasure_owner
  */
 template<typename Iface, typename Impl>
 class move_erased: public Iface {
 public:
-  Iface* move_to(char* location) noexcept override {
+  Iface* move_to(char* location) noexcept final {
     return new(location) Impl{std::move(*static_cast<Impl*>(this))};
   }
 };

@@ -12,6 +12,37 @@ namespace {
 
 namespace pc = portable_concurrency;
 
+#if defined(_MSC_VER)
+template<typename Iface, template<typename> class Adapter, typename... T>
+struct type_erasure_owner_t_helper {
+#if _MSC_VER > 1900
+  static constexpr size_t storage_size = std::max(std::initializer_list<size_t>{sizeof(Adapter<T>)...});
+  static constexpr size_t storage_align = std::max(std::initializer_list<size_t>{alignof(Adapter<T>)...});
+#else
+  constexpr static size_t max_sz(size_t sz) {return sz;}
+
+  template<typename... Size_t>
+  constexpr static size_t max_sz(size_t sz, Size_t... szs) {
+    return sz > max_sz(szs...) ? sz : max_sz(szs...);
+  }
+
+  static constexpr size_t storage_size = max_sz(sizeof(Adapter<T>)...);
+  static constexpr size_t storage_align = max_sz(alignof(Adapter<T>)...);
+#endif
+  using type = pc::detail::type_erasure_owner<Iface, storage_size, storage_align>;
+};
+
+template<typename Iface, template<typename> class Adapter, typename... T>
+using type_erasure_owner_t = typename type_erasure_owner_t_helper<Iface, Adapter, T...>::type;
+#else
+template<typename Iface, template<typename> class Adapter, typename... T>
+using type_erasure_owner_t = pc::detail::type_erasure_owner<
+  Iface,
+  std::max({sizeof(Adapter<T>)...}),
+  std::max({alignof(Adapter<T>)...})
+>;
+#endif
+
 struct stringifiable {
   stringifiable() = default;
   stringifiable(const stringifiable&) = delete;
@@ -55,7 +86,7 @@ private:
   std::string val_;
 };
 
-using type_erasure_owner = pc::detail::type_erasure_owner_t<
+using type_erasure_owner = type_erasure_owner_t<
   stringifiable,
   stringifiable_adapter,
   std::string, const char*
