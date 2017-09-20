@@ -4,26 +4,20 @@ environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
       CONAN_CMAKE_GENERATOR: Visual Studio 14 2015 Win64
+      CONAN_VC_VER: 14
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CONAN_CMAKE_GENERATOR: Visual Studio 15 2017 Win64
+      CONAN_VC_VER: 15
 
 install:
 - cmd: >-
     pip.exe install conan
 
-    cmd.exe /c conan install
-
-    conan --version
-
-    conan profile update settings.compiler.runtime=MT default
-
-    conan profile show default
-
     mkdir build
 
     cd build
 
-    conan install --build=missing ..
+    conan install -s arch=x86_64 -s compiler="Visual Studio" -s compiler.version=%CONAN_VC_VER% -s compiler.runtime=MT -s build_type=Release --build=missing ..
 
 build_script:
 - cmd: >-
