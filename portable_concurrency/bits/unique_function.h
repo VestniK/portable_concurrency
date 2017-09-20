@@ -32,7 +32,7 @@ class callable_wrapper<F, R(A...)> final:
 {
 public:
   callable_wrapper(F&& f): func_(std::forward<F>(f)) {}
-  R call(A... a) override {return invoke(func_, a...);}
+  R call(A... a) override {return portable_concurrency::cxx14_v1::detail::invoke(func_, a...);}
 
 private:
   std::decay_t<F> func_;

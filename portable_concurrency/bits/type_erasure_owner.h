@@ -39,7 +39,7 @@ public:
     rhs.destroy();
   }
 
-  type_erasure_owner& operator= (type_erasure_owner&& rhs) {
+  type_erasure_owner& operator= (type_erasure_owner&& rhs) noexcept {
     destroy();
     if (!rhs.is_embeded()) {
       ptr_ = std::exchange(rhs.ptr_, nullptr);
