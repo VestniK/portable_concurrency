@@ -26,4 +26,4 @@ build_script:
     cmake --build . --config ReleaseStatic
 
 test_script:
-  - cmd: .\bin\unit_tests.exe
+  - cmd: .\bin\ReleaseStatic\unit_tests.exe
