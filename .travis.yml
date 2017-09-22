@@ -6,7 +6,7 @@ services:
 
 env:
   - IMG=cxx-conan-gcc-5 LIBCXX=libstdc++11 TYPE=Release
-  - IMG=cxx-conan-gcc-7 LIBCXX=libstdc++11 TYPE=UBSAN
+  - IMG=cxx-conan-gcc-7 LIBCXX=libstdc++11 TYPE=UBsan
   - IMG=cxx-conan-clang-3.8 LIBCXX=libstdc++11 TYPE=Release
   - IMG=cxx-conan-clang-3.8 LIBCXX=libc++ TYPE=Release
 

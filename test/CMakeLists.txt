@@ -36,14 +36,3 @@ endif()
 add_test(NAME unit_tests
   COMMAND unit_tests --gtest_output=xml:${CMAKE_BINARY_DIR}/Reports/unit_tests.xml
 )
-
-if (ENABLE_UBSAN)
-  find_package(UBSan)
-  target_link_libraries(unit_tests UBSan)
-elseif(ENABLE_ADDRSAN)
-  find_package(AddrSan)
-  target_link_libraries(unit_tests AddrSan)
-elseif(ENABLE_THREADSAN)
-  find_package(ThreadSan)
-  target_link_libraries(unit_tests ThreadSan)
-endif()
