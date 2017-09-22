@@ -13,29 +13,22 @@ then
   export DEPS_BUILD_TYPE=Debug
 fi
 
-# https://github.com/conan-io/conan/issues/1723
-conan_profile_get() {
-  KEY=$1
-  PROFILE=$2
-
-  conan profile show ${PROFILE} | grep "${KEY}:" | grep -o -E "[^[:space:]]+$"
-}
-
 export CONAN_CMAKE_GENERATOR=Ninja
 
 conan --version
 conan profile update settings.compiler.libcxx="${LIBCXX}" default
+conan profile update settings.build_type="${DEPS_BUILD_TYPE}" default
 # dump toolchain info
 conan profile show default
 
-conan install -s build_type=${DEPS_BUILD_TYPE} --build=missing ${SRCDIR}
+conan install --build=missing ${SRCDIR}
 
 cmake -G Ninja ${SRCDIR} \
   -DCONAN=On \
   -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-  -DCONAN_LIBCXX=$(conan_profile_get compiler.libcxx default) \
-  -DCONAN_COMPILER=$(conan_profile_get compiler default) \
-  -DCONAN_COMPILER_VERSION=$(conan_profile_get compiler.version default)
+  -DCONAN_LIBCXX=${LIBCXX} \
+  -DCONAN_COMPILER=$(conan profile get settings.compiler default) \
+  -DCONAN_COMPILER_VERSION=$(conan profile get settings.compiler.version default)
 ninja
 
 ./bin/unit_tests
