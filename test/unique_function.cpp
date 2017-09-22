@@ -46,6 +46,18 @@ TEST(UniqueFunctionTest, null_member_func_pointer_is_empty) {
   ASSERT_THROW(f("qwe"), std::bad_function_call);
 }
 
+TEST(UniqueFunctionTest, null_member_obj_ptr_constructed_is_empty) {
+  struct point {
+    int x = 0;
+    int y = 0;
+  };
+  decltype(&point::x) null_xptr = nullptr;
+
+  pc::unique_function<int(point)> f = null_xptr;
+  EXPECT_FALSE(f);
+  ASSERT_THROW(f({100, 500}), std::bad_function_call);
+}
+
 } // namespace test
 
 } // anonymous namespace
