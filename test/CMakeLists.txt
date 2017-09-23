@@ -33,6 +33,9 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   # when linking code compiled with -std=c++14 and -std=c++17 flags together. 
   target_compile_options(unit_tests PRIVATE -Wno-noexcept-type)
 endif()
+if (MSVC)
+  target_compile_definitions(unit_tests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
 add_test(NAME unit_tests
   COMMAND unit_tests --gtest_output=xml:${CMAKE_BINARY_DIR}/Reports/unit_tests.xml
 )
