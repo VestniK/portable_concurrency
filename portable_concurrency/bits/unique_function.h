@@ -48,7 +48,7 @@ using is_raw_nullable_functor = std::integral_constant<
   bool,
   std::is_member_function_pointer<F>::value ||
   std::is_member_object_pointer<F>::value ||
-  (std::is_pointer<F>::value && std::is_function<std::remove_pointer_t<F>>::value) ||
+  std::is_function<std::remove_pointer_t<F>>::value ||
   is_instantiation_of<std::function, F>::value
 >;
 
@@ -65,6 +65,16 @@ using is_nullable_functor = std::integral_constant<
   is_raw_nullable_functor<F>::value || is_nullable_functor_ref<F>::value
 >;
 
+// GCC warns when address of refference is compared with nullptr which is usually good warning
+// but it's hard to fix this warning when the templdate functions bellow are instantiated with
+// function refference types. Adjusting is_nullable_functor trait to prevent such
+// instantiations is hard task and makes the code less readable so disabling this warning
+// locally.
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress"
+#pragma GCC diagnostic ignored "-Wnonnull-compare"
+#endif
 template<typename F>
 bool is_null_func(F&& f) noexcept {
   return f == nullptr;
@@ -74,6 +84,9 @@ template<typename F>
 bool is_null_func(std::reference_wrapper<F> f) noexcept {
   return f.get() == nullptr;
 }
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 } // namespace detail
 
