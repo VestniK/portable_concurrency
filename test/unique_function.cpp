@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstring>
 
 #include <gtest/gtest.h>
@@ -9,6 +10,13 @@ namespace {
 namespace test {
 
 namespace pc = portable_concurrency;
+
+struct point {
+  int x;
+  int y;
+
+  int dist_from_center() const {return std::sqrt(x*x + y*y);}
+};
 
 TEST(UniqueFunction, default_constructed_is_empty) {
   pc::unique_function<void()> f;
@@ -48,11 +56,6 @@ TEST(UniqueFunction, null_member_func_pointer_is_empty) {
   ASSERT_THROW(f("qwe"), std::bad_function_call);
 }
 
-struct point {
-  int x;
-  int y;
-};
-
 TEST(UniqueFunction, null_member_obj_ptr_constructed_is_empty) {
   decltype(&point::x) null_xptr = nullptr;
 
@@ -69,10 +72,10 @@ TEST(UniqueFunction, raw_function_call) {
 }
 
 TEST(UniqueFunction, member_function_call) {
-  pc::unique_function<size_t(const std::string&)> f = &std::string::size;
+  pc::unique_function<int(const point&)> f = &point::dist_from_center;
 
   EXPECT_TRUE(f);
-  EXPECT_EQ(f("Hello world"), 11u);
+  EXPECT_EQ(f(point{3, 4}), 5);
 }
 
 TEST(UniqueFunction, member_object_get) {
