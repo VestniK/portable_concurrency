@@ -18,6 +18,15 @@ struct point {
   int dist_from_center() const {return std::sqrt(x*x + y*y);}
 };
 
+struct big {
+  std::uint64_t u0;
+  std::uint64_t u1;
+  std::uint64_t u2;
+  std::uint64_t u3;
+  std::uint64_t u4;
+  std::uint64_t u5;
+};
+
 TEST(UniqueFunction, default_constructed_is_empty) {
   pc::unique_function<void()> f;
   EXPECT_FALSE(f);
@@ -118,6 +127,55 @@ TEST(UniqueFunction, refference_wrapper_call) {
   EXPECT_TRUE(f);
   EXPECT_EQ(f("Hello"), "Hello");
   EXPECT_EQ(func(" World"), "Hello World");
+}
+
+TEST(UniqueFunction, call_small_functor_after_move_ctor) {
+  pc::unique_function<int(point)> f0 = &point::dist_from_center;
+  EXPECT_TRUE(f0);
+  pc::unique_function<int(point)> f1 = std::move(f0);
+  EXPECT_TRUE(f1);
+  EXPECT_FALSE(f0);
+  EXPECT_EQ(f1(point{3, 4}), 5);
+}
+
+TEST(UniqueFunction, call_big_functor_after_move_ctor) {
+  pc::unique_function<uint64_t(uint64_t)> f0 = [c = big{1, 2, 3, 4, 5, 6}](uint64_t x) {
+    return x + c.u0 + c.u1 + c.u2 + c.u3 + c.u4 + c.u5;
+  };
+  EXPECT_TRUE(f0);
+  pc::unique_function<uint64_t(uint64_t)> f1 = std::move(f0);
+  EXPECT_TRUE(f1);
+  EXPECT_FALSE(f0);
+  EXPECT_EQ(f1(42), 63u);
+}
+
+TEST(UniqueFunction, call_small_functor_after_move_asign) {
+  pc::unique_function<int(point)> f0 = &point::dist_from_center;
+  pc::unique_function<int(point)> f1;
+
+  EXPECT_TRUE(f0);
+  EXPECT_FALSE(f1);
+
+  f1 = std::move(f0);
+
+  EXPECT_TRUE(f1);
+  EXPECT_FALSE(f0);
+  EXPECT_EQ(f1(point{3, 4}), 5);
+}
+
+TEST(UniqueFunction, call_big_functor_after_move_asign) {
+  pc::unique_function<uint64_t(uint64_t)> f0 = [c = big{1, 2, 3, 4, 5, 6}](uint64_t x) {
+    return x + c.u0 + c.u1 + c.u2 + c.u3 + c.u4 + c.u5;
+  };
+  pc::unique_function<uint64_t(uint64_t)> f1;
+  EXPECT_TRUE(f0);
+  EXPECT_FALSE(f1);
+
+  f1 = std::move(f0);
+
+  EXPECT_FALSE(f0);
+  EXPECT_TRUE(f1);
+  EXPECT_EQ(f1(42), 63u);
 }
 
 } // namespace test

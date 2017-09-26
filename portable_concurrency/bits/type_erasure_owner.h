@@ -46,7 +46,9 @@ public:
       return *this;
     }
     ptr_ = rhs.ptr_->move_to(
-      reinterpret_cast<char*>(&embeded_buf_) + (rhs.ptr_ - reinterpret_cast<char*>(&rhs.embeded_buf_))
+      reinterpret_cast<char*>(&embeded_buf_) + (
+        reinterpret_cast<char*>(rhs.ptr_) - reinterpret_cast<char*>(&rhs.embeded_buf_)
+      )
     );
     rhs.destroy();
     return *this;
