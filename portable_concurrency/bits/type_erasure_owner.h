@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cassert>
 #include <algorithm>
 #include <cstddef>
+#include <memory>
 #include <type_traits>
 
 namespace portable_concurrency {
@@ -32,10 +34,7 @@ public:
       ptr_ = std::exchange(rhs.ptr_, nullptr);
       return;
     }
-    ptr_ = rhs.ptr_->move_to(
-      reinterpret_cast<char*>(&embeded_buf_) +
-      (reinterpret_cast<char*>(rhs.ptr_) - reinterpret_cast<char*>(&rhs.embeded_buf_))
-    );
+    ptr_ = rhs.ptr_->move_to(&embeded_buf_, Len);
     rhs.destroy();
   }
 
@@ -45,11 +44,7 @@ public:
       ptr_ = std::exchange(rhs.ptr_, nullptr);
       return *this;
     }
-    ptr_ = rhs.ptr_->move_to(
-      reinterpret_cast<char*>(&embeded_buf_) + (
-        reinterpret_cast<char*>(rhs.ptr_) - reinterpret_cast<char*>(&rhs.embeded_buf_)
-      )
-    );
+    ptr_ = rhs.ptr_->move_to(reinterpret_cast<char*>(&embeded_buf_), Len);
     rhs.destroy();
     return *this;
   }
@@ -59,17 +54,19 @@ public:
     destroy();
     static_assert(std::is_base_of<Iface, T>::value, "T must be derived from Iface");
 
-    constexpr size_t align_offset = (alignof(T) - Align%alignof(T))%alignof(T);
+    constexpr size_t max_align_offset = (alignof(T) - Align%alignof(T))%alignof(T);
+    void* ptr = &embeded_buf_;
+    size_t space = Len;
+    void* obj_start = std::align(alignof(T), sizeof(T), ptr, space);
     if (
       std::is_nothrow_move_constructible<T>::value &&
       std::is_nothrow_destructible<T>::value &&
-      sizeof(T) > Len - align_offset
+      sizeof(T) <= Len - max_align_offset &&
+      obj_start
     )
-      ptr_ = new T{std::forward<A>(a)...};
-    else {
-      char* obj_start = reinterpret_cast<char*>(&embeded_buf_) + align_offset;
       ptr_ = new(obj_start) T{std::forward<A>(a)...};
-    }
+    else
+      ptr_ = new T{std::forward<A>(a)...};
   }
 
   Iface* get() const noexcept {
@@ -111,8 +108,10 @@ private:
 template<typename Iface, typename Impl>
 class move_erased: public Iface {
 public:
-  Iface* move_to(char* location) noexcept final {
-    return new(location) Impl{std::move(*static_cast<Impl*>(this))};
+  Iface* move_to(void* location, size_t space) noexcept final {
+    void* obj_start = std::align(alignof(Impl), sizeof(Impl), location, space);
+    assert(obj_start);
+    return new(obj_start) Impl{std::move(*static_cast<Impl*>(this))};
   }
 };
 

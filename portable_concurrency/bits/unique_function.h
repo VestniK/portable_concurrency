@@ -19,7 +19,7 @@ template<typename R, typename... A>
 class callable<R(A...)> {
 public:
   virtual ~callable() = default;
-  virtual callable* move_to(char* location) noexcept = 0;
+  virtual callable* move_to(void* location, size_t space) noexcept = 0;
   virtual R call(A... a) = 0;
 };
 

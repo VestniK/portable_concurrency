@@ -50,7 +50,7 @@ struct stringifiable {
 
   virtual ~stringifiable() = default;
 
-  virtual stringifiable* move_to(char*) noexcept = 0;
+  virtual stringifiable* move_to(void* location, size_t space) noexcept = 0;
   virtual std::string to_string() const = 0;
 };
 
