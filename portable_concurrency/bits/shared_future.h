@@ -47,16 +47,15 @@ public:
       throw std::future_error(std::future_errc::no_state);
     if (state_->is_ready())
       return std::future_status::ready;
-    return state_->get_waiter().wait_for(rel_time) ? std::future_status::ready : std::future_status::timeout;
+    return state_->get_waiter().wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time)) ?
+      std::future_status::ready:
+      std::future_status::timeout
+    ;
   }
 
   template <typename Clock, typename Duration>
   std::future_status wait_until(const std::chrono::time_point<Clock, Duration>& abs_time) const {
-    if (!state_)
-      throw std::future_error(std::future_errc::no_state);
-    if (state_->is_ready())
-      return std::future_status::ready;
-    return state_->get_waiter().wait_until(abs_time) ? std::future_status::ready : std::future_status::timeout;
+    return wait_for(abs_time - Clock::now());
   }
 
   bool valid() const noexcept {return static_cast<bool>(state_);}

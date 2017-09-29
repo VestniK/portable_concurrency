@@ -4,17 +4,43 @@ set(HEADERS
   functional
   future
   latch
+
+  bits/concurrency_type_traits.h
+  bits/continuation.h
+  bits/continuation_state.h
+  bits/future.h
+  bits/future_sequence.h
+  bits/fwd.h
+  bits/invoke.h
+  bits/latch.h
+  bits/make_future.h
+  bits/once_consumable_stack.h
+  bits/packaged_task.h
+  bits/promise.h
+  bits/result_box.h
+  bits/shared_future.h
+  bits/shared_state.h
+  bits/type_erasure_owner.h
+  bits/unwrappable_state.h
+  bits/unique_function.h
+  bits/utils.h
+  bits/wait_continuation.h
+  bits/when_any.h
+  bits/when_all.h
 )
 
-add_library(portable_concurrency INTERFACE)
+set(SRC
+  bits/shared_state.cpp
+  bits/wait_continuation.cpp
+)
+
+add_library(portable_concurrency ${SRC})
+target_sources(portable_concurrency PRIVATE ${HEADERS})
 target_link_libraries(portable_concurrency INTERFACE Threads::Threads)
 target_include_directories(portable_concurrency INTERFACE
-  $<BUILD_INTERFACE:${portable_concurrency_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include>
 )
-headeronly_target_headers(portable_concurrency ${HEADERS})
-
-add_subdirectory(bits)
 
 install(TARGETS portable_concurrency EXPORT portable_concurrency
   RUNTIME DESTINATION bin

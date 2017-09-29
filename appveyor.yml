@@ -21,7 +21,7 @@ install:
 
 build_script:
 - cmd: >-
-    cmake -G "%CONAN_CMAKE_GENERATOR%" -DCONAN=On ..
+    cmake -G "%CONAN_CMAKE_GENERATOR%" -DCONAN=On -DBUILD_SHARED_LIBS=Off ..
 
     cmake --build . --config ReleaseStatic
 

@@ -16,19 +16,12 @@ namespace detail {
 
 class continuations_stack  {
 public:
-  bool push(std::shared_ptr<continuation>& cnt) {return stack_.push(cnt);}
-  auto consume() {return stack_.consume();}
-  bool is_consumed() const {return stack_.is_consumed();}
+  using value_type = std::shared_ptr<continuation>;
 
-  wait_continuation& get_waiter() {
-    std::call_once(waiter_init_, [this] {
-      waiter_ = std::make_shared<wait_continuation>();
-      std::shared_ptr<continuation> wait_cnt = waiter_;
-      if (!stack_.push(wait_cnt))
-        wait_cnt->invoke(wait_cnt);
-    });
-    return *waiter_;
-  }
+  bool push(value_type& cnt);
+  forward_list<value_type> consume();
+  bool is_consumed() const;
+  wait_continuation& get_waiter();
 
 private:
   once_consumable_stack<std::shared_ptr<continuation>> stack_;
@@ -100,6 +93,8 @@ private:
   result_box<state_storage_t<T>> box_;
   continuations_stack continuations_;
 };
+
+extern template class shared_state<void>;
 
 } // namespace detail
 } // inline namespace cxx14_v1
