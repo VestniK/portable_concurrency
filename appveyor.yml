@@ -1,6 +1,8 @@
 version: 1.0.{build}
 
 environment:
+  binentry_key:
+    secure: nos5S+5WFUbvXoAKUkVSxjgAOfnTGcdn1mKXWqVJP7UyqPHl7MehdwW5gSGznsjC
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
       CONAN_CMAKE_GENERATOR: Visual Studio 14 2015 Win64
@@ -19,7 +21,11 @@ install:
 
     conan remote add VestniK https://api.bintray.com/conan/vestnik/VestniK
 
+    conan user -p %binentry_key% -r VestniK sirvestnik
+
     conan install -s arch=x86_64 -s compiler="Visual Studio" -s compiler.version=%CONAN_VC_VER% -s compiler.runtime=MT -s build_type=Release --build=missing ..
+
+    conan upload "*@VestniK/stable" -c -r VestniK --all
 
 build_script:
 - cmd: >-
