@@ -6,8 +6,6 @@ set(HEADERS
   latch
 
   bits/concurrency_type_traits.h
-  bits/continuation.h
-  bits/continuation_state.h
   bits/future.h
   bits/future_sequence.h
   bits/fwd.h

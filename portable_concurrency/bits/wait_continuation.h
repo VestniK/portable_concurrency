@@ -4,17 +4,15 @@
 #include <condition_variable>
 #include <mutex>
 
-#include "continuation.h"
-
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-class wait_continuation final: public detail::continuation {
+class wait_continuation final {
 public:
   wait_continuation() = default;
 
-  void invoke(const std::shared_ptr<continuation>&) override;
+  void operator() ();
   void wait();
   bool wait_for(std::chrono::nanoseconds rel_time);
 

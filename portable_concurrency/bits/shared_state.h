@@ -5,9 +5,9 @@
 
 #include "fwd.h"
 
-#include "continuation.h"
 #include "once_consumable_stack.h"
 #include "result_box.h"
+#include "unique_function.h"
 #include "wait_continuation.h"
 
 namespace portable_concurrency {
@@ -16,7 +16,7 @@ namespace detail {
 
 class continuations_stack  {
 public:
-  using value_type = std::shared_ptr<continuation>;
+  using value_type = unique_function<void()>;
 
   bool push(value_type& cnt);
   forward_list<value_type> consume();
@@ -24,7 +24,7 @@ public:
   wait_continuation& get_waiter();
 
 private:
-  once_consumable_stack<std::shared_ptr<continuation>> stack_;
+  once_consumable_stack<value_type> stack_;
   std::once_flag waiter_init_;
   std::shared_ptr<wait_continuation> waiter_;
 };
@@ -42,7 +42,7 @@ public:
   virtual ~future_state() = default;
 
   virtual bool is_ready() const = 0;
-  virtual void add_continuation(std::shared_ptr<continuation> cnt) = 0;
+  virtual void add_continuation(unique_function<void()> cnt) = 0;
   virtual std::add_lvalue_reference_t<state_storage_t<T>> value_ref() = 0;
   virtual wait_continuation& get_waiter() = 0;
   virtual future_state<future<T>>* as_wrapped() {return nullptr;}
@@ -61,23 +61,23 @@ public:
   void emplace(const std::shared_ptr<shared_state>& self, U&&... u) {
     self->box_.emplace(std::forward<U>(u)...);
     for (auto& cnt: self->continuations_.consume())
-      cnt->invoke(cnt);
+      cnt();
   }
 
   static
   void set_exception(const std::shared_ptr<shared_state>& self, std::exception_ptr error) {
     self->box_.set_exception(error);
     for (auto& cnt: self->continuations_.consume())
-      cnt->invoke(cnt);
+      cnt();
   }
 
   bool is_ready() const override {
     return continuations_.is_consumed();
   }
 
-  void add_continuation(std::shared_ptr<continuation> cnt) override {
+  void add_continuation(unique_function<void()> cnt) override {
     if (!continuations_.push(cnt))
-      cnt->invoke(cnt);
+      cnt();
   }
 
   std::add_lvalue_reference_t<state_storage_t<T>> value_ref() override {

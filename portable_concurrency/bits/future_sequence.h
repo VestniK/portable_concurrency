@@ -18,77 +18,50 @@ future_state<T>* state_of(shared_future<T>& f) {
   return f.state_.get();
 }
 
-inline void swallow(...) {}
+struct swallow {
+  swallow(...) {}
+};
 
 template<typename Sequence>
 struct sequence_traits;
 
 template<typename Future>
 struct sequence_traits<std::vector<Future>> {
-  static std::size_t index_of_ready(const std::vector<Future>& seq) {
-    std::size_t res = 0;
-    for (const auto& f: seq) {
-      if (f.is_ready())
-        return res;
-      ++res;
-    }
-    return static_cast<std::size_t>(-1);
-  }
-
   static std::size_t size(const std::vector<Future>& seq) {
     return seq.size();
   }
 
-  static void attach_continuation(
-    std::vector<Future>& seq,
-    const std::shared_ptr<continuation>& cnt
-  ) {
-    // TODO: use set_continuation for future and add_continuation for shared_future
+  template<typename F>
+  static void for_each(std::vector<Future>& seq, F&& func) {
     for (auto& f: seq)
-      ::portable_concurrency::cxx14_v1::detail::state_of(f)->add_continuation(cnt);
+      std::forward<F>(func)(f);
   }
 };
 
 template<typename... Futures>
 struct sequence_traits<std::tuple<Futures...>> {
-  static std::size_t index_of_ready(const std::tuple<Futures...>& seq) {
-    return index_of_ready(seq, std::make_index_sequence<sizeof...(Futures)>{});
-  }
-
-  static std::size_t size(const std::tuple<Futures...>& seq) {
+  static constexpr std::size_t size(const std::tuple<Futures...>&) {
     return sizeof...(Futures);
   }
 
-  static void attach_continuation(
+  template<typename F>
+  static void for_each(
     std::tuple<Futures...>& seq,
-    const std::shared_ptr<continuation>& cnt
+    F&& func
   ) {
-    attach_continuation(seq, cnt, std::make_index_sequence<sizeof...(Futures)>{});
+    for_each(seq, std::forward<F>(func), std::make_index_sequence<sizeof...(Futures)>{});
   }
 
 private:
-  template<size_t... I>
-  static std::size_t index_of_ready(const std::tuple<Futures...>& seq, std::index_sequence<I...>) {
-    bool statuses[] = {std::get<I>(seq).is_ready()...};
-    std::size_t res = 0;
-    for (bool ready: statuses) {
-      if (ready)
-        return res;
-      ++res;
-    }
-    return static_cast<std::size_t>(-1);
-  }
-
-  template<size_t... I>
-  static void attach_continuation(
+  template<typename F, size_t... I>
+  static void for_each(
     std::tuple<Futures...>& seq,
-    const std::shared_ptr<continuation>& cnt,
+    F&& func,
     std::index_sequence<I...>
   ) {
-    // TODO: use set_continuation for future and add_continuation for shared_future
-    swallow((
-      ::portable_concurrency::cxx14_v1::detail::state_of(std::get<I>(seq))->add_continuation(cnt), 0
-    )...);
+    swallow{(
+      (void)(std::forward<F>(func)(std::get<I>(seq))), 0
+    )...};
   }
 };
 

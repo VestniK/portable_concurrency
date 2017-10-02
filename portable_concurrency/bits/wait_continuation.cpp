@@ -4,7 +4,7 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-void wait_continuation::invoke(const std::shared_ptr<continuation>&) {
+void wait_continuation::operator() () {
   std::lock_guard<std::mutex>{mutex_}, notified_ = true;
   cv_.notify_one();
 }

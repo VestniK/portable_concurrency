@@ -25,25 +25,23 @@ struct when_any_result {
 namespace detail {
 
 template<typename Sequence>
-class when_any_state:
-  public shared_state<when_any_result<Sequence>>,
-  public continuation
+class when_any_state final: public future_state<when_any_result<Sequence>>
 {
 public:
   when_any_state(Sequence&& futures):
-    futures_(std::move(futures)),
-    barrier_(static_cast<int>(sequence_traits<Sequence>::size(futures_)) + 1)
+    result_{static_cast<std::size_t>(-1), std::move(futures)}
   {}
 
   // threadsafe
-  void invoke(const std::shared_ptr<continuation>& self) override {
-    if (barrier_.fetch_sub(1) != 1)
+  void notify(std::size_t pos) {
+    if (ready_flag_.test_and_set())
       return;
-    set(std::static_pointer_cast<when_any_state>(self));
+    result_.index = pos;
+    for (auto& cnt: continuations_.consume())
+      cnt();
   }
 
-  static std::shared_ptr<shared_state<when_any_result<Sequence>>> make(Sequence&& seq) {
-    const int seq_sz = static_cast<int>(sequence_traits<Sequence>::size(seq));
+  static std::shared_ptr<future_state<when_any_result<Sequence>>> make(Sequence&& seq) {
 #if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 3900
     // looks like std::make_shared is affected by https://bugs.llvm.org/show_bug.cgi?id=22806
     auto state = std::shared_ptr<when_any_state<Sequence>>{
@@ -52,24 +50,31 @@ public:
 #else
     auto state = std::make_shared<when_any_state<Sequence>>(std::move(seq));
 #endif
-    sequence_traits<Sequence>::attach_continuation(state->futures_, state);
-    if (state->barrier_.fetch_sub(seq_sz) <= seq_sz)
-      state->set(state);
+    sequence_traits<Sequence>::for_each(
+      state->result_.futures,
+      [state, idx = std::size_t(0)](auto& f) mutable {
+        state_of(f)->add_continuation([state, pos = idx++] {state->notify(pos);});
+      }
+    );
     return state;
   }
 
-private:
-  void set(const std::shared_ptr<when_any_state>& self) {
-    const auto ready_idx = sequence_traits<Sequence>::index_of_ready(futures_);
-    shared_state<when_any_result<Sequence>>::emplace(
-      self,
-      when_any_result<Sequence>{ready_idx, std::move(futures_)}
-    );
+  bool is_ready() const override {return continuations_.is_consumed();}
+  void add_continuation(unique_function<void()> cnt) {
+    if (!continuations_.push(cnt))
+      cnt();
+  }
+  wait_continuation& get_waiter() override {return continuations_.get_waiter();}
+
+  when_any_result<Sequence>& value_ref() override {
+    assert(is_ready());
+    return result_;
   }
 
 private:
-  Sequence futures_;
-  std::atomic<int> barrier_;
+  when_any_result<Sequence> result_;
+  std::atomic_flag ready_flag_ = ATOMIC_FLAG_INIT;
+  continuations_stack continuations_;
 };
 
 } // namespace detail

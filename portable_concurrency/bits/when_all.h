@@ -19,14 +19,12 @@ inline namespace cxx14_v1 {
 namespace detail {
 
 template<typename Sequence>
-class when_all_state:
-  public shared_state<Sequence>,
-  public continuation
+class when_all_state final: public future_state<Sequence>
 {
 public:
   when_all_state(Sequence&& futures): futures_(std::move(futures)) {}
 
-  static std::shared_ptr<shared_state<Sequence>> make(Sequence&& futures) {
+  static std::shared_ptr<future_state<Sequence>> make(Sequence&& futures) {
 #if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 3900
     // looks like std::make_shared is affected by https://bugs.llvm.org/show_bug.cgi?id=22806
     std::shared_ptr<when_all_state<Sequence>> state{
@@ -35,19 +33,35 @@ public:
 #else
     auto state = std::make_shared<when_all_state<Sequence>>(std::move(futures));
 #endif
-    sequence_traits<Sequence>::attach_continuation(state->futures_, state);
+    sequence_traits<Sequence>::for_each(state->futures_, [state](auto& f) {
+      state_of(f)->add_continuation([state]{state->notify();});
+    });
     return state;
   }
 
-  void invoke(const std::shared_ptr<continuation>& self) override {
+  void notify() {
     if (++ready_count_ < sequence_traits<Sequence>::size(futures_))
       return;
-    shared_state<Sequence>::emplace(std::static_pointer_cast<when_all_state>(self), std::move(futures_));
+    for (auto& cnt: continuations_.consume())
+      cnt();
+  }
+
+  bool is_ready() const override {return continuations_.is_consumed();}
+  void add_continuation(unique_function<void()> cnt) override {
+    if (!continuations_.push(cnt))
+      cnt();
+  }
+  virtual wait_continuation& get_waiter() {return continuations_.get_waiter();}
+
+  Sequence& value_ref() override {
+    assert(is_ready());
+    return futures_;
   }
 
 private:
   Sequence futures_;
   std::atomic<size_t> ready_count_{0};
+  continuations_stack continuations_;
 };
 
 } // namespace detail

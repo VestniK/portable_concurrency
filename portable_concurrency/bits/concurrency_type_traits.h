@@ -48,6 +48,9 @@ struct remove_future<future<T>> {
 template<typename T>
 using remove_future_t = typename remove_future<T>::type;
 
+template<template<typename> class Future, typename Func, typename T>
+using continuation_result_t = std::result_of_t<Func(Future<T>)>;
+
 } // namespace detail
 } // inline namespace cxx14_v1
 } // namespace portable_concurrency
