@@ -26,7 +26,7 @@ public:
 private:
   once_consumable_stack<value_type> stack_;
   std::once_flag waiter_init_;
-  std::shared_ptr<wait_continuation> waiter_;
+  std::unique_ptr<wait_continuation> waiter_;
 };
 
 template<typename T>

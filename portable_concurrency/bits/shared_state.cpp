@@ -18,7 +18,7 @@ bool continuations_stack::is_consumed() const {
 
 wait_continuation& continuations_stack::get_waiter() {
   std::call_once(waiter_init_, [this] {
-    waiter_ = std::make_shared<wait_continuation>();
+    waiter_ = std::make_unique<wait_continuation>();
     unique_function<void()> cnt = std::ref(*waiter_);
     if (!stack_.push(cnt))
       cnt();
