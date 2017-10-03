@@ -37,8 +37,7 @@ public:
     if (ready_flag_.test_and_set())
       return;
     result_.index = pos;
-    for (auto& cnt: continuations_.consume())
-      cnt();
+    continuations_.execute();
   }
 
   static std::shared_ptr<future_state<when_any_result<Sequence>>> make(Sequence&& seq) {
@@ -53,21 +52,18 @@ public:
     sequence_traits<Sequence>::for_each(
       state->result_.futures,
       [state, idx = std::size_t(0)](auto& f) mutable {
-        state_of(f)->add_continuation([state, pos = idx++] {state->notify(pos);});
+        state_of(f)->continuations().push([state, pos = idx++] {state->notify(pos);});
       }
     );
     return state;
   }
 
-  bool is_ready() const override {return continuations_.is_consumed();}
-  void add_continuation(unique_function<void()> cnt) {
-    if (!continuations_.push(cnt))
-      cnt();
+  continuations_stack& continuations() {
+    return continuations_;
   }
-  wait_continuation& get_waiter() override {return continuations_.get_waiter();}
 
   when_any_result<Sequence>& value_ref() override {
-    assert(is_ready());
+    assert(continuations_.is_consumed());
     return result_;
   }
 

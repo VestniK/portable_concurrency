@@ -8,7 +8,6 @@
 #include "once_consumable_stack.h"
 #include "result_box.h"
 #include "unique_function.h"
-#include "wait_continuation.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -18,15 +17,22 @@ class continuations_stack  {
 public:
   using value_type = unique_function<void()>;
 
-  bool push(value_type& cnt);
-  forward_list<value_type> consume();
+  continuations_stack();
+  ~continuations_stack();
+
+  void push(value_type cnt);
+  void execute();
   bool is_consumed() const;
-  wait_continuation& get_waiter();
+  void wait();
+  bool wait_for(std::chrono::nanoseconds timeout);
 
 private:
+  class waiter;
+  void init_waiter();
+
   once_consumable_stack<value_type> stack_;
   std::once_flag waiter_init_;
-  std::unique_ptr<wait_continuation> waiter_;
+  std::unique_ptr<waiter> waiter_;
 };
 
 template<typename T>
@@ -41,10 +47,8 @@ class future_state {
 public:
   virtual ~future_state() = default;
 
-  virtual bool is_ready() const = 0;
-  virtual void add_continuation(unique_function<void()> cnt) = 0;
+  virtual continuations_stack& continuations() = 0;
   virtual std::add_lvalue_reference_t<state_storage_t<T>> value_ref() = 0;
-  virtual wait_continuation& get_waiter() = 0;
   virtual future_state<future<T>>* as_wrapped() {return nullptr;}
 };
 
@@ -60,33 +64,22 @@ public:
   static
   void emplace(const std::shared_ptr<shared_state>& self, U&&... u) {
     self->box_.emplace(std::forward<U>(u)...);
-    for (auto& cnt: self->continuations_.consume())
-      cnt();
+    self->continuations_.execute();
   }
 
   static
   void set_exception(const std::shared_ptr<shared_state>& self, std::exception_ptr error) {
     self->box_.set_exception(error);
-    for (auto& cnt: self->continuations_.consume())
-      cnt();
+    self->continuations_.execute();
   }
 
-  bool is_ready() const override {
-    return continuations_.is_consumed();
-  }
-
-  void add_continuation(unique_function<void()> cnt) override {
-    if (!continuations_.push(cnt))
-      cnt();
+  continuations_stack& continuations() override {
+    return continuations_;
   }
 
   std::add_lvalue_reference_t<state_storage_t<T>> value_ref() override {
-    assert(is_ready());
+    assert(continuations_.is_consumed());
     return box_.get();
-  }
-
-  wait_continuation& get_waiter() override {
-    return continuations_.get_waiter();
   }
 
 private:

@@ -48,18 +48,14 @@ public:
   void wait() const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    if (state_->is_ready())
-      return;
-    state_->get_waiter().wait();
+    state_->continuations().wait();
   }
 
   template<typename Rep, typename Period>
   std::future_status wait_for(const std::chrono::duration<Rep, Period>& rel_time) const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    if (state_->is_ready())
-      return std::future_status::ready;
-    return state_->get_waiter().wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time)) ?
+    return state_->continuations().wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time)) ?
       std::future_status::ready:
       std::future_status::timeout
     ;
@@ -75,7 +71,7 @@ public:
   bool is_ready() const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return state_->is_ready();
+    return state_->continuations().is_consumed();
   }
 
   template<typename F>
@@ -95,7 +91,7 @@ public:
     auto cnt_data = std::make_shared<cnt_data_t>(
       std::forward<F>(f), std::move(state_)
     );
-    cnt_data->parent->add_continuation([cnt_data]{
+    cnt_data->parent->continuations().push([cnt_data]{
       detail::set_state_value(
         std::shared_ptr<detail::shared_state<R>>(cnt_data, &cnt_data->state),
         std::move(cnt_data->func), future{std::move(cnt_data->parent)}

@@ -34,7 +34,7 @@ public:
     auto state = std::make_shared<when_all_state<Sequence>>(std::move(futures));
 #endif
     sequence_traits<Sequence>::for_each(state->futures_, [state](auto& f) {
-      state_of(f)->add_continuation([state]{state->notify();});
+      state_of(f)->continuations().push([state]{state->notify();});
     });
     return state;
   }
@@ -42,19 +42,15 @@ public:
   void notify() {
     if (++ready_count_ < sequence_traits<Sequence>::size(futures_))
       return;
-    for (auto& cnt: continuations_.consume())
-      cnt();
+    continuations_.execute();
   }
 
-  bool is_ready() const override {return continuations_.is_consumed();}
-  void add_continuation(unique_function<void()> cnt) override {
-    if (!continuations_.push(cnt))
-      cnt();
+  continuations_stack& continuations() override {
+    return continuations_;
   }
-  virtual wait_continuation& get_waiter() {return continuations_.get_waiter();}
 
   Sequence& value_ref() override {
-    assert(is_ready());
+    assert(continuations_.is_consumed());
     return futures_;
   }
 

@@ -22,14 +22,12 @@ set(HEADERS
   bits/unwrappable_state.h
   bits/unique_function.h
   bits/utils.h
-  bits/wait_continuation.h
   bits/when_any.h
   bits/when_all.h
 )
 
 set(SRC
   bits/shared_state.cpp
-  bits/wait_continuation.cpp
 )
 
 add_library(portable_concurrency ${SRC})
