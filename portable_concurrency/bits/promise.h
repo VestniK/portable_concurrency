@@ -96,11 +96,7 @@ public:
 
   ~promise() = default;
 
-  void set_value() {
-    if (!this->state_)
-      throw std::future_error(std::future_errc::no_state);
-    detail::shared_state<void>::emplace(this->get_state_ptr());
-  }
+  void set_value();
 };
 
 } // inline namespace cxx14_v1

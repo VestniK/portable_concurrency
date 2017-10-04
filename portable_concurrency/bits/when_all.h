@@ -62,10 +62,7 @@ private:
 
 } // namespace detail
 
-inline
-future<std::tuple<>> when_all() {
-  return make_ready_future(std::tuple<>{});
-}
+future<std::tuple<>> when_all();
 
 template<typename... Futures>
 auto when_all(Futures&&... futures) ->

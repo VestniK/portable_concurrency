@@ -1,6 +1,10 @@
 #include "latch.h"
+#include "make_future.h"
+#include "promise.h"
 #include "result_box.h"
 #include "shared_state.h"
+#include "when_all.h"
+#include "when_any.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -133,6 +137,29 @@ bool latch::is_ready() const noexcept {
 void latch::wait() const {
   std::unique_lock<std::mutex> lock{mutex_};
   cv_.wait(lock, [this]() {return counter_ == 0;});
+}
+
+future<void> make_ready_future() {
+  promise<void> promise;
+  promise.set_value();
+  return promise.get_future();
+}
+
+void promise<void>::set_value() {
+  if (!this->state_)
+    throw std::future_error(std::future_errc::no_state);
+  detail::shared_state<void>::emplace(this->get_state_ptr());
+}
+
+future<std::tuple<>> when_all() {
+  return make_ready_future(std::tuple<>{});
+}
+
+future<when_any_result<std::tuple<>>> when_any() {
+  return make_ready_future(when_any_result<std::tuple<>>{
+    static_cast<std::size_t>(-1),
+    std::tuple<>{}
+  });
 }
 
 } // inline namespace cxx14_v1

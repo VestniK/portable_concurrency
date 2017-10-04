@@ -75,13 +75,7 @@ private:
 
 } // namespace detail
 
-inline
-future<when_any_result<std::tuple<>>> when_any() {
-  return make_ready_future(when_any_result<std::tuple<>>{
-    static_cast<std::size_t>(-1),
-    std::tuple<>{}
-  });
-}
+future<when_any_result<std::tuple<>>> when_any();
 
 template<typename... Futures>
 auto when_any(Futures&&... futures) ->
