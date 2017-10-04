@@ -18,6 +18,7 @@ set(HEADERS
   bits/result_box.h
   bits/shared_future.h
   bits/shared_state.h
+  bits/then.h
   bits/type_erasure_owner.h
   bits/unwrappable_state.h
   bits/unique_function.h

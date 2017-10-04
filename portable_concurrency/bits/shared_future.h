@@ -5,6 +5,8 @@
 #include "fwd.h"
 
 #include "concurrency_type_traits.h"
+#include "shared_state.h"
+#include "then.h"
 #include "utils.h"
 
 namespace portable_concurrency {
@@ -71,28 +73,9 @@ public:
   template<typename F>
   future<detail::continuation_result_t<portable_concurrency::cxx14_v1::shared_future, F, T>>
   then(F&& f) {
-    using R = detail::continuation_result_t<portable_concurrency::cxx14_v1::shared_future, F, T>;
-    if (!state_)
-      throw std::future_error(std::future_errc::no_state);
-    struct cnt_data_t {
-      std::decay_t<F> func;
-      std::shared_ptr<detail::future_state<T>> parent;
-      detail::shared_state<R> state;
-
-      cnt_data_t(F&& func, const std::shared_ptr<detail::future_state<T>>& parent):
-        func(std::forward<F>(func)), parent(parent)
-      {}
-    };
-    auto cnt_data = std::make_shared<cnt_data_t>(
-      std::forward<F>(f), state_
+    return detail::make_then_state<portable_concurrency::cxx14_v1::shared_future, T, F>(
+      state_, std::forward<F>(f)
     );
-    cnt_data->parent->continuations().push([cnt_data]{
-      detail::set_state_value(
-        std::shared_ptr<detail::shared_state<R>>(cnt_data, &cnt_data->state),
-        std::move(cnt_data->func), shared_future{std::move(cnt_data->parent)}
-      );
-    });
-    return {std::shared_ptr<detail::future_state<R>>(cnt_data, &cnt_data->state)};
   }
 
   // Implementation detail
