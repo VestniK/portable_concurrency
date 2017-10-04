@@ -1,3 +1,4 @@
+#include "latch.h"
 #include "result_box.h"
 #include "shared_state.h"
 
@@ -100,5 +101,39 @@ void result_box<void>::get() {
 }
 
 } // namespace detail
+
+void latch::count_down_and_wait() {
+  std::unique_lock<std::mutex> lock{mutex_};
+  assert(counter_ > 0);
+  if (--counter_ == 0) {
+    lock.unlock();
+    cv_.notify_all();
+    return;
+  }
+  cv_.wait(lock, [this]() {return counter_ == 0;});
+}
+
+void latch::count_down(ptrdiff_t n) {
+  {
+    std::lock_guard<std::mutex> lock{mutex_};
+    assert(counter_ >= n);
+    assert(n >= 0);
+    counter_ -= n;
+    if (counter_ > 0)
+      return;
+  }
+  cv_.notify_all();
+}
+
+bool latch::is_ready() const noexcept {
+  std::lock_guard<std::mutex> lock{mutex_};
+  return counter_ == 0;
+}
+
+void latch::wait() const {
+  std::unique_lock<std::mutex> lock{mutex_};
+  cv_.wait(lock, [this]() {return counter_ == 0;});
+}
+
 } // inline namespace cxx14_v1
 } // namespace portable_concurrency
