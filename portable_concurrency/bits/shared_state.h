@@ -87,8 +87,6 @@ private:
   continuations_stack continuations_;
 };
 
-extern template class shared_state<void>;
-
 } // namespace detail
 } // inline namespace cxx14_v1
 } // namespace portable_concurrency

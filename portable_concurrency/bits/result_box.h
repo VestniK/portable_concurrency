@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <exception>
 #include <future>
 
@@ -65,39 +66,17 @@ private:
 template<>
 class result_box<void> {
 public:
-  result_box() noexcept {}
+  result_box() noexcept;
 
   result_box(const result_box&) = delete;
   result_box(result_box&&) = delete;
 
-  ~result_box() {
-    switch (state_) {
-      case box_state::empty:
-      case box_state::result: break;
-      case box_state::exception: error_.~exception_ptr(); break;
-    }
-  }
+  ~result_box();
 
-  void emplace() {
-    if (state_ != box_state::empty)
-      throw std::future_error(std::future_errc::promise_already_satisfied);
-    state_ = box_state::result;
-  }
-
-  void set_exception(std::exception_ptr error) {
-    if (state_ != box_state::empty)
-      throw std::future_error(std::future_errc::promise_already_satisfied);
-    new(&error_) std::exception_ptr(error);
-    state_ = box_state::exception;
-  }
-
+  void emplace();
+  void set_exception(std::exception_ptr error);
   box_state get_state() const noexcept {return state_;}
-
-  void get() {
-    assert(state_ != box_state::empty);
-    if (state_ == box_state::exception)
-      std::rethrow_exception(error_);
-  }
+  void get();
 
 private:
   box_state state_ = box_state::empty;

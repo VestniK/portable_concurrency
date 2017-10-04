@@ -27,7 +27,7 @@ set(HEADERS
 )
 
 set(SRC
-  bits/shared_state.cpp
+  bits/portable_concurrency.cpp
 )
 
 add_library(portable_concurrency ${SRC})
