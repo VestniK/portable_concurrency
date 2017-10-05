@@ -85,7 +85,7 @@ public:
     return state_of(inner_future)->value_ref();
   }
 
-  future_state<future<T>>* as_wrapped() {return this;}
+  future_state<future<T>>* as_wrapped() override {return this;}
 
 private:
   static

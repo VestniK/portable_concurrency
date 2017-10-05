@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstddef>
 #include <condition_variable>
 #include <mutex>
 

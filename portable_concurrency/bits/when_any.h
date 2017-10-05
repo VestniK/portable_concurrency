@@ -58,7 +58,7 @@ public:
     return state;
   }
 
-  continuations_stack& continuations() {
+  continuations_stack& continuations() override {
     return continuations_;
   }
 
