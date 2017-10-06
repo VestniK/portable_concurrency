@@ -1,8 +1,18 @@
 #pragma once
 
+#include <gtest/gtest.h>
+
 #include "test_tools.h"
 
 using namespace std::literals;
+
+using TestTypes = ::testing::Types<
+  void,
+  int,
+  std::string,
+  std::unique_ptr<int>,
+  future_tests_env&
+>;
 
 // Clang don't want to eat the code bellow:
 // template<typename T>

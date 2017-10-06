@@ -12,10 +12,6 @@ namespace {
 
 using namespace std::literals;
 
-template<typename T>
-class FutureContinuationsTest: public ::testing::Test {};
-TYPED_TEST_CASE_P(FutureContinuationsTest);
-
 namespace tests {
 
 template<typename T>
@@ -261,30 +257,17 @@ void exception_to_ready_continuation() {
 
 } // namespace tests
 
-TYPED_TEST_P(FutureContinuationsTest, exception_from_continuation) {tests::exception_from_continuation<TypeParam>();}
-TYPED_TEST_P(FutureContinuationsTest, exception_to_continuation) {tests::exception_to_continuation<TypeParam>();}
-TYPED_TEST_P(FutureContinuationsTest, exception_to_ready_continuation) {tests::exception_to_ready_continuation<TypeParam>();}
-TYPED_TEST_P(FutureContinuationsTest, continuation_call) {tests::continuation_call<TypeParam>();}
-TYPED_TEST_P(FutureContinuationsTest, async_continuation_call) {tests::async_continuation_call<TypeParam>();}
-TYPED_TEST_P(FutureContinuationsTest, ready_continuation_call) {tests::ready_continuation_call<TypeParam>();}
-TYPED_TEST_P(FutureContinuationsTest, void_continuation) {tests::void_continuation<TypeParam>();}
-TYPED_TEST_P(FutureContinuationsTest, ready_void_continuation) {tests::ready_void_continuation<TypeParam>();}
-REGISTER_TYPED_TEST_CASE_P(
-  FutureContinuationsTest,
-  exception_from_continuation,
-  exception_to_continuation,
-  exception_to_ready_continuation,
-  continuation_call,
-  async_continuation_call,
-  ready_continuation_call,
-  void_continuation,
-  ready_void_continuation
-);
+template<typename T>
+struct FutureContinuationsTest: ::testing::Test {};
+TYPED_TEST_CASE(FutureContinuationsTest, TestTypes);
 
-INSTANTIATE_TYPED_TEST_CASE_P(VoidType, FutureContinuationsTest, void);
-INSTANTIATE_TYPED_TEST_CASE_P(PrimitiveType, FutureContinuationsTest, int);
-INSTANTIATE_TYPED_TEST_CASE_P(CopyableType, FutureContinuationsTest, std::string);
-INSTANTIATE_TYPED_TEST_CASE_P(MoveableType, FutureContinuationsTest, std::unique_ptr<int>);
-INSTANTIATE_TYPED_TEST_CASE_P(ReferenceType, FutureContinuationsTest, future_tests_env&);
+TYPED_TEST(FutureContinuationsTest, exception_from_continuation) {tests::exception_from_continuation<TypeParam>();}
+TYPED_TEST(FutureContinuationsTest, exception_to_continuation) {tests::exception_to_continuation<TypeParam>();}
+TYPED_TEST(FutureContinuationsTest, exception_to_ready_continuation) {tests::exception_to_ready_continuation<TypeParam>();}
+TYPED_TEST(FutureContinuationsTest, continuation_call) {tests::continuation_call<TypeParam>();}
+TYPED_TEST(FutureContinuationsTest, async_continuation_call) {tests::async_continuation_call<TypeParam>();}
+TYPED_TEST(FutureContinuationsTest, ready_continuation_call) {tests::ready_continuation_call<TypeParam>();}
+TYPED_TEST(FutureContinuationsTest, void_continuation) {tests::void_continuation<TypeParam>();}
+TYPED_TEST(FutureContinuationsTest, ready_void_continuation) {tests::ready_void_continuation<TypeParam>();}
 
 } // anonymous namespace

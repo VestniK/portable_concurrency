@@ -27,7 +27,7 @@ set(HEADERS
 )
 
 add_executable(unit_tests ${SRC} ${HEADERS})
-target_link_libraries(unit_tests portable_concurrency ${GTEST_LIBRARY} ${GTEST_MAIN_LIBRARY})
+target_link_libraries(unit_tests portable_concurrency GTest::GTest GTest::Main)
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   # Useless warning on correct code which marks the problem which can only happen
   # when linking code compiled with -std=c++14 and -std=c++17 flags together. 

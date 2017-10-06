@@ -18,85 +18,85 @@ using hires_clock = std::chrono::high_resolution_clock;
 namespace {
 
 template<typename T>
-class FutureTests: public ::testing::Test {};
-TYPED_TEST_CASE_P(FutureTests);
+struct FutureTests: ::testing::Test {
+  pc::promise<T> promise[2];
+};
+TYPED_TEST_CASE(FutureTests, TestTypes);
 
-TYPED_TEST_P(FutureTests, default_constructed_is_invalid) {
+TYPED_TEST(FutureTests, default_constructed_is_invalid) {
   pc::future<TypeParam> future;
   EXPECT_FALSE(future.valid());
 }
 
-TYPED_TEST_P(FutureTests, obtained_from_promise_is_valid) {
-  pc::promise<TypeParam> promise;
-  auto future = promise.get_future();
+TYPED_TEST(FutureTests, obtained_from_promise_is_valid) {
+  auto future = this->promise[0].get_future();
   EXPECT_TRUE(future.valid());
 }
 
-TYPED_TEST_P(FutureTests, moved_to_constructor_is_invalid) {
-  pc::promise<TypeParam> promise;
-  auto future = promise.get_future();
-  EXPECT_TRUE(future.valid());
+TYPED_TEST(FutureTests, moved_to_constructor_is_invalid) {
+  auto future = this->promise[0].get_future();
   pc::future<TypeParam> another_future{std::move(future)};
   EXPECT_FALSE(future.valid());
-  EXPECT_TRUE(another_future.valid());
 }
 
-TYPED_TEST_P(FutureTests, moved_to_assigment_to_invalid_is_invalid) {
-  pc::promise<TypeParam> promise;
-  auto future = promise.get_future();
-  EXPECT_TRUE(future.valid());
-  pc::future<TypeParam> another_future;
-  EXPECT_FALSE(another_future.valid());
-  another_future= std::move(future);
-  EXPECT_FALSE(future.valid());
-  EXPECT_TRUE(another_future.valid());
+TYPED_TEST(FutureTests, move_constructed_from_valid_is_valid) {
+  auto src_future = this->promise[0].get_future();
+  pc::future<TypeParam> dst_future{std::move(src_future)};
+  EXPECT_TRUE(dst_future.valid());
 }
 
-TYPED_TEST_P(FutureTests, moved_to_assigment_to_valid_is_invalid) {
-  pc::promise<TypeParam> promise1;
-  pc::promise<TypeParam> promise2;
-  auto future1 = promise1.get_future();
-  auto future2 = promise2.get_future();
-  EXPECT_TRUE(future1.valid());
-  EXPECT_TRUE(future2.valid());
-
-  future2 = std::move(future1);
-  EXPECT_TRUE(future2.valid());
-  EXPECT_FALSE(future1.valid());
+TYPED_TEST(FutureTests, moved_to_assigment_to_invalid_is_invalid) {
+  auto src_future = this->promise[0].get_future();
+  pc::future<TypeParam> dst_future;
+  dst_future= std::move(src_future);
+  EXPECT_FALSE(src_future.valid());
 }
 
-TYPED_TEST_P(FutureTests, share_invalidates_future) {
-  pc::promise<TypeParam> promise;
-  auto future = promise.get_future();
+TYPED_TEST(FutureTests, invalid_move_assigned_from_valid_is_valid) {
+  auto src_future = this->promise[0].get_future();
+  pc::future<TypeParam> dst_future;
+  dst_future= std::move(src_future);
+  EXPECT_TRUE(dst_future.valid());
+}
+
+TYPED_TEST(FutureTests, moved_to_assigment_to_valid_is_invalid) {
+  pc::future<TypeParam> future[] = {
+    this->promise[0].get_future(),
+    this->promise[1].get_future()
+  };
+
+  future[1] = std::move(future[0]);
+  EXPECT_TRUE(future[1].valid());
+  EXPECT_FALSE(future[0].valid());
+}
+
+TYPED_TEST(FutureTests, share_invalidates_future) {
+  auto future = this->promise[0].get_future();
   ASSERT_TRUE(future.valid());
   auto shared = future.share();
   EXPECT_TRUE(shared.valid());
   EXPECT_FALSE(future.valid());
 }
 
-TYPED_TEST_P(FutureTests, is_ready_on_nonready) {
-  pc::promise<TypeParam> promise;
-  auto future = promise.get_future();
+TYPED_TEST(FutureTests, is_ready_on_nonready) {
+  auto future = this->promise[0].get_future();
   EXPECT_FALSE(future.is_ready());
 }
 
-TYPED_TEST_P(FutureTests, is_ready_on_future_with_value) {
-  pc::promise<TypeParam> promise;
-  auto future = promise.get_future();
-  set_promise_value<TypeParam>(promise);
+TYPED_TEST(FutureTests, is_ready_on_future_with_value) {
+  auto future = this->promise[0].get_future();
+  set_promise_value<TypeParam>(this->promise[0]);
   EXPECT_TRUE(future.is_ready());
 }
 
-TYPED_TEST_P(FutureTests, is_ready_on_future_with_error) {
-  pc::promise<TypeParam> promise;
-  auto future = promise.get_future();
-  promise.set_exception(std::make_exception_ptr(std::runtime_error("test error")));
+TYPED_TEST(FutureTests, is_ready_on_future_with_error) {
+  auto future = this->promise[0].get_future();
+  this->promise[0].set_exception(std::make_exception_ptr(std::runtime_error("test error")));
   EXPECT_TRUE(future.is_ready());
 }
 
-TYPED_TEST_P(FutureTests, get_on_invalid) {
+TYPED_TEST(FutureTests, get_on_invalid) {
   pc::future<TypeParam> future;
-  ASSERT_FALSE(future.valid());
   EXPECT_FUTURE_ERROR(future.get(), std::future_errc::no_state);
 }
 
@@ -136,11 +136,11 @@ void test_retrieve_future_result<future_tests_env&>() {
   EXPECT_FALSE(future.valid());
 }
 
-TYPED_TEST_P(FutureTests, retrieve_result) {
+TYPED_TEST(FutureTests, retrieve_result) {
   test_retrieve_future_result<TypeParam>();
 }
 
-TYPED_TEST_P(FutureTests, retrieve_exception) {
+TYPED_TEST(FutureTests, retrieve_exception) {
   auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
 
@@ -148,21 +148,21 @@ TYPED_TEST_P(FutureTests, retrieve_exception) {
   EXPECT_FALSE(future.valid());
 }
 
-TYPED_TEST_P(FutureTests, wait_on_invalid) {
+TYPED_TEST(FutureTests, wait_on_invalid) {
   pc::future<TypeParam> future;
   ASSERT_FALSE(future.valid());
 
   EXPECT_FUTURE_ERROR(future.wait(), std::future_errc::no_state);
 }
 
-TYPED_TEST_P(FutureTests, wait_for_on_invalid) {
+TYPED_TEST(FutureTests, wait_for_on_invalid) {
   pc::future<TypeParam> future;
   ASSERT_FALSE(future.valid());
 
   EXPECT_FUTURE_ERROR(future.wait_for(5s), std::future_errc::no_state);
 }
 
-TYPED_TEST_P(FutureTests, wait_until_on_invalid) {
+TYPED_TEST(FutureTests, wait_until_on_invalid) {
   pc::future<TypeParam> future;
   ASSERT_FALSE(future.valid());
 
@@ -172,10 +172,9 @@ TYPED_TEST_P(FutureTests, wait_until_on_invalid) {
   );
 }
 
-TYPED_TEST_P(FutureTests, wait_on_ready_value) {
-  pc::promise<TypeParam> promise;
-  auto future = promise.get_future();
-  set_promise_value<TypeParam>(promise);
+TYPED_TEST(FutureTests, wait_on_ready_value) {
+  auto future = this->promise[0].get_future();
+  set_promise_value<TypeParam>(this->promise[0]);
   ASSERT_TRUE(future.valid());
   ASSERT_TRUE(future.is_ready());
 
@@ -194,10 +193,9 @@ TYPED_TEST_P(FutureTests, wait_on_ready_value) {
   EXPECT_TRUE(future.is_ready());
 }
 
-TYPED_TEST_P(FutureTests, wait_on_ready_error) {
-  pc::promise<TypeParam> promise;
-  auto future = promise.get_future();
-  promise.set_exception(std::make_exception_ptr(std::runtime_error("test error")));
+TYPED_TEST(FutureTests, wait_on_ready_error) {
+  auto future = this->promise[0].get_future();
+  this->promise[0].set_exception(std::make_exception_ptr(std::runtime_error("test error")));
   ASSERT_TRUE(future.valid());
   ASSERT_TRUE(future.is_ready());
 
@@ -216,9 +214,8 @@ TYPED_TEST_P(FutureTests, wait_on_ready_error) {
   EXPECT_TRUE(future.is_ready());
 }
 
-TYPED_TEST_P(FutureTests, wait_timeout) {
-  pc::promise<TypeParam> promise;
-  auto future = promise.get_future();
+TYPED_TEST(FutureTests, wait_timeout) {
+  auto future = this->promise[0].get_future();
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -233,7 +230,7 @@ TYPED_TEST_P(FutureTests, wait_timeout) {
   EXPECT_FALSE(future.is_ready());
 }
 
-TYPED_TEST_P(FutureTests, wait_awakes_on_value) {
+TYPED_TEST(FutureTests, wait_awakes_on_value) {
   auto future = set_value_in_other_thread<TypeParam>(25ms);
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
@@ -243,7 +240,7 @@ TYPED_TEST_P(FutureTests, wait_awakes_on_value) {
   EXPECT_TRUE(future.is_ready());
 }
 
-TYPED_TEST_P(FutureTests, wait_for_awakes_on_value) {
+TYPED_TEST(FutureTests, wait_for_awakes_on_value) {
   auto future = set_value_in_other_thread<TypeParam>(25ms);
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
@@ -253,7 +250,7 @@ TYPED_TEST_P(FutureTests, wait_for_awakes_on_value) {
   EXPECT_TRUE(future.is_ready());
 }
 
-TYPED_TEST_P(FutureTests, wait_until_awakes_on_value) {
+TYPED_TEST(FutureTests, wait_until_awakes_on_value) {
   auto future = set_value_in_other_thread<TypeParam>(25ms);
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
@@ -263,7 +260,7 @@ TYPED_TEST_P(FutureTests, wait_until_awakes_on_value) {
   EXPECT_TRUE(future.is_ready());
 }
 
-TYPED_TEST_P(FutureTests, wait_awakes_on_error) {
+TYPED_TEST(FutureTests, wait_awakes_on_error) {
   auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
@@ -273,7 +270,7 @@ TYPED_TEST_P(FutureTests, wait_awakes_on_error) {
   EXPECT_TRUE(future.is_ready());
 }
 
-TYPED_TEST_P(FutureTests, wait_for_awakes_on_error) {
+TYPED_TEST(FutureTests, wait_for_awakes_on_error) {
   auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
@@ -283,7 +280,7 @@ TYPED_TEST_P(FutureTests, wait_for_awakes_on_error) {
   EXPECT_TRUE(future.is_ready());
 }
 
-TYPED_TEST_P(FutureTests, wait_until_awakes_on_error) {
+TYPED_TEST(FutureTests, wait_until_awakes_on_error) {
   auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
@@ -340,11 +337,11 @@ void test_ready_future_maker<void>() {
   EXPECT_NO_THROW(future.get());
 }
 
-TYPED_TEST_P(FutureTests, ready_future_maker) {
+TYPED_TEST(FutureTests, ready_future_maker) {
   test_ready_future_maker<TypeParam>();
 }
 
-TYPED_TEST_P(FutureTests, error_future_maker_from_exception_val) {
+TYPED_TEST(FutureTests, error_future_maker_from_exception_val) {
   auto future = pc::make_exceptional_future<TypeParam>(std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
@@ -353,7 +350,7 @@ TYPED_TEST_P(FutureTests, error_future_maker_from_exception_val) {
   EXPECT_FALSE(future.valid());
 }
 
-TYPED_TEST_P(FutureTests, error_future_maker_from_caught_exception) {
+TYPED_TEST(FutureTests, error_future_maker_from_caught_exception) {
   pc::future<TypeParam> future;
   try {
     throw std::runtime_error("test error");
@@ -366,42 +363,5 @@ TYPED_TEST_P(FutureTests, error_future_maker_from_caught_exception) {
   EXPECT_RUNTIME_ERROR(future, "test error");
   EXPECT_FALSE(future.valid());
 }
-
-REGISTER_TYPED_TEST_CASE_P(
-  FutureTests,
-  default_constructed_is_invalid,
-  obtained_from_promise_is_valid,
-  moved_to_constructor_is_invalid,
-  moved_to_assigment_to_invalid_is_invalid,
-  moved_to_assigment_to_valid_is_invalid,
-  share_invalidates_future,
-  is_ready_on_nonready,
-  is_ready_on_future_with_value,
-  is_ready_on_future_with_error,
-  get_on_invalid,
-  retrieve_result,
-  retrieve_exception,
-  wait_on_invalid,
-  wait_for_on_invalid,
-  wait_until_on_invalid,
-  wait_on_ready_value,
-  wait_on_ready_error,
-  wait_timeout,
-  wait_awakes_on_value,
-  wait_for_awakes_on_value,
-  wait_until_awakes_on_value,
-  wait_awakes_on_error,
-  wait_for_awakes_on_error,
-  wait_until_awakes_on_error,
-  ready_future_maker,
-  error_future_maker_from_exception_val,
-  error_future_maker_from_caught_exception
-);
-
-INSTANTIATE_TYPED_TEST_CASE_P(VoidType, FutureTests, void);
-INSTANTIATE_TYPED_TEST_CASE_P(PrimitiveType, FutureTests, int);
-INSTANTIATE_TYPED_TEST_CASE_P(CopyableType, FutureTests, std::string);
-INSTANTIATE_TYPED_TEST_CASE_P(MoveableType, FutureTests, std::unique_ptr<int>);
-INSTANTIATE_TYPED_TEST_CASE_P(ReferenceType, FutureTests, future_tests_env&);
 
 } // anonymous namespace
