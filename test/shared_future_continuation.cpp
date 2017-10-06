@@ -371,13 +371,12 @@ void multiple_continuations() {
 
 template<>
 void multiple_continuations<void>() {
-  auto sf1 = set_value_in_other_thread<void>(25ms).share();
-  auto sf2 = sf1;
+  auto sf = set_value_in_other_thread<void>(25ms).share();
 
   std::atomic<unsigned> call_count1{0};
   std::atomic<unsigned> call_count2{0};
 
-  pc::future<std::string> cf1 = sf1.then([&call_count1](pc::shared_future<void>&& rf) {
+  pc::future<std::string> cf1 = sf.then([&call_count1](pc::shared_future<void>&& rf) {
     ++call_count1;
     EXPECT_TRUE(rf.is_ready());
     rf.get();
@@ -385,7 +384,7 @@ void multiple_continuations<void>() {
   });
   ASSERT_TRUE(cf1.valid());
 
-  pc::future<std::string> cf2 = sf2.then([&call_count2](pc::shared_future<void>&& rf) {
+  pc::future<std::string> cf2 = sf.then([&call_count2](pc::shared_future<void>&& rf) {
     ++call_count2;
     EXPECT_TRUE(rf.is_ready());
     rf.get();
