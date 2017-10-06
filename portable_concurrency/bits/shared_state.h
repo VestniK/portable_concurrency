@@ -5,7 +5,7 @@
 
 #include "fwd.h"
 
-#include "once_consumable_stack.h"
+#include "once_consumable_stack_fwd.h"
 #include "result_box.h"
 #include "unique_function.h"
 

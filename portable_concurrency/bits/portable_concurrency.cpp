@@ -1,5 +1,6 @@
 #include "latch.h"
 #include "make_future.h"
+#include "once_consumable_stack.h"
 #include "promise.h"
 #include "result_box.h"
 #include "shared_state.h"

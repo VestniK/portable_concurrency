@@ -13,6 +13,7 @@ set(HEADERS
   bits/latch.h
   bits/make_future.h
   bits/once_consumable_stack.h
+  bits/once_consumable_stack_fwd.h
   bits/packaged_task.h
   bits/promise.h
   bits/result_box.h
