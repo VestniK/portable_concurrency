@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <memory>
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -10,52 +11,12 @@ template<typename T>
 struct forward_list_node;
 
 template<typename T>
-class forward_list_iterator {
-public:
-  forward_list_iterator(forward_list_node<T>* node): node_(node) {}
-
-  forward_list_iterator operator++ ();
-
-  T& operator* ();
-
-  bool operator== (const forward_list_iterator& rhs) const {
-    return node_ == rhs.node_;
-  }
-
-  bool operator!= (const forward_list_iterator& rhs) const {
-    return node_ != rhs.node_;
-  }
-
-private:
-  forward_list_node<T>* node_;
+struct forward_list_deleter {
+  void operator() (forward_list_node<T>* head) noexcept;
 };
 
 template<typename T>
-class once_consumable_stack;
-
-template<typename T>
-class forward_list {
-public:
-  forward_list() = default;
-
-  forward_list(const forward_list&) = delete;
-  forward_list& operator= (const forward_list&) = delete;
-
-  forward_list(forward_list&& rhs);
-  forward_list& operator= (forward_list&& rhs);
-
-  ~forward_list();
-
-  forward_list_iterator<T> begin();
-
-  forward_list_iterator<T> end();
-
-  friend class once_consumable_stack<T>;
-  forward_list(forward_list_node<T>* head): head_(head) {}
-
-private:
-  forward_list_node<T>* head_ = nullptr;
-};
+using forward_list = std::unique_ptr<forward_list_node<T>, forward_list_deleter<T>>;
 
 /**
  * @internal
@@ -73,7 +34,7 @@ private:
 template<typename T>
 class once_consumable_stack {
 public:
-  once_consumable_stack() = default;
+  once_consumable_stack() noexcept = default;
   ~once_consumable_stack();
 
   /**
@@ -94,7 +55,7 @@ public:
    *
    * @note Can be called from multiple threads.
    */
-  bool is_consumed() const;
+  bool is_consumed() const noexcept;
 
   /**
    * Consumes the stack and switch it into @em consumed state. Running this function
@@ -104,13 +65,13 @@ public:
    * @note Must be called from a single thread. Must not be called twice on a same
    * queue.
    */
-  forward_list<T> consume();
+  forward_list<T> consume() noexcept;
 
 private:
   // Return address of some valid object which can not alias with forward_list_node<T>
   // instances. Can be used as marker in pointer compariaions but must never be
   // dereferenced.
-  forward_list_node<T>* consumed_marker() const;
+  forward_list_node<T>* consumed_marker() const noexcept;
 
 private:
   std::atomic<forward_list_node<T>*> head_{nullptr};
