@@ -15,25 +15,6 @@ using namespace std::literals;
 namespace tests {
 
 template<typename T>
-void exception_from_continuation() {
-  pc::promise<T> p;
-  auto f = p.get_future();
-  ASSERT_TRUE(f.valid());
-
-  pc::future<T> cont_f = f.then([](pc::future<T>&& ready_f) -> T {
-    EXPECT_TRUE(ready_f.is_ready());
-    throw std::runtime_error("continuation error");
-  });
-  EXPECT_FALSE(f.valid());
-  EXPECT_TRUE(cont_f.valid());
-  EXPECT_FALSE(cont_f.is_ready());
-
-  set_promise_value(p);
-  EXPECT_TRUE(cont_f.is_ready());
-  EXPECT_RUNTIME_ERROR(cont_f, "continuation error");
-}
-
-template<typename T>
 void continuation_call() {
   pc::promise<T> p;
   auto f = p.get_future();
@@ -258,16 +239,60 @@ void exception_to_ready_continuation() {
 } // namespace tests
 
 template<typename T>
-struct FutureContinuationsTest: ::testing::Test {};
-TYPED_TEST_CASE(FutureContinuationsTest, TestTypes);
+struct FutureThen: ::testing::Test {
+  pc::promise<T> promise;
+  pc::future<T> future = promise.get_future();
+};
+TYPED_TEST_CASE(FutureThen, TestTypes);
 
-TYPED_TEST(FutureContinuationsTest, exception_from_continuation) {tests::exception_from_continuation<TypeParam>();}
-TYPED_TEST(FutureContinuationsTest, exception_to_continuation) {tests::exception_to_continuation<TypeParam>();}
-TYPED_TEST(FutureContinuationsTest, exception_to_ready_continuation) {tests::exception_to_ready_continuation<TypeParam>();}
-TYPED_TEST(FutureContinuationsTest, continuation_call) {tests::continuation_call<TypeParam>();}
-TYPED_TEST(FutureContinuationsTest, async_continuation_call) {tests::async_continuation_call<TypeParam>();}
-TYPED_TEST(FutureContinuationsTest, ready_continuation_call) {tests::ready_continuation_call<TypeParam>();}
-TYPED_TEST(FutureContinuationsTest, void_continuation) {tests::void_continuation<TypeParam>();}
-TYPED_TEST(FutureContinuationsTest, ready_void_continuation) {tests::ready_void_continuation<TypeParam>();}
+TYPED_TEST(FutureThen, src_future_invalidated) {
+  auto cnt_future = this->future.then([](pc::future<TypeParam>) {});
+  EXPECT_FALSE(this->future.valid());
+}
+
+TYPED_TEST(FutureThen, returned_future_is_valid) {
+  auto cnt_future = this->future.then([](pc::future<TypeParam>) {});
+  EXPECT_TRUE(cnt_future.valid());
+}
+
+TYPED_TEST(FutureThen, returned_future_is_not_ready_for_not_ready_source_future) {
+  auto cnt_future = this->future.then([](pc::future<TypeParam>) {});
+  EXPECT_FALSE(cnt_future.is_ready());
+}
+
+TYPED_TEST(FutureThen, returned_future_is_ready_for_ready_source_future) {
+  set_promise_value(this->promise);
+  auto cnt_future = this->future.then([](pc::future<TypeParam>) {});
+  EXPECT_TRUE(cnt_future.is_ready());
+}
+
+TYPED_TEST(FutureThen, returned_future_becomes_ready_when_source_becomes_ready) {
+  auto cnt_future = this->future.then([](pc::future<TypeParam>) {});
+  set_promise_value(this->promise);
+  EXPECT_TRUE(cnt_future.is_ready());
+}
+
+TYPED_TEST(FutureThen, continuation_arg_is_ready) {
+  bool arg_ready = false;
+  auto cnt_future = this->future.then([&](pc::future<TypeParam> f) {arg_ready = f.is_ready();});
+  set_promise_value(this->promise);
+  EXPECT_TRUE(arg_ready);
+}
+
+TYPED_TEST(FutureThen, exception_from_continuation_delivered_to_returned_future) {
+  pc::future<TypeParam> cnt_f = this->future.then([](pc::future<TypeParam>) -> TypeParam {
+    throw std::runtime_error("continuation error");
+  });
+  set_promise_value(this->promise);
+  EXPECT_RUNTIME_ERROR(cnt_f, "continuation error");
+}
+
+TYPED_TEST(FutureThen, exception_to_continuation) {tests::exception_to_continuation<TypeParam>();}
+TYPED_TEST(FutureThen, exception_to_ready_continuation) {tests::exception_to_ready_continuation<TypeParam>();}
+TYPED_TEST(FutureThen, continuation_call) {tests::continuation_call<TypeParam>();}
+TYPED_TEST(FutureThen, async_continuation_call) {tests::async_continuation_call<TypeParam>();}
+TYPED_TEST(FutureThen, ready_continuation_call) {tests::ready_continuation_call<TypeParam>();}
+TYPED_TEST(FutureThen, void_continuation) {tests::void_continuation<TypeParam>();}
+TYPED_TEST(FutureThen, ready_void_continuation) {tests::ready_void_continuation<TypeParam>();}
 
 } // anonymous namespace
