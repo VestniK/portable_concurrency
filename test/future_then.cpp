@@ -209,11 +209,36 @@ TYPED_TEST(FutureThen, returned_future_becomes_ready_when_source_becomes_ready) 
   EXPECT_TRUE(cnt_future.is_ready());
 }
 
-TYPED_TEST(FutureThen, continuation_arg_is_ready) {
-  bool arg_ready = false;
-  auto cnt_future = this->future.then([&](pc::future<TypeParam> f) {arg_ready = f.is_ready();});
+TYPED_TEST(FutureThen, continuation_is_executed_once_for_ready_source) {
   set_promise_value(this->promise);
-  EXPECT_TRUE(arg_ready);
+  unsigned cnt_exec_count = 0;
+  auto cnt_future = this->future.then([&](pc::future<TypeParam>) {
+    ++cnt_exec_count;
+  });
+  EXPECT_EQ(cnt_exec_count, 1u);
+}
+
+TYPED_TEST(FutureThen, continuation_is_executed_once_when_source_becomes_ready) {
+  unsigned cnt_exec_count = 0;
+  auto cnt_future = this->future.then([&](pc::future<TypeParam>) {
+    ++cnt_exec_count;
+  });
+  set_promise_value(this->promise);
+  EXPECT_EQ(cnt_exec_count, 1u);
+}
+
+TYPED_TEST(FutureThen, continuation_arg_is_ready_for_ready_source) {
+  set_promise_value(this->promise);
+  auto cnt_future = this->future.then([](pc::future<TypeParam> f) {
+    EXPECT_TRUE(f.is_ready());
+  });
+}
+
+TYPED_TEST(FutureThen, continuation_arg_is_ready_for_not_ready_source) {
+  auto cnt_future = this->future.then([](pc::future<TypeParam> f) {
+    EXPECT_TRUE(f.is_ready());
+  });
+  set_promise_value(this->promise);
 }
 
 TYPED_TEST(FutureThen, exception_from_continuation_delivered_to_returned_future) {
@@ -222,6 +247,20 @@ TYPED_TEST(FutureThen, exception_from_continuation_delivered_to_returned_future)
   });
   set_promise_value(this->promise);
   EXPECT_RUNTIME_ERROR(cnt_f, "continuation error");
+}
+
+TYPED_TEST(FutureThen, value_is_delivered_to_continuation_for_not_ready_source) {
+  pc::future<void> cnt_f = this->future.then([](pc::future<TypeParam> f) {
+    EXPECT_SOME_VALUE(f);
+  });
+  set_promise_value(this->promise);
+}
+
+TYPED_TEST(FutureThen, value_is_delivered_to_continuation_for_ready_source) {
+  set_promise_value(this->promise);
+  pc::future<void> cnt_f = this->future.then([](pc::future<TypeParam> f) {
+    EXPECT_SOME_VALUE(f);
+  });
 }
 
 TYPED_TEST(FutureThen, exception_to_continuation) {tests::exception_to_continuation<TypeParam>();}
