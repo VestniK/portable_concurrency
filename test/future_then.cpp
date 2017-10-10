@@ -12,34 +12,18 @@ namespace {
 
 using namespace std::literals;
 
-namespace tests {
-
 template<typename T>
-void continuation_call() {
-  pc::promise<T> p;
-  auto f = p.get_future();
-
-  pc::future<std::string> string_f = f.then([](pc::future<T>&& ready_f) {
-    return to_string(ready_f.get());
-  });
-
-  set_promise_value(p);
-  EXPECT_EQ(string_f.get(), to_string(some_value<T>()));
+std::string stringify(pc::future<T> f) {
+  return to_string(f.get());
 }
 
 template<>
-void continuation_call<void>() {
-  pc::promise<void> p;
-  auto f = p.get_future();
-
-  pc::future<std::string> string_f = f.then([](pc::future<void>&& ready_f) {
-    ready_f.get();
-    return "void value"s;
-  });
-
-  set_promise_value(p);
-  EXPECT_EQ(string_f.get(), "void value"s);
+std::string stringify<void>(pc::future<void> f) {
+  f.get();
+  return "void value";
 }
+
+namespace tests {
 
 template<typename T>
 void async_continuation_call() {
@@ -176,9 +160,19 @@ void exception_to_ready_continuation() {
 } // namespace tests
 
 template<typename T>
-struct FutureThen: ::testing::Test {
+struct FutureThenCommon: ::testing::Test {
   pc::promise<T> promise;
   pc::future<T> future = promise.get_future();
+};
+
+template<typename T>
+struct FutureThen: FutureThenCommon<T> {
+  std::string stringified_value = to_string(some_value<T>());
+};
+
+template<>
+struct FutureThen<void>: FutureThenCommon<void> {
+  std::string stringified_value = "void value";
 };
 TYPED_TEST_CASE(FutureThen, TestTypes);
 
@@ -263,9 +257,15 @@ TYPED_TEST(FutureThen, value_is_delivered_to_continuation_for_ready_source) {
   });
 }
 
+TYPED_TEST(FutureThen, continuation_call) {
+  pc::future<std::string> cnt_f = this->future.then(stringify<TypeParam>);
+
+  set_promise_value(this->promise);
+  EXPECT_EQ(cnt_f.get(), this->stringified_value);
+}
+
 TYPED_TEST(FutureThen, exception_to_continuation) {tests::exception_to_continuation<TypeParam>();}
 TYPED_TEST(FutureThen, exception_to_ready_continuation) {tests::exception_to_ready_continuation<TypeParam>();}
-TYPED_TEST(FutureThen, continuation_call) {tests::continuation_call<TypeParam>();}
 TYPED_TEST(FutureThen, async_continuation_call) {tests::async_continuation_call<TypeParam>();}
 TYPED_TEST(FutureThen, ready_continuation_call) {tests::ready_continuation_call<TypeParam>();}
 TYPED_TEST(FutureThen, void_continuation) {tests::void_continuation<TypeParam>();}
