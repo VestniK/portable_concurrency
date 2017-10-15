@@ -23,142 +23,6 @@ std::string stringify<void>(pc::future<void> f) {
   return "void value";
 }
 
-namespace tests {
-
-template<typename T>
-void async_continuation_call() {
-  auto f = set_value_in_other_thread<T>(25ms);
-
-  pc::future<std::string> string_f = f.then([](pc::future<T>&& ready_f) {
-    return to_string(ready_f.get());
-  });
-  EXPECT_EQ(string_f.get(), to_string(some_value<T>()));
-}
-
-template<>
-void async_continuation_call<void>() {
-  auto f = set_value_in_other_thread<void>(25ms);
-
-  pc::future<std::string> string_f = f.then([](pc::future<void>&& ready_f) {
-    ready_f.get();
-    return "void value"s;
-  });
-  EXPECT_EQ(string_f.get(), "void value"s);
-}
-
-template<typename T>
-void ready_continuation_call() {
-  auto f = pc::make_ready_future(some_value<T>());
-
-  pc::future<std::string> string_f = f.then([](pc::future<T>&& ready_f) {
-    return to_string(ready_f.get());
-  });
-  EXPECT_EQ(string_f.get(), to_string(some_value<T>()));
-}
-
-template<>
-void ready_continuation_call<future_tests_env&>() {
-  auto f = pc::make_ready_future(std::ref(some_value<future_tests_env&>()));
-
-  pc::future<std::string> string_f = f.then([](pc::future<future_tests_env&>&& ready_f) {
-    return to_string(ready_f.get());
-  });
-  EXPECT_EQ(string_f.get(), to_string(some_value<future_tests_env&>()));
-}
-
-template<typename T>
-void void_continuation() {
-  auto f = set_value_in_other_thread<T>(25ms);
-  bool executed = false;
-
-  pc::future<void> void_f = f.then([&executed](pc::future<T>&& ready_f) -> void {
-    ready_f.get();
-    executed = true;
-  });
-
-  EXPECT_NO_THROW(void_f.get());
-  EXPECT_TRUE(executed);
-}
-
-template<typename T>
-void ready_void_continuation() {
-  auto f = pc::make_ready_future(some_value<T>());
-  bool executed = false;
-
-  pc::future<void> void_f = f.then([&executed](pc::future<T>&& ready_f) -> void {
-    ready_f.get();
-    executed = true;
-  });
-  EXPECT_NO_THROW(void_f.get());
-  EXPECT_TRUE(executed);
-}
-
-template<>
-void ready_void_continuation<future_tests_env&>() {
-  auto f = pc::make_ready_future(std::ref(some_value<future_tests_env&>()));
-  bool executed = false;
-
-  pc::future<void> void_f = f.then([&executed](pc::future<future_tests_env&>&& ready_f) -> void {
-    ready_f.get();
-    executed = true;
-  });
-
-  EXPECT_NO_THROW(void_f.get());
-  EXPECT_TRUE(executed);
-}
-
-template<>
-void ready_void_continuation<void>() {
-  auto f = pc::make_ready_future();
-  bool executed = false;
-
-  pc::future<void> void_f = f.then([&executed](pc::future<void>&& ready_f) -> void {
-    ready_f.get();
-    executed = true;
-  });
-
-  EXPECT_NO_THROW(void_f.get());
-  EXPECT_TRUE(executed);
-}
-
-template<>
-void ready_continuation_call<void>() {
-  auto f = pc::make_ready_future();
-
-  pc::future<std::string> string_f = f.then([](pc::future<void>&& ready_f) {
-    ready_f.get();
-    return "void value"s;
-  });
-
-  EXPECT_EQ(string_f.get(), "void value"s);
-}
-
-template<typename T>
-void exception_to_continuation() {
-  auto f = set_error_in_other_thread<T>(25ms, std::runtime_error("test error"));
-
-  pc::future<std::string> string_f = f.then([](pc::future<T>&& ready_f) {
-    EXPECT_RUNTIME_ERROR(ready_f, "test error");
-    return "Exception delivered"s;
-  });
-
-  EXPECT_EQ(string_f.get(), "Exception delivered"s);
-}
-
-template<typename T>
-void exception_to_ready_continuation() {
-  auto f = pc::make_exceptional_future<T>(std::runtime_error("test error"));
-
-  pc::future<std::string> string_f = f.then([](pc::future<T>&& ready_f) {
-    EXPECT_RUNTIME_ERROR(ready_f, "test error");
-    return "Exception delivered"s;
-  });
-
-  EXPECT_EQ(string_f.get(), "Exception delivered"s);
-}
-
-} // namespace tests
-
 template<typename T>
 struct FutureThenCommon: ::testing::Test {
   pc::promise<T> promise;
@@ -248,6 +112,7 @@ TYPED_TEST(FutureThen, value_is_delivered_to_continuation_for_not_ready_source) 
     EXPECT_SOME_VALUE(f);
   });
   set_promise_value(this->promise);
+  cnt_f.get();
 }
 
 TYPED_TEST(FutureThen, value_is_delivered_to_continuation_for_ready_source) {
@@ -255,21 +120,51 @@ TYPED_TEST(FutureThen, value_is_delivered_to_continuation_for_ready_source) {
   pc::future<void> cnt_f = this->future.then([](pc::future<TypeParam> f) {
     EXPECT_SOME_VALUE(f);
   });
+  cnt_f.get();
 }
 
-TYPED_TEST(FutureThen, continuation_call) {
+TYPED_TEST(FutureThen, result_of_continuation_delivered_to_returned_future) {
   pc::future<std::string> cnt_f = this->future.then(stringify<TypeParam>);
-
   set_promise_value(this->promise);
+
   EXPECT_EQ(cnt_f.get(), this->stringified_value);
 }
 
-TYPED_TEST(FutureThen, exception_to_continuation) {tests::exception_to_continuation<TypeParam>();}
-TYPED_TEST(FutureThen, exception_to_ready_continuation) {tests::exception_to_ready_continuation<TypeParam>();}
-TYPED_TEST(FutureThen, async_continuation_call) {tests::async_continuation_call<TypeParam>();}
-TYPED_TEST(FutureThen, ready_continuation_call) {tests::ready_continuation_call<TypeParam>();}
-TYPED_TEST(FutureThen, void_continuation) {tests::void_continuation<TypeParam>();}
-TYPED_TEST(FutureThen, ready_void_continuation) {tests::ready_void_continuation<TypeParam>();}
+TYPED_TEST(FutureThen, ready_continuation_call) {
+  set_promise_value(this->promise);
+  pc::future<std::string> cnt_f = this->future.then(stringify<TypeParam>);
+
+  EXPECT_EQ(cnt_f.get(), this->stringified_value);
+}
+
+TYPED_TEST(FutureThen, async_continuation_call) {
+  auto f = set_value_in_other_thread<TypeParam>(25ms);
+
+  pc::future<std::string> cnt_f = f.then(stringify<TypeParam>);
+  EXPECT_EQ(cnt_f.get(), this->stringified_value);
+}
+
+TYPED_TEST(FutureThen, exception_to_continuation) {
+  auto f = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
+
+  pc::future<std::string> string_f = f.then([](pc::future<TypeParam> ready_f) {
+    EXPECT_RUNTIME_ERROR(ready_f, "test error");
+    return "Exception delivered"s;
+  });
+
+  string_f.get();
+}
+
+TYPED_TEST(FutureThen, exception_to_ready_continuation) {
+  auto f = pc::make_exceptional_future<TypeParam>(std::runtime_error("test error"));
+
+  pc::future<std::string> string_f = f.then([](pc::future<TypeParam> ready_f) {
+    EXPECT_RUNTIME_ERROR(ready_f, "test error");
+    return "Exception delivered"s;
+  });
+
+  string_f.get();
+}
 
 TYPED_TEST(FutureThen, implicitly_unwrapps_futures) {
   pc::promise<void> inner_promise;
