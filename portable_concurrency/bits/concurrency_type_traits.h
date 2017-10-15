@@ -36,14 +36,10 @@ struct are_futures<F0, F...>: std::integral_constant<
 > {};
 
 template<typename T>
-struct remove_future {
-  using type = T;
-};
+struct remove_future {using type = T;};
 
 template<typename T>
-struct remove_future<future<T>> {
-  using type = T;
-};
+struct remove_future<future<T>> {using type = T;};
 
 template<typename T>
 using remove_future_t = typename remove_future<T>::type;

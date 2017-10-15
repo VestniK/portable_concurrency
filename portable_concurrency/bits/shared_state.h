@@ -53,6 +53,12 @@ public:
 };
 
 template<typename T>
+std::shared_ptr<future_state<T>>& state_of(future<T>&);
+
+template<typename T>
+std::shared_ptr<future_state<T>>& state_of(shared_future<T>&);
+
+template<typename T>
 class shared_state: public future_state<T> {
 public:
   shared_state() = default;

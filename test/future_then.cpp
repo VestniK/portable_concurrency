@@ -271,4 +271,31 @@ TYPED_TEST(FutureThen, ready_continuation_call) {tests::ready_continuation_call<
 TYPED_TEST(FutureThen, void_continuation) {tests::void_continuation<TypeParam>();}
 TYPED_TEST(FutureThen, ready_void_continuation) {tests::ready_void_continuation<TypeParam>();}
 
+TYPED_TEST(FutureThen, implicitly_unwrapps_futures) {
+  pc::promise<void> inner_promise;
+  auto cnt_f = this->future.then([&](pc::future<TypeParam>) {
+    return inner_promise.get_future();
+  });
+  static_assert(std::is_same<decltype(cnt_f), pc::future<void>>::value, "");
+}
+
+TYPED_TEST(FutureThen, unwrapped_future_is_not_ready_after_continuation_call) {
+  pc::promise<void> inner_promise;
+  pc::future<void> cnt_f = this->future.then([&](pc::future<TypeParam>) {
+    return inner_promise.get_future();
+  });
+  set_promise_value(this->promise);
+  EXPECT_FALSE(cnt_f.is_ready());
+}
+
+TYPED_TEST(FutureThen, unwrapped_future_is_ready_after_continuation_result_becomes_ready) {
+  pc::promise<void> inner_promise;
+  pc::future<void> cnt_f = this->future.then([&](pc::future<TypeParam>) {
+    return inner_promise.get_future();
+  });
+  set_promise_value(this->promise);
+  inner_promise.set_value();
+  EXPECT_TRUE(cnt_f.is_ready());
+}
+
 } // anonymous namespace

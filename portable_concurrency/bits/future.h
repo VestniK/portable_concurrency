@@ -13,13 +13,6 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
-namespace detail {
-
-template<typename T>
-std::shared_ptr<future_state<T>>& state_of(future<T>&);
-
-} // namespace detail
-
 template<typename T>
 class future {
 public:
@@ -76,7 +69,7 @@ public:
   }
 
   template<typename F>
-  future<detail::continuation_result_t<portable_concurrency::cxx14_v1::future, F, T>>
+  future<detail::remove_future_t<detail::continuation_result_t<portable_concurrency::cxx14_v1::future, F, T>>>
   then(F&& f) {
     return detail::make_then_state<portable_concurrency::cxx14_v1::future, T, F>(
       std::move(state_), std::forward<F>(f)

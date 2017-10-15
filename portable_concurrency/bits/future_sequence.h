@@ -13,11 +13,6 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-template<typename T>
-future_state<T>* state_of(shared_future<T>& f) {
-  return f.state_.get();
-}
-
 struct swallow {
   swallow(...) {}
 };

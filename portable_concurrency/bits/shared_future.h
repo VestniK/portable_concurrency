@@ -12,13 +12,6 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
-namespace detail {
-
-template<typename T>
-future_state<T>* state_of(shared_future<T>&);
-
-} // namespace detail
-
 template<typename T>
 class shared_future {
 public:
@@ -84,11 +77,20 @@ public:
   {}
 
 private:
-  friend detail::future_state<T>* detail::state_of<T>(shared_future<T>&);
+  friend std::shared_ptr<detail::future_state<T>>& detail::state_of<T>(shared_future<T>&);
 
 private:
   std::shared_ptr<detail::future_state<T>> state_;
 };
+
+namespace detail {
+
+template<typename T>
+std::shared_ptr<future_state<T>>& state_of(shared_future<T>& f) {
+  return f.state_;
+}
+
+} // namespace detail
 
 } // inline namespace cxx14_v1
 } // namespace portable_concurrency

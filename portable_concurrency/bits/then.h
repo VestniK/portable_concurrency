@@ -21,23 +21,42 @@ struct cnt_data {
   {}
 };
 
+template<typename Future, typename T, typename R, typename F>
+auto cnt_run(std::shared_ptr<cnt_data<T, R, F>> data) ->
+  std::enable_if_t<is_unique_future<std::result_of_t<F(Future)>>::value>
+{
+  auto res = invoke(std::move(data->func), std::move(data->parent));
+  using res_t = decltype(res);
+  auto& continuations = state_of(res)->continuations();
+  continuations.push([data = std::move(data), res = std::move(res)] () mutable {
+    set_state_value(
+      std::shared_ptr<shared_state<R>>{data, &data->state},
+      &res_t::get, std::move(res)
+    );
+  });
+}
+
+template<typename Future, typename T, typename R, typename F>
+auto cnt_run(std::shared_ptr<cnt_data<T, R, F>> data) ->
+  std::enable_if_t<!is_unique_future<std::result_of_t<F(Future)>>::value>
+{
+  set_state_value(
+    std::shared_ptr<shared_state<R>>(data, &data->state),
+    std::move(data->func), Future{std::move(data->parent)}
+  );
+}
+
 template<template<typename> class Future, typename T, typename F>
-std::shared_ptr<future_state<continuation_result_t<Future, F, T>>>
-make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
-  using R = continuation_result_t<Future, F, T>;
+auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
+  using CntRes = continuation_result_t<Future, F, T>;
+  using R = remove_future_t<CntRes>;
   if (!parent)
     throw std::future_error(std::future_errc::no_state);
   auto data = std::make_shared<cnt_data<T, R, F>>(
     std::forward<F>(f), std::move(parent)
   );
-  auto res = std::shared_ptr<shared_state<R>>(data, &data->state);
-  data->parent->continuations().push([data]{
-    set_state_value(
-      std::shared_ptr<shared_state<R>>(data, &data->state),
-      std::move(data->func), Future<T>{std::move(data->parent)}
-    );
-  });
-  return {data, &data->state};
+  data->parent->continuations().push([data]{cnt_run<Future<T>>(std::move(data));});
+  return std::shared_ptr<future_state<R>>{data, &data->state};
 }
 
 } // namespace detail
