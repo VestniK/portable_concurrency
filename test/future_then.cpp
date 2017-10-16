@@ -175,4 +175,12 @@ TEST_F(FutureThen, unwrapped_future_is_ready_after_continuation_result_becomes_r
   EXPECT_TRUE(cnt_f.is_ready());
 }
 
+TEST_F(FutureThen, unwrapped_future_carries_broken_promise_for_invalid_result_of_continuation) {
+  pc::future<std::string> cnt_f = future.then([](pc::future<int>) {
+    return pc::future<std::string>{};
+  });
+  set_promise_value(promise);
+  EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
+}
+
 } // anonymous namespace

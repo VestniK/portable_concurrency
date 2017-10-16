@@ -26,6 +26,13 @@ auto cnt_run(std::shared_ptr<cnt_data<T, R, F>> data) ->
   std::enable_if_t<is_unique_future<std::result_of_t<F(Future)>>::value>
 {
   auto res = ::portable_concurrency::cxx14_v1::detail::invoke(std::move(data->func), std::move(data->parent));
+  if (!res.valid()) {
+    shared_state<R>::set_exception(
+      std::shared_ptr<shared_state<R>>{data, &data->state},
+      std::make_exception_ptr(std::future_error{std::future_errc::broken_promise})
+    );
+    return;
+  }
   using res_t = std::result_of_t<F(Future)>;
   auto& continuations = state_of(res)->continuations();
   continuations.push([data = std::move(data), res = std::move(res)] () mutable {
