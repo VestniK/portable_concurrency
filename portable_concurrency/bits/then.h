@@ -25,8 +25,8 @@ template<typename Future, typename T, typename R, typename F>
 auto cnt_run(std::shared_ptr<cnt_data<T, R, F>> data) ->
   std::enable_if_t<is_unique_future<std::result_of_t<F(Future)>>::value>
 {
-  auto res = invoke(std::move(data->func), std::move(data->parent));
-  using res_t = decltype(res);
+  auto res = ::portable_concurrency::cxx14_v1::detail::invoke(std::move(data->func), std::move(data->parent));
+  using res_t = std::result_of_t<F(Future)>;
   auto& continuations = state_of(res)->continuations();
   continuations.push([data = std::move(data), res = std::move(res)] () mutable {
     set_state_value(
