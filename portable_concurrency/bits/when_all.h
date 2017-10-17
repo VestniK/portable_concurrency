@@ -22,7 +22,10 @@ template<typename Sequence>
 class when_all_state final: public future_state<Sequence>
 {
 public:
-  when_all_state(Sequence&& futures): futures_(std::move(futures)) {}
+  when_all_state(Sequence&& futures):
+    futures_(std::move(futures)),
+    operations_remains_(sequence_traits<Sequence>::size(futures_) + 1)
+  {}
 
   static std::shared_ptr<future_state<Sequence>> make(Sequence&& futures) {
 #if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 3900
@@ -36,11 +39,12 @@ public:
     sequence_traits<Sequence>::for_each(state->futures_, [state](auto& f) {
       state_of(f)->continuations().push([state]{state->notify();});
     });
+    state->notify();
     return state;
   }
 
   void notify() {
-    if (++ready_count_ < sequence_traits<Sequence>::size(futures_))
+    if (--operations_remains_ != 0)
       return;
     continuations_.execute();
   }
@@ -56,7 +60,7 @@ public:
 
 private:
   Sequence futures_;
-  std::atomic<size_t> ready_count_{0};
+  std::atomic<size_t> operations_remains_;
   continuations_stack continuations_;
 };
 
