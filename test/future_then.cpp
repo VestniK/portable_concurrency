@@ -183,4 +183,14 @@ TEST_F(FutureThen, unwrapped_future_carries_broken_promise_for_invalid_result_of
   EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
 }
 
+TEST_F(FutureThen, exception_from_unwrapped_continuation_propagate_to_returned_future) {
+  pc::future<std::unique_ptr<int>> cnt_f = future.then([](pc::future<int>)
+    -> pc::future<std::unique_ptr<int>>
+  {
+    throw std::runtime_error("Ooups");
+  });
+  set_promise_value(promise);
+  EXPECT_RUNTIME_ERROR(cnt_f, "Ooups");
+}
+
 } // anonymous namespace
