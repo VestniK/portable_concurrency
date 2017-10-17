@@ -13,6 +13,7 @@ Attempt to write portable implementation of the C++ Extensions for Concurrency, 
 
     mkdir -p build/debug
     cd build/debug
+    conan remote add VestniK https://api.bintray.com/conan/vestnik/VestniK
     conan install --build=missing ../..
     cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ../..
     ninja
