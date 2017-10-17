@@ -229,5 +229,50 @@ TEST_F(SharedFutureThen, ready_void_continuation) {tests::ready_void_continuatio
 TEST_F(SharedFutureThen, continuation_called_once) {tests::continuation_called_once<int>();}
 TEST_F(SharedFutureThen, multiple_continuations) {tests::multiple_continuations<int>();}
 
+TEST_F(SharedFutureThen, implicitly_unwrapps_futures) {
+  pc::promise<void> inner_promise;
+  auto cnt_f = future.then([&](pc::shared_future<int>) {
+    return inner_promise.get_future();
+  });
+  static_assert(std::is_same<decltype(cnt_f), pc::future<void>>::value, "");
+}
+
+TEST_F(SharedFutureThen, unwrapped_future_is_not_ready_after_continuation_call) {
+  pc::promise<void> inner_promise;
+  pc::future<void> cnt_f = future.then([&](pc::shared_future<int>) {
+    return inner_promise.get_future();
+  });
+  set_promise_value(promise);
+  EXPECT_FALSE(cnt_f.is_ready());
+}
+
+TEST_F(SharedFutureThen, unwrapped_future_is_ready_after_continuation_result_becomes_ready) {
+  pc::promise<void> inner_promise;
+  pc::future<void> cnt_f = future.then([&](pc::shared_future<int>) {
+    return inner_promise.get_future();
+  });
+  set_promise_value(promise);
+  inner_promise.set_value();
+  EXPECT_TRUE(cnt_f.is_ready());
+}
+
+TEST_F(SharedFutureThen, unwrapped_future_carries_broken_promise_for_invalid_result_of_continuation) {
+  pc::future<std::string> cnt_f = future.then([](pc::shared_future<int>) {
+    return pc::future<std::string>{};
+  });
+  set_promise_value(promise);
+  EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
+}
+
+TEST_F(SharedFutureThen, exception_from_unwrapped_continuation_propagate_to_returned_future) {
+  pc::future<std::unique_ptr<int>> cnt_f = future.then([](pc::shared_future<int>)
+    -> pc::future<std::unique_ptr<int>>
+  {
+    throw std::runtime_error("Ooups");
+  });
+  set_promise_value(promise);
+  EXPECT_RUNTIME_ERROR(cnt_f, "Ooups");
+}
+
 } // namespace shared_future_continuation
 } // anonymous namespace

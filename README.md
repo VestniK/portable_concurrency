@@ -21,6 +21,5 @@ Attempt to write portable implementation of the C++ Extensions for Concurrency, 
 
 ## TODO
 
- * implicit unwrap for continuations (in progress)
  * make_ready_at_thread_exit for promise and packaged_task
  * allocator support where required by the standard

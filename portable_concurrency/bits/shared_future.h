@@ -64,7 +64,7 @@ public:
   }
 
   template<typename F>
-  future<detail::continuation_result_t<portable_concurrency::cxx14_v1::shared_future, F, T>>
+  future<detail::remove_future_t<detail::continuation_result_t<portable_concurrency::cxx14_v1::shared_future, F, T>>>
   then(F&& f) {
     return detail::make_then_state<portable_concurrency::cxx14_v1::shared_future, T, F>(
       state_, std::forward<F>(f)
