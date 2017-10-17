@@ -9,8 +9,6 @@ namespace {
 
 namespace test {
 
-namespace pc = portable_concurrency;
-
 struct point {
   int x;
   int y;

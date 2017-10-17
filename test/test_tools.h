@@ -13,8 +13,6 @@
 #include "closable_queue.h"
 #include "task.h"
 
-namespace pc = portable_concurrency;
-
 #define EXPECT_FUTURE_ERROR(statement, errc) \
   try { \
     statement; \

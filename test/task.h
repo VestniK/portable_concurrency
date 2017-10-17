@@ -6,8 +6,6 @@
 
 #include "../portable_concurrency/bits/invoke.h"
 
-namespace pc = portable_concurrency;
-
 template<typename F, typename... A>
 class task {
 public:

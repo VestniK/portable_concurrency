@@ -6,11 +6,10 @@
 
 #include <gtest/gtest.h>
 
+#include "../portable_concurrency/bits/alias_namespace.h"
 #include "../portable_concurrency/bits/type_erasure_owner.h"
 
 namespace {
-
-namespace pc = portable_concurrency;
 
 #if defined(_MSC_VER)
 template<typename Iface, template<typename> class Adapter, typename... T>

@@ -1,4 +1,5 @@
 // <latch> -*- C++ -*-
 #pragma once
 
+#include "bits/alias_namespace.h"
 #include "bits/latch.h"
