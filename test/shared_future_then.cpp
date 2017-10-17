@@ -13,7 +13,10 @@ namespace shared_future_continuation {
 
 using namespace std::literals;
 
-class SharedFutureThen: public ::testing::Test {};
+struct SharedFutureThen: ::testing::Test {
+  pc::promise<int> promise;
+  pc::shared_future<int> future = promise.get_future();
+};
 
 namespace tests {
 
@@ -21,15 +24,11 @@ template<typename T>
 void exception_from_continuation() {
   pc::promise<T> p;
   auto f = p.get_future().share();
-  ASSERT_TRUE(f.valid());
 
   pc::future<T> cont_f = f.then([](pc::shared_future<T>&& ready_f) -> T {
     EXPECT_TRUE(ready_f.is_ready());
     throw std::runtime_error("continuation error");
   });
-  EXPECT_TRUE(f.valid());
-  EXPECT_TRUE(cont_f.valid());
-  EXPECT_FALSE(cont_f.is_ready());
 
   set_promise_value(p);
   EXPECT_TRUE(cont_f.is_ready());
@@ -40,15 +39,11 @@ template<typename T>
 void continuation_call() {
   pc::promise<T> p;
   auto f = p.get_future().share();
-  ASSERT_TRUE(f.valid());
 
   pc::future<std::string> string_f = f.then([](pc::shared_future<T>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     return to_string(ready_f.get());
   });
-  EXPECT_TRUE(f.valid());
-  EXPECT_TRUE(string_f.valid());
-  EXPECT_FALSE(string_f.is_ready());
 
   p.set_value(some_value<T>());
   EXPECT_TRUE(string_f.is_ready());
@@ -58,15 +53,11 @@ void continuation_call() {
 template<typename T>
 void async_continuation_call() {
   auto f = set_value_in_other_thread<T>(25ms).share();
-  ASSERT_TRUE(f.valid());
 
   pc::future<std::string> string_f = f.then([](pc::shared_future<T>&& ready_f) {
     EXPECT_TRUE(ready_f.is_ready());
     return to_string(ready_f.get());
   });
-  EXPECT_TRUE(f.valid());
-  EXPECT_TRUE(string_f.valid());
-  EXPECT_FALSE(string_f.is_ready());
 
   EXPECT_EQ(string_f.get(), to_string(some_value<T>()));
 }
@@ -79,9 +70,6 @@ void ready_continuation_call() {
     EXPECT_TRUE(ready_f.is_ready());
     return to_string(ready_f.get());
   });
-  EXPECT_TRUE(f.valid());
-  EXPECT_TRUE(string_f.valid());
-  EXPECT_TRUE(string_f.is_ready());
 
   EXPECT_EQ(string_f.get(), to_string(some_value<T>()));
 }
@@ -98,9 +86,6 @@ void void_continuation() {
       executed = true;
     }
   );
-  EXPECT_TRUE(f.valid());
-  EXPECT_TRUE(void_f.valid());
-  EXPECT_FALSE(void_f.is_ready());
 
   EXPECT_NO_THROW(void_f.get());
   EXPECT_TRUE(executed);
@@ -118,9 +103,6 @@ void ready_void_continuation() {
       executed = true;
     }
   );
-  EXPECT_TRUE(f.valid());
-  EXPECT_TRUE(void_f.valid());
-  EXPECT_TRUE(void_f.is_ready());
 
   EXPECT_NO_THROW(void_f.get());
   EXPECT_TRUE(executed);
@@ -137,9 +119,6 @@ void exception_to_continuation() {
       return "Exception delivered"s;
     }
   );
-  EXPECT_TRUE(f.valid());
-  EXPECT_TRUE(string_f.valid());
-  EXPECT_FALSE(string_f.is_ready());
 
   EXPECT_EQ(string_f.get(), "Exception delivered"s);
 }
@@ -155,9 +134,6 @@ void exception_to_ready_continuation() {
       return "Exception delivered"s;
     }
   );
-  EXPECT_TRUE(f.valid());
-  EXPECT_TRUE(string_f.valid());
-  EXPECT_TRUE(string_f.is_ready());
 
   EXPECT_EQ(string_f.get(), "Exception delivered"s);
 }
@@ -174,9 +150,6 @@ void continuation_called_once() {
     EXPECT_TRUE(rf.is_ready());
     return to_string(rf.get());
   });
-  ASSERT_TRUE(cf.valid());
-  ASSERT_TRUE(sf1.valid());
-  ASSERT_TRUE(sf2.valid());
   EXPECT_EQ(0u, call_count);
 
   set_promise_value(p);
@@ -205,14 +178,12 @@ void multiple_continuations() {
     EXPECT_TRUE(rf.is_ready());
     return to_string(rf.get());
   });
-  ASSERT_TRUE(cf1.valid());
 
   pc::future<std::string> cf2 = sf2.then([&call_count2](pc::shared_future<T>&& rf) {
     ++call_count2;
     EXPECT_TRUE(rf.is_ready());
     return to_string(rf.get());
   });
-  ASSERT_TRUE(cf2.valid());
 
   EXPECT_EQ(call_count1.load(), 0u);
   EXPECT_EQ(call_count2.load(), 0u);
@@ -225,6 +196,27 @@ void multiple_continuations() {
 }
 
 } // namespace tests
+
+TEST_F(SharedFutureThen, future_remains_valid) {
+  future.then([](pc::shared_future<int> f) {return std::to_string(f.get());});
+  EXPECT_TRUE(future.valid());
+}
+
+TEST_F(SharedFutureThen, result_is_valid) {
+  pc::future<std::string> cnt_f = future.then([](pc::shared_future<int> f) {return std::to_string(f.get());});
+  EXPECT_TRUE(cnt_f.valid());
+}
+
+TEST_F(SharedFutureThen, result_is_not_ready_for_not_ready_source) {
+  pc::future<std::string> cnt_f = future.then([](pc::shared_future<int> f) {return std::to_string(f.get());});
+  EXPECT_FALSE(cnt_f.is_ready());
+}
+
+TEST_F(SharedFutureThen, result_is_ready_for_ready_source) {
+  promise.set_value(42);
+  pc::future<std::string> cnt_f = future.then([](pc::shared_future<int> f) {return std::to_string(f.get());});
+  EXPECT_TRUE(cnt_f.is_ready());
+}
 
 TEST_F(SharedFutureThen, exception_from_continuation) {tests::exception_from_continuation<int>();}
 TEST_F(SharedFutureThen, exception_to_continuation) {tests::exception_to_continuation<int>();}
