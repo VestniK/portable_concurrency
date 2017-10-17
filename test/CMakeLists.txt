@@ -7,8 +7,8 @@ set(SRC
   once_consumable_stack.cpp
   packaged_task.cpp
   promise.cpp
-  shared_future_continuation.cpp
   shared_future.cpp
+  shared_future_then.cpp
   test_tools.cpp
   type_erasure_owner.cpp
   unique_function.cpp
