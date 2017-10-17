@@ -25,7 +25,6 @@ conan remote add VestniK https://api.bintray.com/conan/vestnik/VestniK
 conan install --build=missing ${SRCDIR}
 
 cmake -G Ninja ${SRCDIR} \
-  -DCONAN=On \
   -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
   -DCONAN_LIBCXX=${LIBCXX} \
   -DCONAN_COMPILER=$(conan profile get settings.compiler default) \
