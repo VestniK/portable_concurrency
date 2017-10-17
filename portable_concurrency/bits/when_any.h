@@ -63,7 +63,7 @@ public:
   }
 
   when_any_result<Sequence>& value_ref() override {
-    assert(continuations_.is_consumed());
+    assert(continuations_.executed());
     return result_;
   }
 

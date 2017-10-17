@@ -22,7 +22,7 @@ public:
 
   void push(value_type cnt);
   void execute();
-  bool is_consumed() const;
+  bool executed() const;
   void wait();
   bool wait_for(std::chrono::nanoseconds timeout);
 
@@ -84,7 +84,7 @@ public:
   }
 
   std::add_lvalue_reference_t<state_storage_t<T>> value_ref() override {
-    assert(continuations_.is_consumed());
+    assert(continuations_.executed());
     return box_.get();
   }
 

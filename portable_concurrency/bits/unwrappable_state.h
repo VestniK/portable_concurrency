@@ -66,7 +66,7 @@ public:
   }
 
   future<T>& wrap_value_ref() {
-    assert(continuations_.is_consumed());
+    assert(continuations_.executed());
     return box_.get();
   }
 
@@ -78,7 +78,7 @@ public:
   }
 
   std::add_lvalue_reference_t<state_storage_t<T>> unwrap_value_ref() {
-    assert(unwraped_continuations_.is_consumed());
+    assert(unwraped_continuations_.executed());
     auto& inner_future = box_.get();
     if (!inner_future.valid())
       throw std::future_error(std::future_errc::broken_promise);
@@ -90,7 +90,7 @@ public:
 private:
   static
   void do_unwrap(const std::shared_ptr<shared_state<future<T>>>& self) {
-    assert(self->continuations_.is_consumed());
+    assert(self->continuations_.executed());
     if (!self->box_.get().valid()) {
       self->notify_unwrap();
       return;
@@ -100,7 +100,7 @@ private:
   }
 
   void notify_unwrap() {
-    assert(continuations_.is_consumed());
+    assert(continuations_.executed());
     unwraped_continuations_.execute();
   }
 

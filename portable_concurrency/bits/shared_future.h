@@ -60,7 +60,7 @@ public:
   bool is_ready() const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return state_->continuations().is_consumed();
+    return state_->continuations().executed();
   }
 
   template<typename F>

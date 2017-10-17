@@ -49,28 +49,26 @@ void continuations_stack::execute() {
     cnt();
 }
 
-bool continuations_stack::is_consumed() const {
+bool continuations_stack::executed() const {
   return stack_.is_consumed();
 }
 
 void continuations_stack::init_waiter() {
   std::call_once(waiter_init_, [this] {
     waiter_ = std::make_unique<waiter>();
-    unique_function<void()> cnt = std::ref(*waiter_);
-    if (!stack_.push(cnt))
-      cnt();
+    push(std::ref(*waiter_));
   });
 }
 
 void continuations_stack::wait() {
-  if (is_consumed())
+  if (executed())
     return;
   init_waiter();
   waiter_->wait();
 }
 
 bool continuations_stack::wait_for(std::chrono::nanoseconds timeout) {
-  if (is_consumed())
+  if (executed())
     return true;
   init_waiter();
   return waiter_->wait_for(timeout);
