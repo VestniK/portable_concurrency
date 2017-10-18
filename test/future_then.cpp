@@ -193,4 +193,12 @@ TEST_F(FutureThen, exception_from_unwrapped_continuation_propagate_to_returned_f
   EXPECT_RUNTIME_ERROR(cnt_f, "Ooups");
 }
 
+TEST_F(FutureThen, run_continuation_on_specific_executor) {
+  pc::future<std::thread::id> cnt_f = future.then(g_future_tests_env, [](pc::future<int>) {
+    return std::this_thread::get_id();
+  });
+  set_promise_value(promise);
+  EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
+}
+
 } // anonymous namespace

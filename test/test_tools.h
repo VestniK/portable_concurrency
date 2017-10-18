@@ -38,10 +38,25 @@ public:
 
   size_t threads_count() const {return workers_.size();}
 
+  bool uses_thread(std::thread::id id) const {
+    return std::find_if(
+      workers_.begin(), workers_.end(), [id](const std::thread& t) {return t.get_id() == id;}
+    ) != workers_.end();
+  }
+
 private:
   std::vector<std::thread> workers_;
   closable_queue<pc::unique_function<void()>> queue_;
 };
+
+namespace portable_concurrency {
+template<> struct is_executor<future_tests_env*>: std::true_type {};
+}
+
+template<typename F, typename... A>
+void post(future_tests_env* exec, F&& f, A&&... a) {
+  exec->run_async(std::forward<F>(f), std::forward<A>(a)...);
+}
 
 extern
 future_tests_env* g_future_tests_env;

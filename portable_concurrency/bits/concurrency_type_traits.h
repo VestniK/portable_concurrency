@@ -49,4 +49,9 @@ using continuation_result_t = std::result_of_t<Func(Future<T>)>;
 
 } // namespace detail
 } // inline namespace cxx14_v1
+
+// Intended to be specialized for user provided executor classes
+template<typename T>
+struct is_executor: std::false_type {};
+
 } // namespace portable_concurrency
