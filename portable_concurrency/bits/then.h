@@ -30,17 +30,11 @@ auto cnt_run(std::shared_ptr<cnt_data<T, R, F>> data) ->
   try {
     res = ::portable_concurrency::cxx14_v1::detail::invoke(std::move(data->func), std::move(data->parent));
   } catch(...) {
-    shared_state<R>::set_exception(
-      std::shared_ptr<shared_state<R>>{data, &data->state},
-      std::current_exception()
-    );
+    data->state.set_exception(std::current_exception());
     return;
   }
   if (!res.valid()) {
-    shared_state<R>::set_exception(
-      std::shared_ptr<shared_state<R>>{data, &data->state},
-      std::make_exception_ptr(std::future_error{std::future_errc::broken_promise})
-    );
+    data->state.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
     return;
   }
   auto& continuations = state_of(res)->continuations();

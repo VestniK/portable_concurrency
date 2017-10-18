@@ -67,16 +67,14 @@ public:
   shared_state(shared_state&&) = delete;
 
   template<typename... U>
-  static
-  void emplace(const std::shared_ptr<shared_state>& self, U&&... u) {
-    self->box_.emplace(std::forward<U>(u)...);
-    self->continuations_.execute();
+  void emplace(U&&... u) {
+    box_.emplace(std::forward<U>(u)...);
+    continuations_.execute();
   }
 
-  static
-  void set_exception(const std::shared_ptr<shared_state>& self, std::exception_ptr error) {
-    self->box_.set_exception(error);
-    self->continuations_.execute();
+  void set_exception(std::exception_ptr error) {
+    box_.set_exception(error);
+    continuations_.execute();
   }
 
   continuations_stack& continuations() override {

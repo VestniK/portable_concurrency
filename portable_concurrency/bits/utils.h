@@ -15,11 +15,11 @@ void set_state_value(const std::shared_ptr<shared_state<R>>& state, F&& f, A&&..
   try {
     auto&& res = ::portable_concurrency::cxx14_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
     executed = true;
-    shared_state<R>::emplace(state, std::move(res));
+    state->emplace(std::move(res));
   } catch (...) {
     if (executed)
       throw;
-    shared_state<R>::set_exception(state, std::current_exception());
+    state->set_exception(std::current_exception());
   }
 }
 
@@ -29,11 +29,11 @@ void set_state_value(const std::shared_ptr<shared_state<R&>>& state, F&& f, A&&.
   try {
     R& res = ::portable_concurrency::cxx14_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
     executed = true;
-    shared_state<R&>::emplace(state, res);
+    state->emplace(res);
   } catch (...) {
     if (executed)
       throw;
-    shared_state<R&>::set_exception(state, std::current_exception());
+    state->set_exception(std::current_exception());
   }
 }
 
@@ -43,11 +43,11 @@ void set_state_value(const std::shared_ptr<shared_state<void>>& state, F&& f, A&
   try {
     ::portable_concurrency::cxx14_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
     executed = true;
-    shared_state<void>::emplace(state);
+    state->emplace();
   } catch (...) {
     if (executed)
       throw;
-    shared_state<void>::set_exception(state, std::current_exception());
+    state->set_exception(std::current_exception());
   }
 }
 
