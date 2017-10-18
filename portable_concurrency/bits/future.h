@@ -15,12 +15,11 @@ inline namespace cxx14_v1 {
 
 template<typename T>
 class future {
+  static_assert(!detail::is_future<T>::value, "future<future<T>> and future<shared_future<T>> are not allowed");
 public:
   future() noexcept = default;
   future(future&&) noexcept = default;
   future(const future&) = delete;
-
-  future(future<future<T>>&& wrapped) noexcept;
 
   future& operator= (const future&) = delete;
   future& operator= (future&& rhs) noexcept = default;

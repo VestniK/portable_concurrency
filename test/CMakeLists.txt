@@ -12,7 +12,6 @@ set(SRC
   test_tools.cpp
   type_erasure_owner.cpp
   unique_function.cpp
-  unwrap_constructor.cpp
   when_all_tuple.cpp
   when_all_vector.cpp
   when_any_tuple.cpp
