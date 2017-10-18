@@ -16,6 +16,7 @@ extensions. Strict TS implementation is developed in the `strict-ts` branch.
 
  * future<future<T>>, future<shared_future<T>>, shared_future<future<T>> and shared_future<shared_future<T>> are not
    allowed.
+ * No packaged_task<R(A...)>::reset() method provided.
 
 ## Build
 

@@ -18,15 +18,21 @@ struct packaged_task_state {
   virtual ~packaged_task_state() = default;
 
   virtual void run(A...) = 0;
-  virtual future_state<R>* state() = 0;
+  virtual future_state<R>* take_state() = 0;
 };
 
 template<typename F, typename R, typename... A>
-struct task_state {
+struct task_state: packaged_task_state<R, A...> {
   task_state(F&& f): func(std::forward<F>(f)) {}
 
   void run(A... a) override {
-    ::portable_concurrency::cxx14_v1::detail::set_state_value(self, func, std::forward<A>(a)...);
+    ::portable_concurrency::cxx14_v1::detail::set_state_value(state, func, std::forward<A>(a)...);
+  }
+
+  future_state<R>* take_state() override {
+    if (std::exchange(state_taken, true))
+      return nullptr;
+    return &state;
   }
 
   std::decay_t<F> func;
@@ -43,7 +49,7 @@ public:
 
   template<typename F>
   explicit packaged_task(F&& f):
-    state_(new detail::task_state<F, R, A...>{std::forward<F>(f)})
+    state_(std::make_shared<detail::task_state<F, R, A...>>(std::forward<F>(f)))
   {}
 
   packaged_task(const packaged_task&) = delete;
@@ -59,19 +65,20 @@ public:
   future<R> get_future() {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    if (state_.use_count() != 1)
+    auto* state_ptr = state_->take_state();
+    if (!state_ptr)
       throw std::future_error(std::future_errc::future_already_retrieved);
-    return {std::static_pointer_cast<detail::shared_state<R>>(state_)};
+    return {std::shared_ptr<detail::future_state<R>>{state_, state_ptr}};
   }
 
   void operator() (A... a) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    state_->invoke(state_, a...);
+    state_->run(a...);
   }
 
 private:
-  std::shared_ptr<detail::task_state_base<R, A...>> state_;
+  std::shared_ptr<detail::packaged_task_state<R, A...>> state_;
 };
 
 } // inline namespace cxx14_v1

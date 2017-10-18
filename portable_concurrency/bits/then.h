@@ -39,10 +39,7 @@ auto cnt_run(std::shared_ptr<cnt_data<T, R, F>> data) ->
   }
   auto& continuations = state_of(res)->continuations();
   continuations.push([data = std::move(data), res = std::move(res)] () mutable {
-    set_state_value(
-      std::shared_ptr<shared_state<R>>{data, &data->state},
-      &res_t::get, std::move(res)
-    );
+    set_state_value(data->state, &res_t::get, std::move(res));
   });
 }
 
@@ -50,10 +47,7 @@ template<typename Future, typename T, typename R, typename F>
 auto cnt_run(std::shared_ptr<cnt_data<T, R, F>> data) ->
   std::enable_if_t<!is_unique_future<std::result_of_t<F(Future)>>::value>
 {
-  set_state_value(
-    std::shared_ptr<shared_state<R>>(data, &data->state),
-    std::move(data->func), Future{std::move(data->parent)}
-  );
+  set_state_value(data->state, std::move(data->func), Future{std::move(data->parent)});
 }
 
 template<template<typename> class Future, typename T, typename F>
