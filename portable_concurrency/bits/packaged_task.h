@@ -12,31 +12,26 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
 namespace detail {
+
 template<typename R, typename... A>
-class task_state_base: public shared_state<R> {
-public:
-  virtual void invoke(const std::shared_ptr<shared_state<R>>& self, A...) = 0;
-  virtual std::shared_ptr<task_state_base> reset() = 0;
+struct packaged_task_state {
+  virtual ~packaged_task_state() = default;
+
+  virtual void run(A...) = 0;
+  virtual future_state<R>* state() = 0;
 };
 
 template<typename F, typename R, typename... A>
-class task_state: public task_state_base<R, A...> {
-public:
-  template<typename U>
-  task_state(U&& f): func_(std::forward<U>(f)) {}
+struct task_state {
+  task_state(F&& f): func(std::forward<F>(f)) {}
 
-  void invoke(const std::shared_ptr<shared_state<R>>& self, A... a) override {
-    ::portable_concurrency::cxx14_v1::detail::set_state_value(self, func_, std::forward<A>(a)...);
+  void run(A... a) override {
+    ::portable_concurrency::cxx14_v1::detail::set_state_value(self, func, std::forward<A>(a)...);
   }
 
-  std::shared_ptr<task_state_base<R, A...>> reset() override {
-    return std::shared_ptr<task_state_base<R, A...>>{
-      new task_state{std::move(func_)}
-    };
-  }
-
-private:
-  std::decay_t<F> func_;
+  std::decay_t<F> func;
+  shared_state<R> state;
+  bool state_taken = false;
 };
 
 } // namespace detail
@@ -73,10 +68,6 @@ public:
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
     state_->invoke(state_, a...);
-  }
-
-  void reset() {
-    state_ = state_->reset();
   }
 
 private:
