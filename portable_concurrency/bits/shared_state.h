@@ -49,7 +49,6 @@ public:
 
   virtual continuations_stack& continuations() = 0;
   virtual std::add_lvalue_reference_t<state_storage_t<T>> value_ref() = 0;
-  virtual future_state<future<T>>* as_wrapped() {return nullptr;}
 };
 
 template<typename T>
