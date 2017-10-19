@@ -11,16 +11,7 @@ inline namespace cxx14_v1 {
 namespace detail {
 
 template<typename T, typename R, typename F, typename E>
-struct cnt_data {
-  std::decay_t<E> exec;
-  std::decay_t<F> func;
-  std::shared_ptr<future_state<T>> parent;
-  shared_state<R> state;
-
-  cnt_data(E&& exec, F&& func, const std::shared_ptr<future_state<T>>& parent):
-    exec(exec), func(std::forward<F>(func)), parent(parent)
-  {}
-};
+struct cnt_data;
 
 template<typename T, typename R, typename F>
 struct cnt_data<T, R, F, void> {
@@ -33,10 +24,20 @@ struct cnt_data<T, R, F, void> {
   {}
 };
 
+template<typename T, typename R, typename F, typename E>
+struct cnt_data: cnt_data<T, R, F, void> {
+  std::decay_t<E> exec;
+
+  cnt_data(E&& exec, F&& func, const std::shared_ptr<future_state<T>>& parent):
+    cnt_data<T, R, F, void>(std::forward<F>(func), parent),
+    exec(exec)
+  {}
+};
+
 template<typename Future, typename T, typename R, typename F, typename E>
-auto cnt_run(std::shared_ptr<cnt_data<T, R, F, E>> data) ->
-  std::enable_if_t<is_unique_future<std::result_of_t<F(Future)>>::value>
-{
+auto cnt_run(std::shared_ptr<cnt_data<T, R, F, E>> data) -> std::enable_if_t<
+  std::is_void<E>::value && is_unique_future<std::result_of_t<F(Future)>>::value
+> {
   using res_t = std::result_of_t<F(Future)>;
   res_t res;
   try {
@@ -56,19 +57,17 @@ auto cnt_run(std::shared_ptr<cnt_data<T, R, F, E>> data) ->
 }
 
 template<typename Future, typename T, typename R, typename F, typename E>
-auto cnt_run(std::shared_ptr<cnt_data<T, R, F, E>> data) ->
-  std::enable_if_t<!is_unique_future<std::result_of_t<F(Future)>>::value>
-{
-  post(std::move(data->exec), [data] {
-    set_state_value(data->state, std::move(data->func), Future{std::move(data->parent)});
-  });
+auto cnt_run(std::shared_ptr<cnt_data<T, R, F, void>> data) -> std::enable_if_t<
+  std::is_void<E>::value && !is_unique_future<std::result_of_t<F(Future)>>::value
+> {
+  set_state_value(data->state, std::move(data->func), Future{std::move(data->parent)});
 }
 
-template<typename Future, typename T, typename R, typename F>
-auto cnt_run(std::shared_ptr<cnt_data<T, R, F, void>> data) ->
-  std::enable_if_t<!is_unique_future<std::result_of_t<F(Future)>>::value>
-{
-  set_state_value(data->state, std::move(data->func), Future{std::move(data->parent)});
+template<typename Future, typename T, typename R, typename F, typename E>
+auto cnt_run(std::shared_ptr<cnt_data<T, R, F, E>> data) -> std::enable_if_t<
+  !std::is_void<E>::value
+> {
+  post(std::move(data->exec), [data]() mutable {cnt_run<Future, T, R, F, void>(std::move(data));});
 }
 
 template<template<typename> class Future, typename T, typename F>
@@ -80,7 +79,7 @@ auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
   auto data = std::make_shared<cnt_data<T, R, F, void>>(
     std::forward<F>(f), std::move(parent)
   );
-  data->parent->continuations().push([data]{cnt_run<Future<T>>(std::move(data));});
+  data->parent->continuations().push([data]() mutable {cnt_run<Future<T>, T, R, F, void>(std::move(data));});
   return std::shared_ptr<future_state<R>>{data, &data->state};
 }
 
@@ -93,7 +92,7 @@ auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
   auto data = std::make_shared<cnt_data<T, R, F, E>>(
     std::forward<E>(exec), std::forward<F>(f), std::move(parent)
   );
-  data->parent->continuations().push([data]{cnt_run<Future<T>>(std::move(data));});
+  data->parent->continuations().push([data]{cnt_run<Future<T>, T, R, F, E>(std::move(data));});
   return std::shared_ptr<future_state<R>>{data, &data->state};
 }
 

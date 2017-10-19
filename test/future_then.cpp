@@ -201,4 +201,12 @@ TEST_F(FutureThen, run_continuation_on_specific_executor) {
   EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
 }
 
+TEST_F(FutureThen, run_unwrapped_continuation_on_specific_executor) {
+  pc::future<std::thread::id> cnt_f = future.then(g_future_tests_env, [](pc::future<int>) {
+    return pc::make_ready_future(std::this_thread::get_id());
+  });
+  set_promise_value(promise);
+  EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
+}
+
 } // anonymous namespace

@@ -282,5 +282,13 @@ TEST_F(SharedFutureThen, run_continuation_on_specific_executor) {
   EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
 }
 
+TEST_F(SharedFutureThen, run_unwrapped_continuation_on_specific_executor) {
+  pc::future<std::thread::id> cnt_f = future.then(g_future_tests_env, [](pc::shared_future<int>) {
+    return pc::make_ready_future(std::this_thread::get_id());
+  });
+  set_promise_value(promise);
+  EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
+}
+
 } // namespace shared_future_continuation
 } // anonymous namespace
