@@ -68,7 +68,7 @@ public:
   }
 
   template<typename F>
-  future<detail::remove_future_t<detail::continuation_result_t<portable_concurrency::cxx14_v1::shared_future, F, T>>>
+  future<detail::remove_future_t<detail::then_result_t<portable_concurrency::cxx14_v1::shared_future, F, T>>>
   then(F&& f) {
     return detail::make_then_state<portable_concurrency::cxx14_v1::shared_future, T, F>(
       state_, std::forward<F>(f)
@@ -78,7 +78,7 @@ public:
   template<typename E, typename F>
   auto then(E&& exec, F&& f) -> std::enable_if_t<
     is_executor<std::decay_t<E>>::value,
-    future<detail::remove_future_t<detail::continuation_result_t<portable_concurrency::cxx14_v1::future, F, T>>>
+    future<detail::remove_future_t<detail::then_result_t<portable_concurrency::cxx14_v1::future, F, T>>>
   > {
     return detail::make_then_state<portable_concurrency::cxx14_v1::future, T, E, F>(
       std::move(state_), std::forward<E>(exec), std::forward<F>(f)
