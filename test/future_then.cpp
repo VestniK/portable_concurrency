@@ -209,4 +209,10 @@ TEST_F(FutureThen, run_unwrapped_continuation_on_specific_executor) {
   EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
 }
 
+TEST_F(FutureThen, next_continuation_receives_value) {
+  pc::future<std::string> cnt_f = future.next([](int val) {return std::to_string(val);});
+  promise.set_value(42);
+  EXPECT_EQ(cnt_f.get(), "42");
+}
+
 } // anonymous namespace

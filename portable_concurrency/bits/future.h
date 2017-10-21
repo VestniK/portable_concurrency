@@ -85,6 +85,11 @@ public:
     );
   }
 
+  template<typename F>
+  future<detail::remove_future_t<detail::next_result_t<F, T>>> next(F&& f) {
+    return detail::make_next_state<T, F>(std::move(state_), std::forward<F>(f));
+  }
+
   // implementation detail
   future(std::shared_ptr<detail::future_state<T>>&& state) noexcept:
     state_(std::move(state))
