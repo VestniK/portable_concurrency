@@ -75,8 +75,7 @@ template<template<typename> class Future, typename T, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
   using CntRes = then_result_t<Future, F, T>;
   using R = remove_future_t<CntRes>;
-  if (!parent)
-    throw std::future_error(std::future_errc::no_state);
+
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, void>>(
     std::forward<F>(f), std::move(parent)
   );
@@ -90,8 +89,7 @@ template<template<typename> class Future, typename T, typename E, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
   using CntRes = then_result_t<Future, F, T>;
   using R = remove_future_t<CntRes>;
-  if (!parent)
-    throw std::future_error(std::future_errc::no_state);
+
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>(
     std::forward<E>(exec), std::forward<F>(f), std::move(parent)
   );
@@ -110,8 +108,7 @@ template<typename T, typename F>
 auto make_next_state(std::shared_ptr<future_state<T>> parent, F&& f) {
   using CntRes = next_result_t<F, T>;
   using R = remove_future_t<CntRes>;
-  if (!parent)
-    throw std::future_error(std::future_errc::no_state);
+
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, void>>(
     std::forward<F>(f), std::move(parent)
   );

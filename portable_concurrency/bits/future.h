@@ -70,6 +70,8 @@ public:
   template<typename F>
   future<detail::remove_future_t<detail::then_result_t<portable_concurrency::cxx14_v1::future, F, T>>>
   then(F&& f) {
+    if (!state_)
+      throw std::future_error(std::future_errc::no_state);
     return detail::make_then_state<portable_concurrency::cxx14_v1::future, T, F>(
       std::move(state_), std::forward<F>(f)
     );
@@ -80,6 +82,8 @@ public:
     is_executor<std::decay_t<E>>::value,
     future<detail::remove_future_t<detail::then_result_t<portable_concurrency::cxx14_v1::future, F, T>>>
   > {
+    if (!state_)
+      throw std::future_error(std::future_errc::no_state);
     return detail::make_then_state<portable_concurrency::cxx14_v1::future, T, E, F>(
       std::move(state_), std::forward<E>(exec), std::forward<F>(f)
     );
@@ -87,6 +91,8 @@ public:
 
   template<typename F>
   future<detail::remove_future_t<detail::next_result_t<F, T>>> next(F&& f) {
+    if (!state_)
+      throw std::future_error(std::future_errc::no_state);
     return detail::make_next_state<T, F>(std::move(state_), std::forward<F>(f));
   }
 
