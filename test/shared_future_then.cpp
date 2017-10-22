@@ -264,6 +264,16 @@ TEST_F(SharedFutureThen, unwrapped_future_carries_broken_promise_for_invalid_res
   EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
 }
 
+TEST_F(SharedFutureThen, unwrapped_future_propagates_inner_future_error) {
+  pc::promise<void> inner_promise;
+  pc::future<void> cnt_f = future.then([&](pc::shared_future<int>) {
+    return inner_promise.get_future();
+  });
+  set_promise_value(promise);
+  inner_promise.set_exception(std::make_exception_ptr(std::runtime_error{"Ooups"}));
+  EXPECT_RUNTIME_ERROR(cnt_f, "Ooups");
+}
+
 TEST_F(SharedFutureThen, exception_from_unwrapped_continuation_propagate_to_returned_future) {
   pc::future<std::unique_ptr<int>> cnt_f = future.then([](pc::shared_future<int>)
     -> pc::future<std::unique_ptr<int>>
