@@ -215,4 +215,17 @@ TEST_F(FutureThen, next_continuation_receives_value) {
   EXPECT_EQ(cnt_f.get(), "42");
 }
 
+TEST_F(FutureThen, next_continuation_is_not_called_in_case_of_exception) {
+  unsigned call_count = 0;
+  pc::future<void> cnt_f = future.next([&call_count](int) {++call_count;});
+  promise.set_exception(std::make_exception_ptr(std::runtime_error{"Ooups"}));
+  EXPECT_EQ(call_count, 0u);
+}
+
+TEST_F(FutureThen, exception_propagated_to_result_of_next) {
+  pc::future<void> cnt_f = future.next([](int) {});
+  promise.set_exception(std::make_exception_ptr(std::runtime_error{"Ooups"}));
+  EXPECT_RUNTIME_ERROR(cnt_f, "Ooups");
+}
+
 } // anonymous namespace

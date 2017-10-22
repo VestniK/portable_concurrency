@@ -101,6 +101,10 @@ auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
 
 template<typename T, typename R, typename F>
 void next_run(std::shared_ptr<cnt_data<T, R, F, void>> data) {
+  if (auto error = data->parent->exception()) {
+    data->state.set_exception(std::move(error));
+    return;
+  }
   set_state_value(data->state, std::move(data->func), std::move(data->parent->value_ref()));
 }
 

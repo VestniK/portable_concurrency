@@ -54,6 +54,13 @@ public:
     return value_;
   }
 
+  std::exception_ptr exception() const noexcept {
+    assert(state_ != box_state::empty);
+    if (state_ != box_state::exception)
+      return  nullptr;
+    return error_;
+  }
+
 private:
   box_state state_ = box_state::empty;
   union {
@@ -77,6 +84,7 @@ public:
   void set_exception(std::exception_ptr error);
   box_state get_state() const noexcept {return state_;}
   void get();
+  std::exception_ptr exception() const noexcept;
 
 private:
   box_state state_ = box_state::empty;

@@ -48,7 +48,10 @@ public:
   virtual ~future_state() = default;
 
   virtual continuations_stack& continuations() = 0;
+  // throws stored exception if there is no value
   virtual std::add_lvalue_reference_t<state_storage_t<T>> value_ref() = 0;
+  // returns nullptr if there is no error
+  virtual std::exception_ptr exception() const = 0;
 };
 
 template<typename T>
@@ -83,6 +86,11 @@ public:
   std::add_lvalue_reference_t<state_storage_t<T>> value_ref() override {
     assert(continuations_.executed());
     return box_.get();
+  }
+
+  std::exception_ptr exception() const override {
+    assert(continuations_.executed());
+    return  box_.exception();
   }
 
 private:

@@ -67,6 +67,11 @@ public:
     return result_;
   }
 
+  std::exception_ptr exception() const override {
+    assert(continuations_.executed());
+    return nullptr;
+  }
+
 private:
   when_any_result<Sequence> result_;
   std::atomic_flag ready_flag_ = ATOMIC_FLAG_INIT;

@@ -103,6 +103,13 @@ void result_box<void>::get() {
     std::rethrow_exception(error_);
 }
 
+std::exception_ptr result_box<void>::exception() const noexcept {
+  assert(state_ != box_state::empty);
+  if (state_ != box_state::exception)
+    return nullptr;
+  return error_;
+}
+
 } // namespace detail
 
 void latch::count_down_and_wait() {

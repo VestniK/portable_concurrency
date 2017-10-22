@@ -58,6 +58,11 @@ public:
     return futures_;
   }
 
+  std::exception_ptr exception() const override {
+    assert(continuations_.executed());
+    return nullptr;
+  }
+
 private:
   Sequence futures_;
   std::atomic<size_t> operations_remains_;
