@@ -255,4 +255,12 @@ TEST_F(FutureThen, next_is_executed_for_ref_future) {
   EXPECT_EQ(cnt_f.get(), &a);
 }
 
+TEST_F(FutureThen, next_continuation_executed_on_specified_executor) {
+  pc::future<std::thread::id> cnt_f = future.next(g_future_tests_env, [](int) {
+    return std::this_thread::get_id();
+  });
+  promise.set_value(42);
+  EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
+}
+
 } // anonymous namespace
