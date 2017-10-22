@@ -238,4 +238,21 @@ TEST_F(FutureThen, exception_propagated_to_result_of_next) {
   EXPECT_RUNTIME_ERROR(cnt_f, "Ooups");
 }
 
+TEST_F(FutureThen, next_is_executed_for_void_future) {
+  pc::promise<void> void_promise;
+  pc::future<void> void_future = void_promise.get_future();
+  pc::future<int> cnt_f = void_future.next([]() {return 42;});
+  void_promise.set_value();
+  EXPECT_EQ(cnt_f.get(), 42);
+}
+
+TEST_F(FutureThen, next_is_executed_for_ref_future) {
+  pc::promise<int&> ref_promise;
+  pc::future<int&> ref_future = ref_promise.get_future();
+  pc::future<int*> cnt_f = ref_future.next([](int& val) {return &val;});
+  int a = 42;
+  ref_promise.set_value(a);
+  EXPECT_EQ(cnt_f.get(), &a);
+}
+
 } // anonymous namespace

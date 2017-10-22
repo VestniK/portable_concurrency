@@ -108,6 +108,15 @@ void next_run(std::shared_ptr<cnt_data<T, R, F, void>> data) {
   set_state_value(data->state, std::move(data->func), std::move(data->parent->value_ref()));
 }
 
+template<typename R, typename F>
+void next_run(std::shared_ptr<cnt_data<void, R, F, void>> data) {
+  if (auto error = data->parent->exception()) {
+    data->state.set_exception(std::move(error));
+    return;
+  }
+  set_state_value(data->state, std::move(data->func));
+}
+
 template<typename T, typename F>
 auto make_next_state(std::shared_ptr<future_state<T>> parent, F&& f) {
   using CntRes = next_result_t<F, T>;
@@ -117,7 +126,7 @@ auto make_next_state(std::shared_ptr<future_state<T>> parent, F&& f) {
     std::forward<F>(f), std::move(parent)
   );
   data->parent->continuations().push([data]() mutable {
-    next_run<T, R, std::decay_t<F>>(std::move(data));
+    next_run(std::move(data));
   });
   return std::shared_ptr<future_state<R>>{data, &data->state};
 }
