@@ -19,6 +19,7 @@ struct packaged_task_state {
 
   virtual void run(A...) = 0;
   virtual future_state<R>* take_state() = 0;
+  virtual void abandon() = 0;
 };
 
 template<typename F, typename R, typename... A>
@@ -35,6 +36,11 @@ struct task_state: packaged_task_state<R, A...> {
     return &state;
   }
 
+  void abandon() override {
+    if (!state.continuations().executed())
+      state.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+  };
+
   std::decay_t<F> func;
   shared_state<R> state;
   bool state_taken = false;
@@ -46,6 +52,10 @@ template<typename R, typename... A>
 class packaged_task<R(A...)> {
 public:
   packaged_task() noexcept = default;
+  ~packaged_task() {
+    if (state_)
+      state_->abandon();
+  }
 
   template<typename F>
   explicit packaged_task(F&& f):

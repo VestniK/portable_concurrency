@@ -221,4 +221,15 @@ TYPED_TEST(PackagedTaskTest, moveonly_functor_task) {tests::moveonly_functor_tas
 TYPED_TEST(PackagedTaskTest, one_param_task) {tests::one_param_task<TypeParam>();}
 TYPED_TEST(PackagedTaskTest, two_param_task) {tests::two_param_task<TypeParam>();}
 
+TYPED_TEST(PackagedTaskTest, abandoned_task_sets_proper_error) {
+  pc::future<TypeParam> future;
+  {
+    pc::packaged_task<TypeParam(int, const std::string&)> task{[](int, const std::string&) -> TypeParam {
+      return some_value<TypeParam>();
+    }};
+    future = task.get_future();
+  }
+  EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
+}
+
 } // anonymous namespace
