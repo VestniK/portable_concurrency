@@ -6,6 +6,7 @@ set(HEADERS
   latch
 
   bits/alias_namespace.h
+  bits/align.h
   bits/concurrency_type_traits.h
   bits/future.h
   bits/future_sequence.h

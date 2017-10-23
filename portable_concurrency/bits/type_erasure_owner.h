@@ -6,6 +6,8 @@
 #include <memory>
 #include <type_traits>
 
+#include "align.h"
+
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
@@ -57,7 +59,7 @@ public:
     constexpr size_t max_align_offset = (alignof(T) - Align%alignof(T))%alignof(T);
     void* ptr = &embeded_buf_;
     size_t space = Len;
-    void* obj_start = std::align(alignof(T), sizeof(T), ptr, space);
+    void* obj_start = align(alignof(T), sizeof(T), ptr, space);
     if (
       std::is_nothrow_move_constructible<T>::value &&
       std::is_nothrow_destructible<T>::value &&
@@ -109,7 +111,7 @@ template<typename Iface, typename Impl>
 class move_erased: public Iface {
 public:
   Iface* move_to(void* location, size_t space) noexcept final {
-    void* obj_start = std::align(alignof(Impl), sizeof(Impl), location, space);
+    void* obj_start = align(alignof(Impl), sizeof(Impl), location, space);
     assert(obj_start);
     return new(obj_start) Impl{std::move(*static_cast<Impl*>(this))};
   }

@@ -1,3 +1,4 @@
+#include "align.h"
 #include "latch.h"
 #include "make_future.h"
 #include "once_consumable_stack.h"
@@ -109,6 +110,21 @@ std::exception_ptr result_box<void>::exception() const noexcept {
     return nullptr;
   return error_;
 }
+
+#if defined(__GNUC__ ) && __GNUC__ < 5
+
+// https://stackoverflow.com/a/37679065/128774 with fix of integer overflow
+void* align(std::size_t alignment, std::size_t size, void*& ptr, std::size_t& space) {
+  std::uintptr_t pn = reinterpret_cast<std::uintptr_t>(ptr);
+  std::uintptr_t aligned = (pn + alignment - 1) & -alignment;
+  std::size_t padding = aligned - pn;
+  if (space < size + padding)
+    return nullptr;
+  space -= padding;
+  return ptr = reinterpret_cast<void*>(aligned);
+}
+
+#endif
 
 } // namespace detail
 

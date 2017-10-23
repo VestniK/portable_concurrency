@@ -11,10 +11,10 @@
 
 namespace {
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || (defined(__GNUC__) && __GNUC__ < 5)
 template<typename Iface, template<typename> class Adapter, typename... T>
 struct type_erasure_owner_t_helper {
-#if _MSC_VER > 1900
+#if defined(_MSC_VER) && (_MSC_VER > 1900)
   static constexpr size_t storage_size = std::max(std::initializer_list<size_t>{sizeof(Adapter<T>)...});
   static constexpr size_t storage_align = std::max(std::initializer_list<size_t>{alignof(Adapter<T>)...});
 #else
@@ -115,7 +115,7 @@ TEST(TypeErasureOwner, second_enlisted_type_is_embeded) {
 
 TEST(TypeErasureOwner, small_type_is_embeded) {
   static_assert(
-    sizeof(double) < sizeof(std::string),
+    sizeof(double) <= sizeof(std::string),
     "Test assumptions on types size are not satisfied"
   );
   static_assert(
@@ -194,7 +194,7 @@ TEST(TypeErasureOwner, move_second_enlisted_type) {
 
 TEST(TypeErasureOwner, move_small_type) {
   static_assert(
-    sizeof(double) < sizeof(std::string),
+    sizeof(double) <= sizeof(std::string),
     "Test assumptions on types size are not satisfied"
   );
   static_assert(

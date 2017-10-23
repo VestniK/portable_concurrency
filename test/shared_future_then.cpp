@@ -116,11 +116,11 @@ void exception_to_continuation() {
     [](pc::shared_future<T>&& ready_f) {
       EXPECT_TRUE(ready_f.is_ready());
       EXPECT_RUNTIME_ERROR(ready_f, "test error");
-      return "Exception delivered"s;
+      return std::string{"Exception delivered"};
     }
   );
 
-  EXPECT_EQ(string_f.get(), "Exception delivered"s);
+  EXPECT_EQ(string_f.get(), "Exception delivered");
 }
 
 template<typename T>
@@ -131,11 +131,11 @@ void exception_to_ready_continuation() {
     [](pc::shared_future<T>&& ready_f) {
       EXPECT_TRUE(ready_f.is_ready());
       EXPECT_RUNTIME_ERROR(ready_f, "test error");
-      return "Exception delivered"s;
+      return std::string{"Exception delivered"};
     }
   );
 
-  EXPECT_EQ(string_f.get(), "Exception delivered"s);
+  EXPECT_EQ(string_f.get(), "Exception delivered");
 }
 
 template<typename T>
