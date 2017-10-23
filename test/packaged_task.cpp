@@ -14,7 +14,7 @@ namespace {
 
 template<typename T>
 class PackagedTaskTest: public ::testing::Test {};
-TYPED_TEST_CASE_P(PackagedTaskTest);
+TYPED_TEST_CASE(PackagedTaskTest, TestTypes);
 
 namespace tests {
 
@@ -206,42 +206,19 @@ void two_param_task() {
 
 } // namespace tests
 
-TYPED_TEST_P(PackagedTaskTest, default_constructed_is_invalid) {tests::default_constructed_is_invalid<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, moved_to_constructor_is_invalid) {tests::moved_to_constructor_is_invalid<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, moved_to_assigment_is_invalid) {tests::moved_to_assigment_is_invalid<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, swap_valid_task_with_invalid) {tests::swap_valid_task_with_invalid<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, get_task_future_twice) {tests::get_task_future_twice<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, successfull_call_makes_state_ready) {tests::successfull_call_makes_state_ready<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, failed_call_makes_state_ready) {tests::failed_call_makes_state_ready<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, swap_valid_tasks) {tests::swap_valid_tasks<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, call_task_twice) {tests::call_task_twice<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, function_task) {tests::function_task<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, copyable_functor_task) {tests::copyable_functor_task<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, moveonly_functor_task) {tests::moveonly_functor_task<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, one_param_task) {tests::one_param_task<TypeParam>();}
-TYPED_TEST_P(PackagedTaskTest, two_param_task) {tests::two_param_task<TypeParam>();}
-REGISTER_TYPED_TEST_CASE_P(
-  PackagedTaskTest,
-  default_constructed_is_invalid,
-  moved_to_constructor_is_invalid,
-  moved_to_assigment_is_invalid,
-  swap_valid_task_with_invalid,
-  get_task_future_twice,
-  successfull_call_makes_state_ready,
-  failed_call_makes_state_ready,
-  swap_valid_tasks,
-  call_task_twice,
-  function_task,
-  copyable_functor_task,
-  moveonly_functor_task,
-  one_param_task,
-  two_param_task
-);
-
-INSTANTIATE_TYPED_TEST_CASE_P(VoidType, PackagedTaskTest, void);
-INSTANTIATE_TYPED_TEST_CASE_P(PrimitiveType, PackagedTaskTest, int);
-INSTANTIATE_TYPED_TEST_CASE_P(CopyableType, PackagedTaskTest, std::string);
-INSTANTIATE_TYPED_TEST_CASE_P(MoveableType, PackagedTaskTest, std::unique_ptr<int>);
-INSTANTIATE_TYPED_TEST_CASE_P(ReferenceType, PackagedTaskTest, future_tests_env&);
+TYPED_TEST(PackagedTaskTest, default_constructed_is_invalid) {tests::default_constructed_is_invalid<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, moved_to_constructor_is_invalid) {tests::moved_to_constructor_is_invalid<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, moved_to_assigment_is_invalid) {tests::moved_to_assigment_is_invalid<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, swap_valid_task_with_invalid) {tests::swap_valid_task_with_invalid<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, get_task_future_twice) {tests::get_task_future_twice<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, successfull_call_makes_state_ready) {tests::successfull_call_makes_state_ready<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, failed_call_makes_state_ready) {tests::failed_call_makes_state_ready<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, swap_valid_tasks) {tests::swap_valid_tasks<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, call_task_twice) {tests::call_task_twice<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, function_task) {tests::function_task<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, copyable_functor_task) {tests::copyable_functor_task<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, moveonly_functor_task) {tests::moveonly_functor_task<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, one_param_task) {tests::one_param_task<TypeParam>();}
+TYPED_TEST(PackagedTaskTest, two_param_task) {tests::two_param_task<TypeParam>();}
 
 } // anonymous namespace

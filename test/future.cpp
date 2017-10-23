@@ -291,7 +291,9 @@ TYPED_TEST(FutureTests, wait_until_awakes_on_error) {
 }
 
 template<typename T>
-void test_ready_future_maker() {static_assert(sizeof(T) == 0, "test_ready_future_maker<T> is deleted");} // = delete; in C++ but not in clang++
+void test_ready_future_maker() {
+  static_assert(sizeof(T) == 0, "test_ready_future_maker<T> is deleted");
+} // = delete; in C++ but not in clang++
 
 template<>
 void test_ready_future_maker<int>() {

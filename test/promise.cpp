@@ -11,8 +11,8 @@
 namespace {
 
 template<typename T>
-class PromiseTest: public ::testing::Test {};
-TYPED_TEST_CASE_P(PromiseTest);
+struct PromiseTest: ::testing::Test {};
+TYPED_TEST_CASE(PromiseTest, TestTypes);
 
 namespace tests {
 
@@ -119,26 +119,11 @@ void set_value_twice_after_value_taken<void>() {
 
 } // namespace tests
 
-TYPED_TEST_P(PromiseTest, get_future_twice) {tests::get_future_twice<TypeParam>();}
-TYPED_TEST_P(PromiseTest, set_val_on_promise_without_future) {tests::set_val_on_promise_without_future<TypeParam>();}
-TYPED_TEST_P(PromiseTest, set_err_on_promise_without_future) {tests::set_err_on_promise_without_future<TypeParam>();}
-TYPED_TEST_P(PromiseTest, set_value_twice_without_future) {tests::set_value_twice_without_future<TypeParam>();}
-TYPED_TEST_P(PromiseTest, set_value_twice_with_future) {tests::set_value_twice_with_future<TypeParam>();}
-TYPED_TEST_P(PromiseTest, set_value_twice_after_value_taken) {tests::set_value_twice_after_value_taken<TypeParam>();}
-REGISTER_TYPED_TEST_CASE_P(
-  PromiseTest,
-  get_future_twice,
-  set_val_on_promise_without_future,
-  set_err_on_promise_without_future,
-  set_value_twice_without_future,
-  set_value_twice_with_future,
-  set_value_twice_after_value_taken
-);
-
-INSTANTIATE_TYPED_TEST_CASE_P(VoidType, PromiseTest, void);
-INSTANTIATE_TYPED_TEST_CASE_P(PrimitiveType, PromiseTest, int);
-INSTANTIATE_TYPED_TEST_CASE_P(CopyableType, PromiseTest, std::string);
-INSTANTIATE_TYPED_TEST_CASE_P(MoveableType, PromiseTest, std::unique_ptr<int>);
-INSTANTIATE_TYPED_TEST_CASE_P(ReferenceType, PromiseTest, future_tests_env&);
+TYPED_TEST(PromiseTest, get_future_twice) {tests::get_future_twice<TypeParam>();}
+TYPED_TEST(PromiseTest, set_val_on_promise_without_future) {tests::set_val_on_promise_without_future<TypeParam>();}
+TYPED_TEST(PromiseTest, set_err_on_promise_without_future) {tests::set_err_on_promise_without_future<TypeParam>();}
+TYPED_TEST(PromiseTest, set_value_twice_without_future) {tests::set_value_twice_without_future<TypeParam>();}
+TYPED_TEST(PromiseTest, set_value_twice_with_future) {tests::set_value_twice_with_future<TypeParam>();}
+TYPED_TEST(PromiseTest, set_value_twice_after_value_taken) {tests::set_value_twice_after_value_taken<TypeParam>();}
 
 } // anonymous namespace
