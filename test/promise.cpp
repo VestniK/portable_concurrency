@@ -126,4 +126,13 @@ TYPED_TEST(PromiseTest, set_value_twice_without_future) {tests::set_value_twice_
 TYPED_TEST(PromiseTest, set_value_twice_with_future) {tests::set_value_twice_with_future<TypeParam>();}
 TYPED_TEST(PromiseTest, set_value_twice_after_value_taken) {tests::set_value_twice_after_value_taken<TypeParam>();}
 
+TYPED_TEST(PromiseTest, abandon_promise_set_proper_error) {
+  pc::future<TypeParam> future;
+  {
+    pc::promise<TypeParam> promise;
+    future = promise.get_future();
+  }
+  EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
+}
+
 } // anonymous namespace

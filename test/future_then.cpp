@@ -150,8 +150,8 @@ TEST_F(FutureThen, exception_to_ready_continuation) {
 
 TEST_F(FutureThen, implicitly_unwrapps_futures) {
   pc::promise<void> inner_promise;
-  auto cnt_f = future.then([&](pc::future<int>) {
-    return inner_promise.get_future();
+  auto cnt_f = future.then([inner_future = inner_promise.get_future()](pc::future<int>) mutable {
+    return std::move(inner_future);
   });
   static_assert(std::is_same<decltype(cnt_f), pc::future<void>>::value, "");
 }

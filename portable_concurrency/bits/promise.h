@@ -23,6 +23,15 @@ protected:
   std::shared_ptr<shared_state<T>> get_state_ptr() {return {state_, &state_->state};}
 
 public:
+  promise_base() = default;
+  ~promise_base() {
+    if (state_ && !state_->state.continuations().executed())
+      state_->state.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+  }
+
+  promise_base(promise_base&&) noexcept = default;
+  promise_base& operator= (promise_base&&) noexcept = default;
+
   future<T> get_future() {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
@@ -48,7 +57,7 @@ public:
   promise(const promise&) = delete;
 
   promise& operator= (const promise&) = delete;
-  promise& operator= (promise&& rhs) noexcept;
+  promise& operator= (promise&& rhs) noexcept = default;
 
   ~promise() = default;
 
@@ -73,7 +82,7 @@ public:
   promise(const promise&) = delete;
 
   promise& operator= (const promise&) = delete;
-  promise& operator= (promise&& rhs) noexcept;
+  promise& operator= (promise&& rhs) noexcept = default;
 
   ~promise() = default;
 

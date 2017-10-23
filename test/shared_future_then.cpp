@@ -231,8 +231,8 @@ TEST_F(SharedFutureThen, multiple_continuations) {tests::multiple_continuations<
 
 TEST_F(SharedFutureThen, implicitly_unwrapps_futures) {
   pc::promise<void> inner_promise;
-  auto cnt_f = future.then([&](pc::shared_future<int>) {
-    return inner_promise.get_future();
+  auto cnt_f = future.then([inner_future = inner_promise.get_future()](pc::shared_future<int>) mutable {
+    return std::move(inner_future);
   });
   static_assert(std::is_same<decltype(cnt_f), pc::future<void>>::value, "");
 }
