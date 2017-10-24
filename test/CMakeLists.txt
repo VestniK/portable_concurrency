@@ -2,6 +2,7 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
 set(SRC
+  cancelation.cpp
   future.cpp
   future_then.cpp
   once_consumable_stack.cpp

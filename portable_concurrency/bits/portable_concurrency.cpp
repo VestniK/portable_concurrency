@@ -167,12 +167,6 @@ future<void> make_ready_future() {
   return promise.get_future();
 }
 
-void promise<void>::set_value() {
-  if (!this->state_)
-    throw std::future_error(std::future_errc::no_state);
-  this->state_->state.emplace();
-}
-
 future<std::tuple<>> when_all() {
   return make_ready_future(std::tuple<>{});
 }

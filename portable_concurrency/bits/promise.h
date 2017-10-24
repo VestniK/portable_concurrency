@@ -14,36 +14,37 @@ namespace detail {
 template<typename T>
 class promise_base {
 protected:
-  struct promise_state {
-    shared_state<T> state;
-    bool future_retreived = false;
-  };
-  std::shared_ptr<promise_state> state_ = std::make_shared<promise_state>();
-
-  std::shared_ptr<shared_state<T>> get_state_ptr() {return {state_, &state_->state};}
+  std::weak_ptr<shared_state<T>> state_;
+  std::shared_ptr<future_state<T>> future_state_;
 
 public:
-  promise_base() = default;
+  promise_base() {
+    auto state = std::make_shared<shared_state<T>>();
+    future_state_ = state;
+    state_ = std::move(state);
+  }
   ~promise_base() {
-    if (state_ && !state_->state.continuations().executed())
-      state_->state.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+    auto state = state_.lock();
+    if (state && !state->continuations().executed())
+      state->set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
   }
 
   promise_base(promise_base&&) noexcept = default;
   promise_base& operator= (promise_base&&) noexcept = default;
 
   future<T> get_future() {
-    if (!state_)
+    if (!future_state_ && !state_.lock())
       throw std::future_error(std::future_errc::no_state);
-    if (std::exchange(state_->future_retreived, true) != false)
+    if (!future_state_)
       throw std::future_error(std::future_errc::future_already_retrieved);
-    return {get_state_ptr()};
+    return {std::move(future_state_)};
   }
 
   void set_exception(std::exception_ptr error) {
-    if (!state_)
+    auto state = state_.lock();
+    if (!state)
       throw std::future_error(std::future_errc::no_state);
-    state_->state.set_exception(error);
+    state->set_exception(error);
   }
 };
 
@@ -62,15 +63,17 @@ public:
   ~promise() = default;
 
   void set_value(const T& val) {
-    if (!this->state_)
+    auto state = this->state_.lock();
+    if (!state)
       throw std::future_error(std::future_errc::no_state);
-    this->state_->state.emplace(val);
+    state->emplace(val);
   }
 
   void set_value(T&& val) {
-    if (!this->state_)
+    auto state = this->state_.lock();
+    if (!state)
       throw std::future_error(std::future_errc::no_state);
-    this->state_->state.emplace(std::move(val));
+    state->emplace(std::move(val));
   }
 };
 
@@ -87,9 +90,10 @@ public:
   ~promise() = default;
 
   void set_value(T& val) {
-    if (!this->state_)
+    auto state = this->state_.lock();
+    if (!state)
       throw std::future_error(std::future_errc::no_state);
-    this->state_->state.emplace(val);
+    state->emplace(val);
   }
 };
 
@@ -105,7 +109,12 @@ public:
 
   ~promise() = default;
 
-  void set_value();
+  void set_value()  {
+    auto state = this->state_.lock();
+    if (!state)
+      throw std::future_error(std::future_errc::no_state);
+    state->emplace();
+  }
 };
 
 } // inline namespace cxx14_v1
