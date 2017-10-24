@@ -232,4 +232,14 @@ TYPED_TEST(PackagedTaskTest, abandoned_task_sets_proper_error) {
   EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
 }
 
+TYPED_TEST(PackagedTaskTest, get_future_on_invalid_throws_no_state) {
+  pc::packaged_task<TypeParam()> task;
+  EXPECT_FUTURE_ERROR(task.get_future(), std::future_errc::no_state);
+}
+
+TYPED_TEST(PackagedTaskTest, run_invalid_throws_no_state) {
+  pc::packaged_task<TypeParam()> task;
+  EXPECT_FUTURE_ERROR(task(), std::future_errc::no_state);
+}
+
 } // anonymous namespace

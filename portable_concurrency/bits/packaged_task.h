@@ -53,14 +53,16 @@ class packaged_task<R(A...)> {
 public:
   packaged_task() noexcept = default;
   ~packaged_task() {
-    if (state_)
-      state_->abandon();
+    if (auto state = state_.lock())
+      state->abandon();
   }
 
   template<typename F>
-  explicit packaged_task(F&& f):
-    state_(std::make_shared<detail::task_state<F, R, A...>>(std::forward<F>(f)))
-  {}
+  explicit packaged_task(F&& f) {
+    auto state = std::make_shared<detail::task_state<F, R, A...>>(std::forward<F>(f));
+    future_state_ = std::shared_ptr<detail::future_state<R>>{state, state->take_state()};
+    state_ = std::move(state);
+  }
 
   packaged_task(const packaged_task&) = delete;
   packaged_task(packaged_task&&) noexcept = default;
@@ -68,27 +70,40 @@ public:
   packaged_task& operator= (const packaged_task&) = delete;
   packaged_task& operator= (packaged_task&&) noexcept = default;
 
-  bool valid() const noexcept {return static_cast<bool>(state_);}
+  bool valid() const noexcept {
+    std::weak_ptr<detail::packaged_task_state<R, A...>> empty;
+    return empty.owner_before(state_) || state_.owner_before(empty);
+  }
 
-  void swap(packaged_task& other) noexcept {state_.swap(other.state_);}
+  void swap(packaged_task& other) noexcept {
+    std::swap(state_, other.state_);
+    std::swap(future_state_, other.future_state_);
+  }
 
   future<R> get_future() {
-    if (!state_)
+    if (!valid())
       throw std::future_error(std::future_errc::no_state);
-    auto* state_ptr = state_->take_state();
-    if (!state_ptr)
+    if (!future_state_)
       throw std::future_error(std::future_errc::future_already_retrieved);
-    return {std::shared_ptr<detail::future_state<R>>{state_, state_ptr}};
+    return {std::move(future_state_)};
   }
 
   void operator() (A... a) {
-    if (!state_)
-      throw std::future_error(std::future_errc::no_state);
-    state_->run(a...);
+    if (auto state = get_state())
+      state->run(a...);
   }
 
 private:
-  std::shared_ptr<detail::packaged_task_state<R, A...>> state_;
+  std::shared_ptr<detail::packaged_task_state<R, A...>> get_state() {
+    auto state = state_.lock();
+    if (!state && !valid())
+      throw std::future_error{std::future_errc::no_state};
+    return state;
+  }
+
+private:
+  std::weak_ptr<detail::packaged_task_state<R, A...>> state_;
+  std::shared_ptr<detail::future_state<R>> future_state_;
 };
 
 } // inline namespace cxx14_v1
