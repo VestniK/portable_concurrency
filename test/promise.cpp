@@ -146,4 +146,25 @@ TYPED_TEST(PromiseTest, abandon_promise_set_proper_error) {
   EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
 }
 
+TYPED_TEST(PromiseTest, moved_from_throws_no_state_on_get_future) {
+  pc::promise<TypeParam> promise;
+  pc::promise<TypeParam> another_promise{std::move(promise)};
+  EXPECT_FUTURE_ERROR(promise.get_future(), std::future_errc::no_state);
+}
+
+TYPED_TEST(PromiseTest, moved_from_throws_no_state_on_set_exception) {
+  pc::promise<TypeParam> promise;
+  pc::promise<TypeParam> another_promise{std::move(promise)};
+  EXPECT_FUTURE_ERROR(
+    promise.set_exception(std::make_exception_ptr(std::runtime_error{"Ooups"})),
+    std::future_errc::no_state
+  );
+}
+
+TYPED_TEST(PromiseTest, moved_from_throws_no_state_on_set_value) {
+  pc::promise<TypeParam> promise;
+  pc::promise<TypeParam> another_promise{std::move(promise)};
+  EXPECT_FUTURE_ERROR(set_promise_value(promise), std::future_errc::no_state);
+}
+
 } // anonymous namespace
