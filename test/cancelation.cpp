@@ -17,7 +17,17 @@ TEST(PromiseCancelation, no_object_held_by_promise_after_future_destruction) {
   EXPECT_FALSE(weak.lock());
 }
 
+TEST(PromiseCanceleation, set_value_do_nothing_on_canceled_promise) {
+  pc::promise<int> promise;
+  promise.get_future();
+  EXPECT_NO_THROW(promise.set_value(42));
+}
 
+TEST(PromiseCanceleation, set_exception_do_nothing_on_canceled_promise) {
+  pc::promise<int> promise;
+  promise.get_future();
+  EXPECT_NO_THROW(promise.set_exception(std::make_exception_ptr(std::runtime_error{"Ooups"})));
+}
 
 } // namespace
 } // namespace test

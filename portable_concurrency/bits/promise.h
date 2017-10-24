@@ -17,6 +17,20 @@ protected:
   std::weak_ptr<shared_state<T>> state_;
   std::shared_ptr<future_state<T>> future_state_;
 
+  void check_state() {
+    // the only way to distinguish empty weak_ptr from expired is owner_before method
+    std::weak_ptr<shared_state<T>> empty{};
+    if (!empty.owner_before(state_) && !state_.owner_before(empty))
+      throw std::future_error(std::future_errc::no_state);
+  }
+
+  std::shared_ptr<shared_state<T>> get_state() {
+    auto state = state_.lock();
+    if (!state)
+      check_state();
+    return state;
+  }
+
 public:
   promise_base() {
     auto state = std::make_shared<shared_state<T>>();
@@ -33,17 +47,15 @@ public:
   promise_base& operator= (promise_base&&) noexcept = default;
 
   future<T> get_future() {
-    if (!future_state_ && !state_.lock())
-      throw std::future_error(std::future_errc::no_state);
     if (!future_state_)
-      throw std::future_error(std::future_errc::future_already_retrieved);
+      check_state(), throw std::future_error(std::future_errc::future_already_retrieved);
     return {std::move(future_state_)};
   }
 
   void set_exception(std::exception_ptr error) {
     auto state = state_.lock();
     if (!state)
-      throw std::future_error(std::future_errc::no_state);
+      return check_state();
     state->set_exception(error);
   }
 };
@@ -63,17 +75,15 @@ public:
   ~promise() = default;
 
   void set_value(const T& val) {
-    auto state = this->state_.lock();
-    if (!state)
-      throw std::future_error(std::future_errc::no_state);
-    state->emplace(val);
+    auto state = this->get_state();
+    if (state)
+      state->emplace(val);
   }
 
   void set_value(T&& val) {
-    auto state = this->state_.lock();
-    if (!state)
-      throw std::future_error(std::future_errc::no_state);
-    state->emplace(std::move(val));
+    auto state = this->get_state();
+    if (state)
+      state->emplace(std::move(val));
   }
 };
 
@@ -90,10 +100,9 @@ public:
   ~promise() = default;
 
   void set_value(T& val) {
-    auto state = this->state_.lock();
-    if (!state)
-      throw std::future_error(std::future_errc::no_state);
-    state->emplace(val);
+    auto state = this->get_state();
+    if (state)
+      state->emplace(val);
   }
 };
 
@@ -110,10 +119,9 @@ public:
   ~promise() = default;
 
   void set_value()  {
-    auto state = this->state_.lock();
-    if (!state)
-      throw std::future_error(std::future_errc::no_state);
-    state->emplace();
+    auto state = this->get_state();
+    if (state)
+      state->emplace();
   }
 };
 
