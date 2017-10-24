@@ -126,6 +126,13 @@ TYPED_TEST(PromiseTest, set_value_twice_without_future) {tests::set_value_twice_
 TYPED_TEST(PromiseTest, set_value_twice_with_future) {tests::set_value_twice_with_future<TypeParam>();}
 TYPED_TEST(PromiseTest, set_value_twice_after_value_taken) {tests::set_value_twice_after_value_taken<TypeParam>();}
 
+TYPED_TEST(PromiseTest, can_retreive_value_set_before_get_future) {
+  pc::promise<TypeParam> promise;
+  set_promise_value(promise);
+  pc::future<TypeParam> future = promise.get_future();
+  EXPECT_SOME_VALUE(future);
+}
+
 TYPED_TEST(PromiseTest, abandon_promise_set_proper_error) {
   pc::future<TypeParam> future;
   {
