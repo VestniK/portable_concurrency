@@ -3,6 +3,7 @@ include_directories(${GTEST_INCLUDE_DIRS})
 
 set(SRC
   cancelation.cpp
+  either.cpp
   future.cpp
   future_then.cpp
   once_consumable_stack.cpp
