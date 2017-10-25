@@ -42,6 +42,19 @@ public:
     }
     rhs.clean();
   }
+  either& operator= (either&& rhs) noexcept(
+    std::is_nothrow_move_constructible<T>::value &&
+    std::is_nothrow_move_constructible<U>::value
+  ) {
+    clean();
+    switch (rhs.state_) {
+    case either_state::empty: return *this;
+    case either_state::first: emplace(first_t{}, std::move(rhs.get(first_t{}))); break;
+    case either_state::second: emplace(second_t{}, std::move(rhs.get(second_t{}))); break;
+    }
+    rhs.clean();
+    return *this;
+  }
 
   template<typename... A>
   void emplace(first_t tag, A&&... a) {

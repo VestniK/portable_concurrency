@@ -4,6 +4,7 @@
 
 #include "fwd.h"
 
+#include "either.h"
 #include "future.h"
 #include "shared_state.h"
 #include "utils.h"
@@ -18,21 +19,19 @@ struct packaged_task_state {
   virtual ~packaged_task_state() = default;
 
   virtual void run(A...) = 0;
-  virtual future_state<R>* take_state() = 0;
+  virtual future_state<R>* get_future_state() = 0;
   virtual void abandon() = 0;
 };
 
 template<typename F, typename R, typename... A>
-struct task_state: packaged_task_state<R, A...> {
+struct task_state final: packaged_task_state<R, A...> {
   task_state(F&& f): func(std::forward<F>(f)) {}
 
   void run(A... a) override {
     ::portable_concurrency::cxx14_v1::detail::set_state_value(state, func, std::forward<A>(a)...);
   }
 
-  future_state<R>* take_state() override {
-    if (std::exchange(state_taken, true))
-      return nullptr;
+  future_state<R>* get_future_state() override {
     return &state;
   }
 
@@ -43,7 +42,6 @@ struct task_state: packaged_task_state<R, A...> {
 
   std::decay_t<F> func;
   shared_state<R> state;
-  bool state_taken = false;
 };
 
 } // namespace detail
@@ -53,16 +51,14 @@ class packaged_task<R(A...)> {
 public:
   packaged_task() noexcept = default;
   ~packaged_task() {
-    if (auto state = state_.lock())
+    if (auto state = get_state(false))
       state->abandon();
   }
 
   template<typename F>
-  explicit packaged_task(F&& f) {
-    auto state = std::make_shared<detail::task_state<F, R, A...>>(std::forward<F>(f));
-    future_state_ = std::shared_ptr<detail::future_state<R>>{state, state->take_state()};
-    state_ = std::move(state);
-  }
+  explicit packaged_task(F&& f)
+    : state_{detail::first_t{}, std::make_shared<detail::task_state<F, R, A...>>(std::forward<F>(f))}
+  {}
 
   packaged_task(const packaged_task&) = delete;
   packaged_task(packaged_task&&) noexcept = default;
@@ -71,21 +67,26 @@ public:
   packaged_task& operator= (packaged_task&&) noexcept = default;
 
   bool valid() const noexcept {
-    std::weak_ptr<detail::packaged_task_state<R, A...>> empty;
-    return empty.owner_before(state_) || state_.owner_before(empty);
+    return state_.state() !=  detail::either_state::empty;
   }
 
   void swap(packaged_task& other) noexcept {
-    std::swap(state_, other.state_);
-    std::swap(future_state_, other.future_state_);
+    auto tmp = std::move(state_);
+    state_ = std::move(other.state_);
+    other.state_ = std::move(tmp);
   }
 
   future<R> get_future() {
-    if (!valid())
-      throw std::future_error(std::future_errc::no_state);
-    if (!future_state_)
-      throw std::future_error(std::future_errc::future_already_retrieved);
-    return {std::move(future_state_)};
+    switch (state_.state())
+    {
+    case detail::either_state::empty: throw std::future_error(std::future_errc::no_state);
+    case detail::either_state::second: throw std::future_error(std::future_errc::future_already_retrieved);
+    case detail::either_state::first: break;
+    }
+
+    auto state = state_.get(detail::first_t{});
+    state_.emplace(detail::second_t{}, state);
+    return {std::shared_ptr<detail::future_state<R>>{state, state->get_future_state()}};
   }
 
   void operator() (A... a) {
@@ -94,16 +95,23 @@ public:
   }
 
 private:
-  std::shared_ptr<detail::packaged_task_state<R, A...>> get_state() {
-    auto state = state_.lock();
-    if (!state && !valid())
-      throw std::future_error{std::future_errc::no_state};
-    return state;
+  std::shared_ptr<detail::packaged_task_state<R, A...>> get_state(bool throw_no_state = true) {
+    switch (state_.state())
+    {
+    case detail::either_state::first: return state_.get(detail::first_t{});
+    case detail::either_state::second: return state_.get(detail::second_t{}).lock();
+    case detail::either_state::empty: break;
+    }
+    if (throw_no_state)
+      throw std::future_error(std::future_errc::no_state);
+    return nullptr;
   }
 
 private:
-  std::weak_ptr<detail::packaged_task_state<R, A...>> state_;
-  std::shared_ptr<detail::future_state<R>> future_state_;
+  detail::either<
+    std::shared_ptr<detail::packaged_task_state<R, A...>>,
+    std::weak_ptr<detail::packaged_task_state<R, A...>>>
+  state_;
 };
 
 } // inline namespace cxx14_v1
