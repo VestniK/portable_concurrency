@@ -31,10 +31,16 @@ public:
     emplace(tag, std::forward<A>(a)...);
   }
 
-  either(either&& rhs) noexcept(
-    std::is_nothrow_move_constructible<T>::value &&
-    std::is_nothrow_move_constructible<U>::value
-  ) {
+  either(either&& rhs)
+#if defined(__GNUC__) && __GNUC__ < 5
+    noexcept
+#else
+    noexcept(
+      std::is_nothrow_move_constructible<T>::value &&
+      std::is_nothrow_move_constructible<U>::value
+    )
+#endif
+  {
     switch (rhs.state_) {
     case either_state::empty: return;
     case either_state::first: emplace(first_t{}, std::move(rhs.get(first_t{}))); break;
@@ -42,10 +48,16 @@ public:
     }
     rhs.clean();
   }
-  either& operator= (either&& rhs) noexcept(
-    std::is_nothrow_move_constructible<T>::value &&
-    std::is_nothrow_move_constructible<U>::value
-  ) {
+  either& operator= (either&& rhs)
+#if defined(__GNUC__) && __GNUC__ < 5
+    noexcept
+#else
+    noexcept(
+      std::is_nothrow_move_constructible<T>::value &&
+      std::is_nothrow_move_constructible<U>::value
+    )
+#endif
+  {
     clean();
     switch (rhs.state_) {
     case either_state::empty: return *this;
