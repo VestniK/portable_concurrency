@@ -57,9 +57,4 @@ using next_result_t = typename next_result<Func, T>::type;
 
 } // namespace detail
 } // inline namespace cxx14_v1
-
-// Intended to be specialized for user provided executor classes
-template<typename T>
-struct is_executor: std::false_type {};
-
 } // namespace portable_concurrency

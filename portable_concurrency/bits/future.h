@@ -6,9 +6,9 @@
 #include "fwd.h"
 
 #include "concurrency_type_traits.h"
-#include "shared_state.h"
+#include "execution.h"
+#include "future_state.h"
 #include "then.h"
-#include "utils.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {

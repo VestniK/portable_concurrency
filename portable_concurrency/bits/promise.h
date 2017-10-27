@@ -6,7 +6,6 @@
 #include "either.h"
 #include "future.h"
 #include "shared_state.h"
-#include "utils.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {

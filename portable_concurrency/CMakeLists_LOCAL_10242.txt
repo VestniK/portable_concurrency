@@ -1,7 +1,6 @@
 find_package(Threads REQUIRED)
 
 set(HEADERS
-  execution
   functional
   future
   latch
@@ -10,10 +9,8 @@ set(HEADERS
   bits/align.h
   bits/concurrency_type_traits.h
   bits/either.h
-  bits/execution.h
   bits/future.h
   bits/future_sequence.h
-  bits/future_state.h
   bits/fwd.h
   bits/invoke.h
   bits/latch.h

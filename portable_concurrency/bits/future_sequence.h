@@ -7,7 +7,7 @@
 #include "concurrency_type_traits.h"
 #include "future.h"
 #include "shared_future.h"
-#include "shared_state.h"
+#include "future_state.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {

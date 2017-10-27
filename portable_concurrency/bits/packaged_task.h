@@ -110,8 +110,8 @@ private:
 private:
   detail::either<
     std::shared_ptr<detail::packaged_task_state<R, A...>>,
-    std::weak_ptr<detail::packaged_task_state<R, A...>>>
-  state_;
+    std::weak_ptr<detail::packaged_task_state<R, A...>>
+  > state_;
 };
 
 } // inline namespace cxx14_v1
