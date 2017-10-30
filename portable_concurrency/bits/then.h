@@ -34,6 +34,21 @@ struct cnt_data: cnt_data<T, R, F, void> {
   {}
 };
 
+template<typename T, typename R, typename F, typename E>
+struct cnt_data_holder {
+  std::shared_ptr<cnt_data<T, R, F, E>> data;
+
+  cnt_data_holder(const cnt_data_holder&) = delete;
+
+  cnt_data_holder(cnt_data_holder&&) noexcept = default;
+  cnt_data_holder& operator=(cnt_data_holder&&) noexcept = default;
+
+  ~cnt_data_holder() {
+    if (data && !data->state.continuations().executed())
+      data->state.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+  }
+};
+
 template<typename Future, typename T, typename R, typename F, typename E>
 auto then_run(std::shared_ptr<cnt_data<T, R, F, E>> data) -> std::enable_if_t<
   is_unique_future<std::result_of_t<F(Future)>>::value
@@ -66,7 +81,9 @@ auto then_run(std::shared_ptr<cnt_data<T, R, F, E>> data) -> std::enable_if_t<
 template<typename Future, typename T, typename R, typename F, typename E>
 void then_post(std::shared_ptr<cnt_data<T, R, F, E>> data) {
   E exec = std::move(data->exec);
-  post(std::move(exec), [data = std::move(data)]() mutable {then_run<Future>(std::move(data));});
+  post(std::move(exec), [data = cnt_data_holder<T, R, F, E>{std::move(data)}]() mutable {
+    then_run<Future>(std::move(data.data));
+  });
 }
 
 template<template<typename> class Future, typename T, typename F>
@@ -118,7 +135,9 @@ void next_run(std::shared_ptr<cnt_data<void, R, F, E>> data) {
 template<typename T, typename R, typename F, typename E>
 void next_post(std::shared_ptr<cnt_data<T, R, F, E>> data) {
   E exec = std::move(data->exec);
-  post(std::move(exec), [data = std::move(data)]() mutable {next_run(std::move(data));});
+  post(std::move(exec), [data = cnt_data_holder<T, R, F, E>{std::move(data)}]() mutable {
+    next_run(std::move(data.data));
+  });
 }
 
 template<typename T, typename F>

@@ -263,4 +263,20 @@ TEST_F(FutureThen, next_continuation_executed_on_specified_executor) {
   EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
 }
 
+TEST_F(FutureThen, then_with_executor_supportds_state_abandon) {
+  pc::future<std::string> cnt_f = future.then(null_executor, [](pc::future<int> f) {
+    return std::to_string(f.get());
+  });
+  promise.set_value(42);
+  EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
+}
+
+TEST_F(FutureThen, next_with_executor_supportds_state_abandon) {
+  pc::future<std::string> cnt_f = future.next(null_executor, [](int val) {
+    return std::to_string(val);
+  });
+  promise.set_value(42);
+  EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
+}
+
 } // anonymous namespace

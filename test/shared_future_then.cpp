@@ -300,5 +300,13 @@ TEST_F(SharedFutureThen, run_unwrapped_continuation_on_specific_executor) {
   EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
 }
 
+TEST_F(SharedFutureThen, then_with_executor_supportds_state_abandon) {
+  pc::future<std::string> cnt_f = future.then(null_executor, [](pc::shared_future<int> f) {
+    return std::to_string(f.get());
+  });
+  promise.set_value(42);
+  EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
+}
+
 } // namespace shared_future_continuation
 } // anonymous namespace

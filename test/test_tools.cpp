@@ -4,6 +4,8 @@ future_tests_env* g_future_tests_env = static_cast<future_tests_env*>(
   ::testing::AddGlobalTestEnvironment(new future_tests_env)
 );
 
+null_executor_t null_executor;
+
 namespace {
 
 void worker_function(closable_queue<pc::unique_function<void()>>& queue) {
