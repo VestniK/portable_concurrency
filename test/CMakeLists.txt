@@ -5,6 +5,7 @@ set(SRC
   cancelation.cpp
   either.cpp
   future.cpp
+  future_next.cpp
   future_then.cpp
   once_consumable_stack.cpp
   packaged_task.cpp
