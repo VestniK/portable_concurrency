@@ -16,7 +16,7 @@ std::string stringify(pc::future<int> f) {
   return std::to_string(f.get());
 }
 
-struct FutureThen: ::testing::Test {
+struct FutureThen: future_test {
   pc::promise<int> promise;
   pc::future<int> future = promise.get_future();
   std::string stringified_value = "42";

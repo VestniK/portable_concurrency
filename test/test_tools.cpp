@@ -34,3 +34,14 @@ void future_tests_env::TearDown() {
       worker.join();
   }
 }
+
+void future_tests_env::wait_current_tasks() {
+  if (uses_thread(std::this_thread::get_id())) {
+    throw std::system_error{
+      std::make_error_code(std::errc::resource_deadlock_would_occur),
+      "wait_current_tasks from worler thread"
+    };
+  }
+
+  queue_.wait_empty();
+}

@@ -44,6 +44,8 @@ public:
     ) != workers_.end();
   }
 
+  void wait_current_tasks();
+
 private:
   std::vector<std::thread> workers_;
   closable_queue<pc::unique_function<void()>> queue_;
@@ -60,6 +62,10 @@ void post(future_tests_env* exec, F&& f, A&&... a) {
 
 extern
 future_tests_env* g_future_tests_env;
+
+struct future_test: ::testing::Test {
+  ~future_test() {g_future_tests_env->wait_current_tasks();}
+};
 
 template<typename T>
 struct printable {

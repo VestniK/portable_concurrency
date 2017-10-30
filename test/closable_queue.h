@@ -20,6 +20,10 @@ public:
       throw queue_closed();
     T res = std::move(queue_.front());
     queue_.pop();
+    bool empty = queue_.empty();
+    lock.unlock();
+    if (empty)
+      cv_.notify_all();
     return res;
   }
 
@@ -35,6 +39,11 @@ public:
     std::lock_guard<std::mutex> guard(mutex_);
     closed_ = true;
     cv_.notify_all();
+  }
+
+  void wait_empty() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    cv_.wait(lock, [this] {return queue_.empty();});
   }
 
 private:

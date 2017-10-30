@@ -13,7 +13,7 @@ namespace shared_future_continuation {
 
 using namespace std::literals;
 
-struct SharedFutureThen: ::testing::Test {
+struct SharedFutureThen: future_test {
   pc::promise<int> promise;
   pc::shared_future<int> future = promise.get_future();
 };
