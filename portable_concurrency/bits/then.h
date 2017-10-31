@@ -52,7 +52,7 @@ struct cnt_data_holder {
 
 template<typename Future, typename T, typename R, typename F, typename E>
 auto then_run(std::weak_ptr<cnt_data<T, R, F, E>> wdata) -> std::enable_if_t<
-  is_unique_future<std::result_of_t<F(Future)>>::value
+  is_future<std::result_of_t<F(Future)>>::value
 > {
   auto data = wdata.lock();
   if (!data)
@@ -95,30 +95,30 @@ void then_post(std::weak_ptr<cnt_data<T, R, F, E>> wdata) {
   });
 }
 
-template<template<typename> class Future, typename T, typename F>
+template<typename T, typename F, typename Arg>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
-  using CntRes = then_result_t<Future, F, T>;
+  using CntRes = cnt_result_t<F, Arg>;
   using R = remove_future_t<CntRes>;
 
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, void>>(
     std::forward<F>(f), std::move(parent)
   );
   data->parent->continuations().push([wdata = std::weak_ptr<cnt_data<T, R, std::decay_t<F>, void>>(data)]() mutable {
-    then_run<Future<T>>(std::move(wdata));
+    then_run<Arg>(std::move(wdata));
   });
   return std::shared_ptr<future_state<R>>{data, &data->state};
 }
 
-template<template<typename> class Future, typename T, typename E, typename F>
+template<typename T, typename E, typename F, typename Arg>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
-  using CntRes = then_result_t<Future, F, T>;
+  using CntRes = cnt_result_t<F, Arg>;
   using R = remove_future_t<CntRes>;
 
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>(
     std::forward<E>(exec), std::forward<F>(f), std::move(parent)
   );
   data->parent->continuations().push([wdata = std::weak_ptr<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>(data)]() mutable {
-    then_post<Future<T>>(std::move(wdata));
+    then_post<Arg>(std::move(wdata));
   });
   return std::shared_ptr<future_state<R>>{data, &data->state};
 }
@@ -162,7 +162,7 @@ void next_post(std::weak_ptr<cnt_data<T, R, F, E>> wdata) {
 
 template<typename T, typename F>
 auto make_next_state(std::shared_ptr<future_state<T>> parent, F&& f) {
-  using CntRes = next_result_t<F, T>;
+  using CntRes = cnt_result_t<F, T>;
   using R = remove_future_t<CntRes>;
 
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, void>>(
@@ -176,7 +176,7 @@ auto make_next_state(std::shared_ptr<future_state<T>> parent, F&& f) {
 
 template<typename T, typename E, typename F>
 auto make_next_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
-  using CntRes = next_result_t<F, T>;
+  using CntRes = cnt_result_t<F, T>;
   using R = remove_future_t<CntRes>;
 
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>(

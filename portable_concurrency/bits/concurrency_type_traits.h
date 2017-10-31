@@ -44,16 +44,17 @@ struct remove_future<future<T>> {using type = T;};
 template<typename T>
 using remove_future_t = typename remove_future<T>::type;
 
-template<template<typename> class Future, typename Func, typename T>
-using then_result_t = std::result_of_t<Func(Future<T>)>;
+template<typename Func, typename Arg>
+struct cnt_result: std::result_of<Func(Arg)> {};
 
-template<typename Func, typename T>
-struct next_result {using type = std::result_of_t<Func(T)>;};
 template<typename Func>
-struct next_result<Func, void> {using type = std::result_of_t<Func()>;};
+struct cnt_result<Func, void>: std::result_of<Func()> {};
 
-template<typename Func, typename T>
-using next_result_t = typename next_result<Func, T>::type;
+template<typename Func, typename Arg>
+using cnt_result_t = typename cnt_result<Func, Arg>::type;
+
+template<typename Func, typename Arg>
+using cnt_future_t = future<remove_future_t<cnt_result_t<Func, Arg>>>;
 
 } // namespace detail
 } // inline namespace cxx14_v1

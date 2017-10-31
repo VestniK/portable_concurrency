@@ -68,11 +68,11 @@ public:
   }
 
   template<typename F>
-  future<detail::remove_future_t<detail::then_result_t<portable_concurrency::cxx14_v1::shared_future, F, T>>>
+  detail::cnt_future_t<F, shared_future<T>>
   then(F&& f) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return detail::make_then_state<portable_concurrency::cxx14_v1::shared_future, T, F>(
+    return detail::make_then_state<T, F, shared_future<T>>(
       state_, std::forward<F>(f)
     );
   }
@@ -80,11 +80,11 @@ public:
   template<typename E, typename F>
   auto then(E&& exec, F&& f) -> std::enable_if_t<
     is_executor<std::decay_t<E>>::value,
-    future<detail::remove_future_t<detail::then_result_t<portable_concurrency::cxx14_v1::future, F, T>>>
+    detail::cnt_future_t<F, shared_future<T>>
   > {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return detail::make_then_state<portable_concurrency::cxx14_v1::future, T, E, F>(
+    return detail::make_then_state<T, E, F, shared_future<T>>(
       std::move(state_), std::forward<E>(exec), std::forward<F>(f)
     );
   }
