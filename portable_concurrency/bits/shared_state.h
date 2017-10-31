@@ -13,7 +13,7 @@ inline namespace cxx14_v1 {
 namespace detail {
 
 template<typename T>
-class shared_state: public future_state<T> {
+class shared_state final: public future_state<T> {
 public:
   shared_state() = default;
 
@@ -42,7 +42,7 @@ public:
 
   std::exception_ptr exception() const override {
     assert(continuations_.executed());
-    return  box_.exception();
+    return box_.exception();
   }
 
 private:

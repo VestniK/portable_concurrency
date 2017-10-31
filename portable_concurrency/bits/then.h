@@ -36,7 +36,7 @@ struct cnt_data: cnt_data<T, R, F, void> {
 
 template<typename T, typename R, typename F, typename E>
 struct cnt_data_holder {
-  std::shared_ptr<cnt_data<T, R, F, E>> data;
+  std::weak_ptr<cnt_data<T, R, F, E>> data;
 
   cnt_data_holder(const cnt_data_holder&) = delete;
 
@@ -44,15 +44,20 @@ struct cnt_data_holder {
   cnt_data_holder& operator=(cnt_data_holder&&) noexcept = default;
 
   ~cnt_data_holder() {
-    if (data && !data->state.continuations().executed())
-      data->state.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+    auto sdata = data.lock();
+    if (sdata && !sdata->state.continuations().executed())
+      sdata->state.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
   }
 };
 
 template<typename Future, typename T, typename R, typename F, typename E>
-auto then_run(std::shared_ptr<cnt_data<T, R, F, E>> data) -> std::enable_if_t<
+auto then_run(std::weak_ptr<cnt_data<T, R, F, E>> wdata) -> std::enable_if_t<
   is_unique_future<std::result_of_t<F(Future)>>::value
 > {
+  auto data = wdata.lock();
+  if (!data)
+    return;
+
   using res_t = std::result_of_t<F(Future)>;
   res_t res;
   try {
@@ -72,16 +77,20 @@ auto then_run(std::shared_ptr<cnt_data<T, R, F, E>> data) -> std::enable_if_t<
 }
 
 template<typename Future, typename T, typename R, typename F, typename E>
-auto then_run(std::shared_ptr<cnt_data<T, R, F, E>> data) -> std::enable_if_t<
+auto then_run(std::weak_ptr<cnt_data<T, R, F, E>> wdata) -> std::enable_if_t<
   !is_unique_future<std::result_of_t<F(Future)>>::value
 > {
-  set_state_value(data->state, std::move(data->func), Future{std::move(data->parent)});
+  if (auto data = wdata.lock())
+    set_state_value(data->state, std::move(data->func), Future{std::move(data->parent)});
 }
 
 template<typename Future, typename T, typename R, typename F, typename E>
-void then_post(std::shared_ptr<cnt_data<T, R, F, E>> data) {
-  E exec = std::move(data->exec);
-  post(std::move(exec), [data = cnt_data_holder<T, R, F, E>{std::move(data)}]() mutable {
+void then_post(std::weak_ptr<cnt_data<T, R, F, E>> wdata) {
+  auto data = wdata.lock();
+  if (!data)
+    return;
+
+  post(std::move(data->exec), [data = cnt_data_holder<T, R, F, E>{std::move(wdata)}]() mutable {
     then_run<Future>(std::move(data.data));
   });
 }
@@ -94,8 +103,8 @@ auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, void>>(
     std::forward<F>(f), std::move(parent)
   );
-  data->parent->continuations().push([data]() mutable {
-    then_run<Future<T>>(std::move(data));
+  data->parent->continuations().push([wdata = std::weak_ptr<cnt_data<T, R, std::decay_t<F>, void>>(data)]() mutable {
+    then_run<Future<T>>(std::move(wdata));
   });
   return std::shared_ptr<future_state<R>>{data, &data->state};
 }
@@ -108,14 +117,18 @@ auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>(
     std::forward<E>(exec), std::forward<F>(f), std::move(parent)
   );
-  data->parent->continuations().push([data]() mutable {
-    then_post<Future<T>>(std::move(data));
+  data->parent->continuations().push([wdata = std::weak_ptr<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>(data)]() mutable {
+    then_post<Future<T>>(std::move(wdata));
   });
   return std::shared_ptr<future_state<R>>{data, &data->state};
 }
 
 template<typename T, typename R, typename F, typename E>
-void next_run(std::shared_ptr<cnt_data<T, R, F, E>> data) {
+void next_run(std::weak_ptr<cnt_data<T, R, F, E>> wdata) {
+  auto data = wdata.lock();
+  if (!data)
+    return;
+
   if (auto error = data->parent->exception()) {
     data->state.set_exception(std::move(error));
     return;
@@ -124,7 +137,11 @@ void next_run(std::shared_ptr<cnt_data<T, R, F, E>> data) {
 }
 
 template<typename R, typename F, typename E>
-void next_run(std::shared_ptr<cnt_data<void, R, F, E>> data) {
+void next_run(std::weak_ptr<cnt_data<void, R, F, E>> wdata) {
+  auto data = wdata.lock();
+  if (!data)
+    return;
+
   if (auto error = data->parent->exception()) {
     data->state.set_exception(std::move(error));
     return;
@@ -133,9 +150,12 @@ void next_run(std::shared_ptr<cnt_data<void, R, F, E>> data) {
 }
 
 template<typename T, typename R, typename F, typename E>
-void next_post(std::shared_ptr<cnt_data<T, R, F, E>> data) {
-  E exec = std::move(data->exec);
-  post(std::move(exec), [data = cnt_data_holder<T, R, F, E>{std::move(data)}]() mutable {
+void next_post(std::weak_ptr<cnt_data<T, R, F, E>> wdata) {
+  auto data = wdata.lock();
+  if (!data)
+    return;
+
+  post(std::move(data->exec), [data = cnt_data_holder<T, R, F, E>{std::move(wdata)}]() mutable {
     next_run(std::move(data.data));
   });
 }
@@ -148,7 +168,7 @@ auto make_next_state(std::shared_ptr<future_state<T>> parent, F&& f) {
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, void>>(
     std::forward<F>(f), std::move(parent)
   );
-  data->parent->continuations().push([data]() mutable {
+  data->parent->continuations().push([data = std::weak_ptr<cnt_data<T, R, std::decay_t<F>, void>>{data}]() mutable {
     next_run(std::move(data));
   });
   return std::shared_ptr<future_state<R>>{data, &data->state};
@@ -162,7 +182,7 @@ auto make_next_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>(
     std::forward<E>(exec), std::forward<F>(f), std::move(parent)
   );
-  data->parent->continuations().push([data]() mutable {
+  data->parent->continuations().push([data = std::weak_ptr<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>{data}]() mutable {
     next_post(std::move(data));
   });
   return std::shared_ptr<future_state<R>>{data, &data->state};
