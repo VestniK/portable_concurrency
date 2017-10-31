@@ -67,7 +67,7 @@ public:
     return result_;
   }
 
-  std::exception_ptr exception() const override {
+  std::exception_ptr exception() override {
     assert(continuations_.executed());
     return nullptr;
   }

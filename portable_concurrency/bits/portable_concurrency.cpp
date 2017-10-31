@@ -3,7 +3,6 @@
 #include "make_future.h"
 #include "once_consumable_stack.h"
 #include "promise.h"
-#include "result_box.h"
 #include "shared_state.h"
 #include "when_all.h"
 #include "when_any.h"
@@ -73,42 +72,6 @@ bool continuations_stack::wait_for(std::chrono::nanoseconds timeout) {
     return true;
   init_waiter();
   return waiter_->wait_for(timeout);
-}
-
-result_box<void>::result_box() noexcept {}
-
-result_box<void>::~result_box() {
-  switch (state_) {
-    case box_state::empty:
-    case box_state::result: break;
-    case box_state::exception: error_.~exception_ptr(); break;
-  }
-}
-
-void result_box<void>::emplace() {
-  if (state_ != box_state::empty)
-    throw std::future_error(std::future_errc::promise_already_satisfied);
-  state_ = box_state::result;
-}
-
-void result_box<void>::set_exception(std::exception_ptr error) {
-  if (state_ != box_state::empty)
-    throw std::future_error(std::future_errc::promise_already_satisfied);
-  new(&error_) std::exception_ptr(error);
-  state_ = box_state::exception;
-}
-
-void result_box<void>::get() {
-  assert(state_ != box_state::empty);
-  if (state_ == box_state::exception)
-    std::rethrow_exception(error_);
-}
-
-std::exception_ptr result_box<void>::exception() const noexcept {
-  assert(state_ != box_state::empty);
-  if (state_ != box_state::exception)
-    return nullptr;
-  return error_;
 }
 
 #if defined(__GNUC__ ) && __GNUC__ < 5

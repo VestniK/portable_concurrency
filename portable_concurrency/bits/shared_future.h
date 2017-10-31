@@ -101,6 +101,15 @@ private:
   std::shared_ptr<detail::future_state<T>> state_;
 };
 
+template<>
+inline
+std::add_lvalue_reference_t<std::add_const_t<void>> shared_future<void>::get() {
+  if (!state_)
+    throw std::future_error(std::future_errc::no_state);
+  wait();
+  state_->value_ref();
+}
+
 namespace detail {
 
 template<typename T>

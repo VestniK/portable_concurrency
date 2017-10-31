@@ -35,11 +35,15 @@ private:
   std::unique_ptr<waiter> waiter_;
 };
 
+struct void_val {};
+
 template<typename T>
-using state_storage_t = std::conditional_t<
-  std::is_reference<T>::value,
-  std::reference_wrapper<std::remove_reference_t<T>>,
-  std::remove_const_t<T>
+using state_storage_t = std::conditional_t<std::is_void<T>::value,
+  void_val,
+  std::conditional_t<std::is_reference<T>::value,
+    std::reference_wrapper<std::remove_reference_t<T>>,
+    std::remove_const_t<T>
+  >
 >;
 
 template<typename T>
@@ -51,7 +55,7 @@ public:
   // throws stored exception if there is no value
   virtual std::add_lvalue_reference_t<state_storage_t<T>> value_ref() = 0;
   // returns nullptr if there is no error
-  virtual std::exception_ptr exception() const = 0;
+  virtual std::exception_ptr exception() = 0;
 };
 
 template<typename T>

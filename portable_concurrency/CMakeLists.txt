@@ -22,7 +22,6 @@ set(HEADERS
   bits/once_consumable_stack_fwd.h
   bits/packaged_task.h
   bits/promise.h
-  bits/result_box.h
   bits/shared_future.h
   bits/shared_state.h
   bits/then.h
