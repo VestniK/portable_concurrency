@@ -80,8 +80,12 @@ bool is_null_func(R(&)(A...)) {
 template<typename S>
 class unique_function;
 
-// Move-only type erasure for arbitrary callable object. Implementation of
-// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4543.pdf
+/**
+ * @headerfile portable_concurrency/functional
+ * @brief Move-only type erasure for arbitrary callable object.
+ *
+ * Implementation of http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4543.pdf proposal.
+ */
 template<typename R, typename... A>
 class unique_function<R(A...)> {
   using type_erasure_t = detail::type_erasure_owner<
