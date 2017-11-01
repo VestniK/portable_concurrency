@@ -10,6 +10,29 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
+template<typename T>
+std::weak_ptr<T> weak(std::shared_ptr<T> ptr) {return {std::move(ptr)};}
+
+enum class cnt_tag {
+  then,
+  next,
+  shared_then
+};
+template<cnt_tag Tag>
+using cnt_tag_t = std::integral_constant<cnt_tag, Tag>;
+
+template<cnt_tag Type, typename T>
+struct cnt_arg;
+template<cnt_tag Type, typename T>
+using cnt_arg_t = typename cnt_arg<Type, T>::type;
+
+template<typename T>
+struct cnt_arg<cnt_tag::then, T> {using type = future<T>;};
+template<typename T>
+struct cnt_arg<cnt_tag::next, T> {using type = T;};
+template<typename T>
+struct cnt_arg<cnt_tag::shared_then, T> {using type = shared_future<T>;};
+
 template<typename T, typename R, typename F, typename E>
 struct cnt_data;
 
@@ -36,7 +59,7 @@ struct cnt_data: cnt_data<T, R, F, void> {
 
 template<typename T, typename R, typename F, typename E>
 struct cnt_data_holder {
-  std::weak_ptr<cnt_data<T, R, F, E>> data;
+  std::weak_ptr<cnt_data<T, R, F, E>> wdata;
 
   cnt_data_holder(const cnt_data_holder&) = delete;
 
@@ -44,21 +67,18 @@ struct cnt_data_holder {
   cnt_data_holder& operator=(cnt_data_holder&&) noexcept = default;
 
   ~cnt_data_holder() {
-    auto sdata = data.lock();
-    if (sdata && !sdata->state.continuations().executed())
-      sdata->state.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+    auto data = wdata.lock();
+    if (data && !data->state.continuations().executed())
+      data->state.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
   }
 };
 
-template<typename Future, typename T, typename R, typename F, typename E>
-auto then_run(std::weak_ptr<cnt_data<T, R, F, E>> wdata) -> std::enable_if_t<
-  is_future<std::result_of_t<F(Future)>>::value
+// implicit unwrap
+template<cnt_tag Tag, typename T, typename R, typename F>
+auto then_run(std::shared_ptr<cnt_data<T, R, F, void>> data, cnt_tag_t<Tag>) -> std::enable_if_t<
+  is_future<std::result_of_t<F(cnt_arg_t<Tag, T>)>>::value
 > {
-  auto data = wdata.lock();
-  if (!data)
-    return;
-
-  using res_t = std::result_of_t<F(Future)>;
+  using res_t = std::result_of_t<F(cnt_arg_t<Tag, T>)>;
   res_t res;
   try {
     res = ::portable_concurrency::cxx14_v1::detail::invoke(std::move(data->func), std::move(data->parent));
@@ -76,59 +96,17 @@ auto then_run(std::weak_ptr<cnt_data<T, R, F, E>> wdata) -> std::enable_if_t<
   });
 }
 
-template<typename Future, typename T, typename R, typename F, typename E>
-auto then_run(std::weak_ptr<cnt_data<T, R, F, E>> wdata) -> std::enable_if_t<
-  !is_unique_future<std::result_of_t<F(Future)>>::value
+// simple then
+template<cnt_tag Tag, typename T, typename R, typename F>
+auto then_run(std::shared_ptr<cnt_data<T, R, F, void>> data, cnt_tag_t<Tag>) -> std::enable_if_t<
+  !is_unique_future<std::result_of_t<F(cnt_arg_t<Tag, T>)>>::value
 > {
-  if (auto data = wdata.lock())
-    set_state_value(data->state, std::move(data->func), Future{std::move(data->parent)});
+  set_state_value(data->state, std::move(data->func), cnt_arg_t<Tag, T>{std::move(data->parent)});
 }
 
-template<typename Future, typename T, typename R, typename F, typename E>
-void then_post(std::weak_ptr<cnt_data<T, R, F, E>> wdata) {
-  auto data = wdata.lock();
-  if (!data)
-    return;
-
-  post(std::move(data->exec), [data = cnt_data_holder<T, R, F, E>{std::move(wdata)}]() mutable {
-    then_run<Future>(std::move(data.data));
-  });
-}
-
-template<typename T, typename F, typename Arg>
-auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
-  using CntRes = cnt_result_t<F, Arg>;
-  using R = remove_future_t<CntRes>;
-
-  auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, void>>(
-    std::forward<F>(f), std::move(parent)
-  );
-  data->parent->continuations().push([wdata = std::weak_ptr<cnt_data<T, R, std::decay_t<F>, void>>(data)]() mutable {
-    then_run<Arg>(std::move(wdata));
-  });
-  return std::shared_ptr<future_state<R>>{data, &data->state};
-}
-
-template<typename T, typename E, typename F, typename Arg>
-auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
-  using CntRes = cnt_result_t<F, Arg>;
-  using R = remove_future_t<CntRes>;
-
-  auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>(
-    std::forward<E>(exec), std::forward<F>(f), std::move(parent)
-  );
-  data->parent->continuations().push([wdata = std::weak_ptr<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>(data)]() mutable {
-    then_post<Arg>(std::move(wdata));
-  });
-  return std::shared_ptr<future_state<R>>{data, &data->state};
-}
-
-template<typename T, typename R, typename F, typename E>
-void next_run(std::weak_ptr<cnt_data<T, R, F, E>> wdata) {
-  auto data = wdata.lock();
-  if (!data)
-    return;
-
+// non-void future::next
+template<typename T, typename R, typename F>
+void then_run(std::shared_ptr<cnt_data<T, R, F, void>> data, cnt_tag_t<cnt_tag::next>) {
   if (auto error = data->parent->exception()) {
     data->state.set_exception(std::move(error));
     return;
@@ -136,12 +114,9 @@ void next_run(std::weak_ptr<cnt_data<T, R, F, E>> wdata) {
   set_state_value(data->state, std::move(data->func), std::move(data->parent->value_ref()));
 }
 
-template<typename R, typename F, typename E>
-void next_run(std::weak_ptr<cnt_data<void, R, F, E>> wdata) {
-  auto data = wdata.lock();
-  if (!data)
-    return;
-
+// void future::next
+template<typename R, typename F>
+void then_run(std::shared_ptr<cnt_data<void, R, F, void>> data, cnt_tag_t<cnt_tag::next>) {
   if (auto error = data->parent->exception()) {
     data->state.set_exception(std::move(error));
     return;
@@ -149,41 +124,41 @@ void next_run(std::weak_ptr<cnt_data<void, R, F, E>> wdata) {
   set_state_value(data->state, std::move(data->func));
 }
 
-template<typename T, typename R, typename F, typename E>
-void next_post(std::weak_ptr<cnt_data<T, R, F, E>> wdata) {
-  auto data = wdata.lock();
-  if (!data)
-    return;
-
-  post(std::move(data->exec), [data = cnt_data_holder<T, R, F, E>{std::move(wdata)}]() mutable {
-    next_run(std::move(data.data));
+// continuation with executor
+template<cnt_tag Tag, typename T, typename R, typename F, typename E>
+void then_post(std::shared_ptr<cnt_data<T, R, F, E>> data) {
+  post(std::move(data->exec), [data_holder = cnt_data_holder<T, R, F, E>{data}]() mutable {
+    if (std::shared_ptr<cnt_data<T, R, F, void>> data = data_holder.wdata.lock())
+      then_run(std::move(data), cnt_tag_t<Tag>{});
   });
 }
 
-template<typename T, typename F>
-auto make_next_state(std::shared_ptr<future_state<T>> parent, F&& f) {
-  using CntRes = cnt_result_t<F, T>;
+template<cnt_tag Tag, typename T, typename F>
+auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
+  using CntRes = cnt_result_t<F, cnt_arg_t<Tag, T>>;
   using R = remove_future_t<CntRes>;
 
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, void>>(
     std::forward<F>(f), std::move(parent)
   );
-  data->parent->continuations().push([data = std::weak_ptr<cnt_data<T, R, std::decay_t<F>, void>>{data}]() mutable {
-    next_run(std::move(data));
+  data->parent->continuations().push([wdata = weak(data)]() mutable {
+    if (auto data = wdata.lock())
+      then_run(std::move(data), cnt_tag_t<Tag>{});
   });
   return std::shared_ptr<future_state<R>>{data, &data->state};
 }
 
-template<typename T, typename E, typename F>
-auto make_next_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
-  using CntRes = cnt_result_t<F, T>;
+template<cnt_tag Type, typename T, typename E, typename F>
+auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
+  using CntRes = cnt_result_t<F, cnt_arg_t<Type, T>>;
   using R = remove_future_t<CntRes>;
 
   auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>(
     std::forward<E>(exec), std::forward<F>(f), std::move(parent)
   );
-  data->parent->continuations().push([data = std::weak_ptr<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>{data}]() mutable {
-    next_post(std::move(data));
+  data->parent->continuations().push([wdata = weak(data)]() mutable {
+    if (auto data = wdata.lock())
+      then_post<Type>(std::move(data));
   });
   return std::shared_ptr<future_state<R>>{data, &data->state};
 }

@@ -72,7 +72,7 @@ public:
   then(F&& f) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return detail::make_then_state<T, F, future<T>>(
+    return detail::make_then_state<detail::cnt_tag::then, T, F>(
       std::move(state_), std::forward<F>(f)
     );
   }
@@ -84,7 +84,7 @@ public:
   > {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return detail::make_then_state<T, E, F, future<T>>(
+    return detail::make_then_state<detail::cnt_tag::then, T, E, F>(
       std::move(state_), std::forward<E>(exec), std::forward<F>(f)
     );
   }
@@ -93,7 +93,7 @@ public:
   detail::cnt_future_t<F, T> next(F&& f) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return detail::make_next_state<T, F>(std::move(state_), std::forward<F>(f));
+    return detail::make_then_state<detail::cnt_tag::next, T, F>(std::move(state_), std::forward<F>(f));
   }
 
   template<typename E, typename F>
@@ -103,7 +103,7 @@ public:
   > {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return detail::make_next_state<T, E, F>(
+    return detail::make_then_state<detail::cnt_tag::next, T, E, F>(
       std::move(state_), std::forward<E>(exec), std::forward<F>(f)
     );
   }

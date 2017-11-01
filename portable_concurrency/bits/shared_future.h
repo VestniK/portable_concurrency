@@ -72,7 +72,7 @@ public:
   then(F&& f) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return detail::make_then_state<T, F, shared_future<T>>(
+    return detail::make_then_state<detail::cnt_tag::shared_then, T, F>(
       state_, std::forward<F>(f)
     );
   }
@@ -84,7 +84,7 @@ public:
   > {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return detail::make_then_state<T, E, F, shared_future<T>>(
+    return detail::make_then_state<detail::cnt_tag::shared_then, T, E, F>(
       std::move(state_), std::forward<E>(exec), std::forward<F>(f)
     );
   }
