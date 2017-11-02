@@ -90,7 +90,6 @@ public:
     return *storage(tag);
   }
 
-private:
   void clean() noexcept {
     switch (state_) {
     case either_state::empty: return;
@@ -100,6 +99,7 @@ private:
     state_ = either_state::empty;
   }
 
+private:
   T* storage(first_t) noexcept {
     void* storage = &storage_;
     size_t sz = sizeof(storage_);
