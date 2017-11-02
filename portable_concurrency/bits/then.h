@@ -18,8 +18,6 @@ enum class cnt_tag {
   next,
   shared_then
 };
-template<cnt_tag Tag>
-using cnt_tag_t = std::integral_constant<cnt_tag, Tag>;
 
 template<cnt_tag Type, typename T>
 struct cnt_arg;
@@ -33,33 +31,28 @@ struct cnt_arg<cnt_tag::next, T> {using type = T;};
 template<typename T>
 struct cnt_arg<cnt_tag::shared_then, T> {using type = shared_future<T>;};
 
-template<typename T, typename R, typename F, typename E>
-struct cnt_data;
-
-template<typename T, typename R, typename F>
-struct cnt_data<T, R, F, void> {
+template<typename F, typename T>
+struct cnt_action {
   F func;
   std::shared_ptr<future_state<T>> parent;
-  shared_state<R> state;
+};
+
+template<cnt_tag Tag, typename T, typename F>
+struct cnt_data {
+  using cnt_res = cnt_result_t<F, cnt_arg_t<Tag, T>>;
+  using res_t = remove_future_t<cnt_res>;
+
+  cnt_action<F, T> action;
+  shared_state<res_t> state;
 
   cnt_data(F func, std::shared_ptr<future_state<T>> parent):
-    func(std::move(func)), parent(std::move(parent))
+    action({std::move(func), std::move(parent)})
   {}
 };
 
-template<typename T, typename R, typename F, typename E>
-struct cnt_data: cnt_data<T, R, F, void> {
-  E exec;
-
-  cnt_data(E exec, F func, std::shared_ptr<future_state<T>> parent):
-    cnt_data<T, R, F, void>(std::move(func), std::move(parent)),
-    exec(std::move(exec))
-  {}
-};
-
-template<typename T, typename R, typename F, typename E>
+template<cnt_tag Tag, typename T, typename F>
 struct cnt_data_holder {
-  std::weak_ptr<cnt_data<T, R, F, E>> wdata;
+  std::weak_ptr<cnt_data<Tag, T, F>> wdata;
 
   cnt_data_holder(const cnt_data_holder&) = delete;
 
@@ -74,14 +67,17 @@ struct cnt_data_holder {
 };
 
 // implicit unwrap
-template<cnt_tag Tag, typename T, typename R, typename F>
-auto then_run(std::shared_ptr<cnt_data<T, R, F, void>> data, cnt_tag_t<Tag>) -> std::enable_if_t<
+template<cnt_tag Tag, typename T, typename F>
+auto then_run(std::shared_ptr<cnt_data<Tag, T, F>> data) -> std::enable_if_t<
   is_future<std::result_of_t<F(cnt_arg_t<Tag, T>)>>::value
 > {
   using res_t = std::result_of_t<F(cnt_arg_t<Tag, T>)>;
   res_t res;
   try {
-    res = ::portable_concurrency::cxx14_v1::detail::invoke(std::move(data->func), std::move(data->parent));
+    res = ::portable_concurrency::cxx14_v1::detail::invoke(
+      std::move(data->action.func),
+      cnt_arg_t<Tag, T>{std::move(data->action.parent)}
+    );
   } catch(...) {
     data->state.set_exception(std::current_exception());
     return;
@@ -91,76 +87,75 @@ auto then_run(std::shared_ptr<cnt_data<T, R, F, void>> data, cnt_tag_t<Tag>) -> 
     return;
   }
   auto& continuations = state_of(res)->continuations();
-  continuations.push([data = std::move(data), res = std::move(res)] () mutable {
-    set_state_value(data->state, &res_t::get, std::move(res));
+  continuations.push([wdata = weak(std::move(data)), res = std::move(res)] () mutable {
+    if (auto data = wdata.lock())
+      set_state_value(data->state, &res_t::get, std::move(res));
   });
 }
 
 // simple then
-template<cnt_tag Tag, typename T, typename R, typename F>
-auto then_run(std::shared_ptr<cnt_data<T, R, F, void>> data, cnt_tag_t<Tag>) -> std::enable_if_t<
+template<cnt_tag Tag, typename T, typename F>
+auto then_run(std::shared_ptr<cnt_data<Tag, T, F>> data) -> std::enable_if_t<
   !is_unique_future<std::result_of_t<F(cnt_arg_t<Tag, T>)>>::value
 > {
-  set_state_value(data->state, std::move(data->func), cnt_arg_t<Tag, T>{std::move(data->parent)});
+  set_state_value(
+    data->state,
+    std::move(data->action.func),
+    cnt_arg_t<Tag, T>{std::move(data->action.parent)});
 }
 
 // non-void future::next
-template<typename T, typename R, typename F>
-void then_run(std::shared_ptr<cnt_data<T, R, F, void>> data, cnt_tag_t<cnt_tag::next>) {
-  if (auto error = data->parent->exception()) {
+template<typename T, typename F>
+void then_run(std::shared_ptr<cnt_data<cnt_tag::next, T, F>> data) {
+  if (auto error = data->action.parent->exception()) {
     data->state.set_exception(std::move(error));
     return;
   }
-  set_state_value(data->state, std::move(data->func), std::move(data->parent->value_ref()));
+  set_state_value(data->state, std::move(data->action.func), std::move(data->action.parent->value_ref()));
 }
 
 // void future::next
-template<typename R, typename F>
-void then_run(std::shared_ptr<cnt_data<void, R, F, void>> data, cnt_tag_t<cnt_tag::next>) {
-  if (auto error = data->parent->exception()) {
+template<typename F>
+void then_run(std::shared_ptr<cnt_data<cnt_tag::next, void, F>> data) {
+  if (auto error = data->action.parent->exception()) {
     data->state.set_exception(std::move(error));
     return;
   }
-  set_state_value(data->state, std::move(data->func));
-}
-
-// continuation with executor
-template<cnt_tag Tag, typename T, typename R, typename F, typename E>
-void then_post(std::shared_ptr<cnt_data<T, R, F, E>> data) {
-  post(std::move(data->exec), [data_holder = cnt_data_holder<T, R, F, E>{data}]() mutable {
-    if (std::shared_ptr<cnt_data<T, R, F, void>> data = data_holder.wdata.lock())
-      then_run(std::move(data), cnt_tag_t<Tag>{});
-  });
+  set_state_value(data->state, std::move(data->action.func));
 }
 
 template<cnt_tag Tag, typename T, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
-  using CntRes = cnt_result_t<F, cnt_arg_t<Tag, T>>;
-  using R = remove_future_t<CntRes>;
+  using cnt_data_t = cnt_data<Tag, T, std::decay_t<F>>;
+  using res_t = typename cnt_data_t::res_t;
 
-  auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, void>>(
+  auto data = std::make_shared<cnt_data_t>(
     std::forward<F>(f), std::move(parent)
   );
-  data->parent->continuations().push([wdata = weak(data)]() mutable {
+  data->action.parent->continuations().push([wdata = weak(data)]() mutable {
     if (auto data = wdata.lock())
-      then_run(std::move(data), cnt_tag_t<Tag>{});
+      then_run(std::move(data));
   });
-  return std::shared_ptr<future_state<R>>{data, &data->state};
+  return std::shared_ptr<future_state<res_t>>{data, &data->state};
 }
 
-template<cnt_tag Type, typename T, typename E, typename F>
+template<cnt_tag Tag, typename T, typename E, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
-  using CntRes = cnt_result_t<F, cnt_arg_t<Type, T>>;
-  using R = remove_future_t<CntRes>;
+  using cnt_data_t = cnt_data<Tag, T, std::decay_t<F>>;
+  using res_t = typename cnt_data_t::res_t;
 
-  auto data = std::make_shared<cnt_data<T, R, std::decay_t<F>, std::decay_t<E>>>(
-    std::forward<E>(exec), std::forward<F>(f), std::move(parent)
+  auto data = std::make_shared<cnt_data_t>(
+    std::forward<F>(f), std::move(parent)
   );
-  data->parent->continuations().push([wdata = weak(data)]() mutable {
-    if (auto data = wdata.lock())
-      then_post<Type>(std::move(data));
+  data->action.parent->continuations().push([exec = std::decay_t<E>{std::forward<E>(exec)}, wdata = weak(data)]() mutable {
+    if (auto data = wdata.lock()) {
+      post(std::move(exec), [holder = cnt_data_holder<Tag, T, std::decay_t<F>>{std::move(wdata)}] () mutable {
+        if (auto data = holder.wdata.lock())
+          then_run(std::move(data));
+      });
+    }
   });
-  return std::shared_ptr<future_state<R>>{data, &data->state};
+  return std::shared_ptr<future_state<res_t>>{data, &data->state};
 }
 
 } // namespace detail
