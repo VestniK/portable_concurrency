@@ -15,9 +15,7 @@ public:
   latch(const latch&) = delete;
   latch& operator=(const latch&) = delete;
 
-  // TODO: implement requirement to wait for all count_down_and_wait
-  // and wait functions returned before leaving the destructor.
-  ~latch() = default;
+  ~latch();
 
   void count_down_and_wait();
   void count_down(ptrdiff_t n = 1);
@@ -26,6 +24,7 @@ public:
 
 private:
   ptrdiff_t counter_;
+  mutable unsigned waiters_ = 0;
   mutable std::mutex mutex_;
   mutable std::condition_variable cv_;
 };

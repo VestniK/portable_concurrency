@@ -91,15 +91,23 @@ void* align(std::size_t alignment, std::size_t size, void*& ptr, std::size_t& sp
 
 } // namespace detail
 
+latch::~latch() {
+  std::unique_lock<std::mutex> lock{mutex_};
+  cv_.wait(lock, [this] {return waiters_ == 0;});
+}
+
 void latch::count_down_and_wait() {
   std::unique_lock<std::mutex> lock{mutex_};
+  ++waiters_;
   assert(counter_ > 0);
   if (--counter_ == 0) {
-    lock.unlock();
+    --waiters_;
     cv_.notify_all();
     return;
   }
-  cv_.wait(lock, [this]() {return counter_ == 0;});
+  cv_.wait(lock, [this] {return counter_ == 0;});
+  if (--waiters_ == 0)
+    cv_.notify_one();
 }
 
 void latch::count_down(ptrdiff_t n) {
@@ -121,7 +129,10 @@ bool latch::is_ready() const noexcept {
 
 void latch::wait() const {
   std::unique_lock<std::mutex> lock{mutex_};
-  cv_.wait(lock, [this]() {return counter_ == 0;});
+  ++waiters_;
+  cv_.wait(lock, [this] {return counter_ == 0;});
+  if (--waiters_ == 0)
+    cv_.notify_one();
 }
 
 future<void> make_ready_future() {
