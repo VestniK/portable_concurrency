@@ -132,7 +132,7 @@ public:
 };
 
 template<cnt_tag Tag, typename T, typename F>
-class cnt_state:
+class cnt_state final:
   public future_state<remove_future_t<cnt_result_t<F, cnt_arg_t<Tag, T>>>>,
   public continuation_state
 {

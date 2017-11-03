@@ -8,6 +8,7 @@ set(HEADERS
 
   bits/alias_namespace.h
   bits/align.h
+  bits/async.h
   bits/concurrency_type_traits.h
   bits/either.h
   bits/execution.h
