@@ -89,6 +89,25 @@ public:
     );
   }
 
+  template<typename F>
+  detail::cnt_future_t<F, T> next(F&& f) {
+    if (!state_)
+      throw std::future_error(std::future_errc::no_state);
+    return detail::make_then_state<detail::cnt_tag::shared_next, T, F>(state_, std::forward<F>(f));
+  }
+
+  template<typename E, typename F>
+  auto next(E&& exec, F&& f) -> std::enable_if_t<
+    is_executor<std::decay_t<E>>::value,
+    detail::cnt_future_t<F, T>
+  > {
+    if (!state_)
+      throw std::future_error(std::future_errc::no_state);
+    return detail::make_then_state<detail::cnt_tag::shared_next, T, E, F>(
+      state_, std::forward<E>(exec), std::forward<F>(f)
+    );
+  }
+
   // Implementation detail
   shared_future(std::shared_ptr<detail::future_state<T>>&& state) noexcept:
     state_(std::move(state))
