@@ -34,11 +34,25 @@ template<cnt_tag Type, typename T>
 using cnt_arg_t = typename cnt_arg<Type, T>::type;
 
 template<typename T>
-struct cnt_arg<cnt_tag::then, T> {using type = future<T>;};
+struct cnt_arg<cnt_tag::then, T> {
+  using type = future<T>;
+  static type extract(std::shared_ptr<future_state<T>>& state) {return {std::move(state)};}
+};
 template<typename T>
-struct cnt_arg<cnt_tag::next, T> {using type = T;};
+struct cnt_arg<cnt_tag::next, T> {
+  using type = T;
+  static type&& extract(std::shared_ptr<future_state<T>>& state) {return std::move(state->value_ref());}
+};
+template<>
+struct cnt_arg<cnt_tag::next, void> {
+  using type = void;
+  static void extract(std::shared_ptr<future_state<void>>& state) {state->value_ref();}
+};
 template<typename T>
-struct cnt_arg<cnt_tag::shared_then, T> {using type = shared_future<T>;};
+struct cnt_arg<cnt_tag::shared_then, T> {
+  using type = shared_future<T>;
+  static type extract(std::shared_ptr<future_state<T>>& state) {return {std::move(state)};}
+};
 
 template<typename F, typename T>
 struct cnt_closure {
@@ -83,7 +97,7 @@ public:
 
 template<cnt_tag Tag, typename T, typename F>
 auto then_unwrap(std::shared_ptr<cnt_data<Tag, T, F>> data) -> std::enable_if_t<
-  !is_future<std::result_of_t<F(cnt_arg_t<Tag, T>)>>::value
+  !is_future<cnt_result_t<F, cnt_arg_t<Tag, T>>>::value
 > {
   data->continuations_.execute();
 }
@@ -91,7 +105,7 @@ auto then_unwrap(std::shared_ptr<cnt_data<Tag, T, F>> data) -> std::enable_if_t<
 // implicit unwrap
 template<cnt_tag Tag, typename T, typename F>
 auto then_unwrap(std::shared_ptr<cnt_data<Tag, T, F>> data) -> std::enable_if_t<
-  is_future<std::result_of_t<F(cnt_arg_t<Tag, T>)>>::value
+  is_future<cnt_result_t<F, cnt_arg_t<Tag, T>>>::value
 > {
   auto& res_future = data->storage_.get(second_t{});
   if (!res_future.valid()) {
@@ -106,72 +120,68 @@ auto then_unwrap(std::shared_ptr<cnt_data<Tag, T, F>> data) -> std::enable_if_t<
   });
 }
 
-template<typename S, typename F, typename... A>
-auto invoke_emplace(S& storage, F&& func, A&&... args) -> std::enable_if_t<
-  !std::is_void<decltype(portable_concurrency::detail::invoke(std::forward<F>(func), std::forward<A>(args)...))>::value
+template<cnt_tag Tag, typename S, typename F, typename T>
+auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>>) -> std::enable_if_t<
+  std::is_void<cnt_arg_t<Tag, T>>::value && !std::is_void<
+    decltype(portable_concurrency::detail::invoke(std::forward<F>(func)))
+  >::value
 > {
-  storage.emplace(second_t{}, portable_concurrency::detail::invoke(std::forward<F>(func), std::forward<A>(args)...));
+  storage.emplace(
+    second_t{},
+    portable_concurrency::detail::invoke(std::forward<F>(func))
+  );
 }
 
-template<typename S, typename F, typename... A>
-auto invoke_emplace(S& storage, F&& func, A&&... args) -> std::enable_if_t<
-  std::is_void<decltype(portable_concurrency::detail::invoke(std::forward<F>(func), std::forward<A>(args)...))>::value
+template<cnt_tag Tag, typename S, typename F, typename T>
+auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>>) -> std::enable_if_t<
+  std::is_void<cnt_arg_t<Tag, T>>::value && std::is_void<
+    decltype(portable_concurrency::detail::invoke(std::forward<F>(func)))
+  >::value
 > {
-  portable_concurrency::detail::invoke(std::forward<F>(func), std::forward<A>(args)...);
+  portable_concurrency::detail::invoke(std::forward<F>(func));
+  storage.emplace(second_t{});
+}
+
+template<cnt_tag Tag, typename S, typename F, typename T>
+auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
+  !std::is_void<cnt_arg_t<Tag, T>>::value && !std::is_void<
+    decltype(portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent)))
+  >::value
+> {
+  storage.emplace(
+    second_t{},
+    portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent))
+  );
+}
+
+template<cnt_tag Tag, typename S, typename F, typename T>
+auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
+  !std::is_void<cnt_arg_t<Tag, T>>::value && std::is_void<
+    decltype(portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent)))
+  >::value
+> {
+  portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent));
   storage.emplace(second_t{});
 }
 
 // future::then, shared_future::then
 template<cnt_tag Tag, typename T, typename F>
-auto then_run(std::shared_ptr<cnt_data<Tag, T, F>> data) {
+auto then_run(std::shared_ptr<cnt_data<Tag, T, F>> data) try {
   auto& action = data->storage_.get(first_t{});
-  try {
-    invoke_emplace(data->storage_, std::move(action.func), cnt_arg_t<Tag, T>{std::move(action.parent)});
-    then_unwrap(data);
-  } catch (...) {
-    data->exception_ = std::current_exception();
-    data->storage_.clean();
-    data->continuations_.execute();
-  }
-}
-
-// non-void future::next
-template<typename T, typename F>
-void then_run(std::shared_ptr<cnt_data<cnt_tag::next, T, F>> data) {
-  auto& action = data->storage_.get(first_t{});
-  if (auto error = action.parent->exception()) {
-    data->storage_.clean();
-    data->exception_ = std::move(error);
-    data->continuations().execute();
-    return;
+  if (Tag != cnt_tag::then && Tag != cnt_tag::shared_then) {
+    if (auto error = action.parent->exception()) {
+      data->storage_.clean();
+      data->exception_ = std::move(error);
+      data->continuations().execute();
+      return;
+    }
   }
 
-  try {
-    invoke_emplace(data->storage_, std::move(action.func), std::move(action.parent->value_ref()));
-  } catch (...) {
-    data->exception_ = std::current_exception();
-    data->storage_.clean();
-  }
-  data->continuations_.execute();
-}
-
-// void future::next
-template<typename F>
-void then_run(std::shared_ptr<cnt_data<cnt_tag::next, void, F>> data) {
-  auto& action = data->storage_.get(first_t{});
-  if (auto error = action.parent->exception()) {
-    data->storage_.clean();
-    data->exception_ = std::move(error);
-    data->continuations().execute();
-    return;
-  }
-
-  try {
-    invoke_emplace(data->storage_, std::move(action.func));
-  } catch (...) {
-    data->exception_ = std::current_exception();
-    data->storage_.clean();
-  }
+  invoke_emplace<Tag>(data->storage_, std::move(action.func), std::move(action.parent));
+  then_unwrap(data);
+} catch (...) {
+  data->exception_ = std::current_exception();
+  data->storage_.clean();
   data->continuations_.execute();
 }
 
