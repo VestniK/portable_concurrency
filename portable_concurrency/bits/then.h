@@ -10,6 +10,8 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
+// small helpers
+
 template<typename T>
 std::weak_ptr<T> weak(std::shared_ptr<T> ptr) {return {std::move(ptr)};}
 
@@ -22,10 +24,13 @@ decltype(auto) unwrapped_ref(future<T>& f) {return state_of(f)->value_ref();}
 template<typename T>
 decltype(auto) unwrapped_ref(shared_future<T>& f) {return state_of(f)->value_ref();}
 
+// Tags for different continuation types and helper type traits to work with them
+
 enum class cnt_tag {
   then,
   next,
-  shared_then
+  shared_then,
+  shared_next
 };
 
 template<cnt_tag Type, typename T>
@@ -53,72 +58,19 @@ struct cnt_arg<cnt_tag::shared_then, T> {
   using type = shared_future<T>;
   static type extract(std::shared_ptr<future_state<T>>& state) {return {std::move(state)};}
 };
-
-template<typename F, typename T>
-struct cnt_closure {
-  F func;
-  std::shared_ptr<future_state<T>> parent;
+template<typename T>
+struct cnt_arg<cnt_tag::shared_next, T> {
+  using type = T;
+  static const type& extract(std::shared_ptr<future_state<T>>& state) {return state->value_ref();}
+};
+template<>
+struct cnt_arg<cnt_tag::shared_next, void> {
+  using type = void;
+  static void extract(std::shared_ptr<future_state<void>>& state) {state->value_ref();}
 };
 
-template<cnt_tag Tag, typename T, typename F>
-class cnt_data:
-  public future_state<remove_future_t<cnt_result_t<F, cnt_arg_t<Tag, T>>>>
-{
-public:
-  using cnt_res = cnt_result_t<F, cnt_arg_t<Tag, T>>;
-  using res_t = remove_future_t<cnt_res>;
-  using stored_cnt_res = std::conditional_t<std::is_void<cnt_res>::value, void_val, cnt_res>;
-
-  cnt_data(F func, std::shared_ptr<future_state<T>> parent):
-    storage_(first_t{}, std::move(func), std::move(parent))
-  {}
-
-  continuations_stack& continuations() override {return  continuations_;}
-
-  std::add_lvalue_reference_t<state_storage_t<res_t>> value_ref() override {
-    if (exception_)
-      std::rethrow_exception(exception_);
-    return unwrapped_ref(storage_.get(second_t{}));
-  }
-
-  std::exception_ptr exception() override {return exception_;}
-
-  void abandon() {
-    if (continuations_.executed())
-      return;
-    exception_ = std::make_exception_ptr(std::future_error{std::future_errc::broken_promise});
-    continuations_.execute();
-  }
-
-  either<cnt_closure<F, T>, stored_cnt_res> storage_;
-  std::exception_ptr exception_ = nullptr;
-  continuations_stack continuations_;
-};
-
-template<cnt_tag Tag, typename T, typename F>
-auto then_unwrap(std::shared_ptr<cnt_data<Tag, T, F>> data) -> std::enable_if_t<
-  !is_future<cnt_result_t<F, cnt_arg_t<Tag, T>>>::value
-> {
-  data->continuations_.execute();
-}
-
-// implicit unwrap
-template<cnt_tag Tag, typename T, typename F>
-auto then_unwrap(std::shared_ptr<cnt_data<Tag, T, F>> data) -> std::enable_if_t<
-  is_future<cnt_result_t<F, cnt_arg_t<Tag, T>>>::value
-> {
-  auto& res_future = data->storage_.get(second_t{});
-  if (!res_future.valid()) {
-    data->exception_ = std::make_exception_ptr(std::future_error{std::future_errc::broken_promise});
-    data->continuations_.execute();
-    return;
-  }
-  auto& continuations = state_of(res_future)->continuations();
-  continuations.push([wdata = weak(std::move(data))] {
-    if (auto data = wdata.lock())
-      data->continuations_.execute();
-  });
-}
+// Invoke continuation and emplace result into storage. Separate helpers for cases when continuation argument is
+// void/non-void and continuation result is void/non-void.
 
 template<cnt_tag Tag, typename S, typename F, typename T>
 auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>>) -> std::enable_if_t<
@@ -164,30 +116,98 @@ auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>> paren
   storage.emplace(second_t{});
 }
 
-// future::then, shared_future::then
+// continuation state
+
+template<typename F, typename T>
+struct cnt_closure {
+  F func;
+  std::shared_ptr<future_state<T>> parent;
+};
+
+class continuation_state {
+public:
+  virtual ~continuation_state() = default;
+  virtual void run(std::shared_ptr<void> self_sp) = 0;
+  virtual void abandon() = 0;
+};
+
 template<cnt_tag Tag, typename T, typename F>
-auto then_run(std::shared_ptr<cnt_data<Tag, T, F>> data) try {
-  auto& action = data->storage_.get(first_t{});
-  if (Tag != cnt_tag::then && Tag != cnt_tag::shared_then) {
-    if (auto error = action.parent->exception()) {
-      data->storage_.clean();
-      data->exception_ = std::move(error);
-      data->continuations().execute();
-      return;
-    }
+class cnt_state:
+  public future_state<remove_future_t<cnt_result_t<F, cnt_arg_t<Tag, T>>>>,
+  public continuation_state
+{
+public:
+  using cnt_res = cnt_result_t<F, cnt_arg_t<Tag, T>>;
+  using res_t = remove_future_t<cnt_res>;
+  using stored_cnt_res = std::conditional_t<std::is_void<cnt_res>::value, void_val, cnt_res>;
+
+  cnt_state(F func, std::shared_ptr<future_state<T>> parent):
+    storage_(first_t{}, std::move(func), std::move(parent))
+  {}
+
+  continuations_stack& continuations() override {return  continuations_;}
+
+  std::add_lvalue_reference_t<state_storage_t<res_t>> value_ref() override {
+    if (exception_)
+      std::rethrow_exception(exception_);
+    return unwrapped_ref(storage_.get(second_t{}));
   }
 
-  invoke_emplace<Tag>(data->storage_, std::move(action.func), std::move(action.parent));
-  then_unwrap(data);
-} catch (...) {
-  data->exception_ = std::current_exception();
-  data->storage_.clean();
-  data->continuations_.execute();
-}
+  std::exception_ptr exception() override {return exception_;}
 
-template<cnt_tag Tag, typename T, typename F>
+  void abandon() override {
+    if (continuations_.executed())
+      return;
+    exception_ = std::make_exception_ptr(std::future_error{std::future_errc::broken_promise});
+    continuations_.execute();
+  }
+
+  void run(std::shared_ptr<void> self_sp) override try {
+    auto& action = storage_.get(first_t{});
+    if (Tag != cnt_tag::then && Tag != cnt_tag::shared_then) {
+      if (auto error = action.parent->exception()) {
+        storage_.clean();
+        exception_ = std::move(error);
+        continuations().execute();
+        return;
+      }
+    }
+
+    invoke_emplace<Tag>(storage_, std::move(action.func), std::move(action.parent));
+    unwrap(std::move(self_sp), is_future<cnt_result_t<F, cnt_arg_t<Tag, T>>>{});
+  } catch (...) {
+    exception_ = std::current_exception();
+    storage_.clean();
+    continuations_.execute();
+  }
+
+private:
+  auto unwrap(std::shared_ptr<void>, std::false_type) {
+    continuations_.execute();
+  }
+
+  auto unwrap(std::shared_ptr<void> self_sp, std::true_type) {
+    auto& res_future = storage_.get(second_t{});
+    if (!res_future.valid()) {
+      exception_ = std::make_exception_ptr(std::future_error{std::future_errc::broken_promise});
+      continuations_.execute();
+      return;
+    }
+    auto& continuations = state_of(res_future)->continuations();
+    continuations.push([wstate = weak(std::shared_ptr<cnt_state>{self_sp, this})] {
+      if (auto state = wstate.lock())
+        state->continuations_.execute();
+    });
+  }
+
+private:
+  either<cnt_closure<F, T>, stored_cnt_res> storage_;
+  std::exception_ptr exception_ = nullptr;
+  continuations_stack continuations_;
+};
+
 struct cnt_action {
-  std::weak_ptr<cnt_data<Tag, T, F>> wdata;
+  std::weak_ptr<continuation_state> wdata;
 
   cnt_action(const cnt_action&) = delete;
 
@@ -196,7 +216,7 @@ struct cnt_action {
 
   void operator() () {
     if (auto data = wdata.lock())
-      then_run(std::move(data));
+      data->run(data);
     wdata.reset();
   }
 
@@ -208,20 +228,18 @@ struct cnt_action {
 
 template<cnt_tag Tag, typename T, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
-  using cnt_data_t = cnt_data<Tag, T, std::decay_t<F>>;
-  using cnt_action_t = cnt_action<Tag, T, std::decay_t<F>>;
+  using cnt_data_t = cnt_state<Tag, T, std::decay_t<F>>;
   using res_t = typename cnt_data_t::res_t;
 
   auto& parent_continuations = parent->continuations();
   auto data = std::make_shared<cnt_data_t>(std::forward<F>(f), std::move(parent));
-  parent_continuations.push(cnt_action_t{data});
+  parent_continuations.push(cnt_action{data});
   return std::shared_ptr<future_state<res_t>>{std::move(data)};
 }
 
 template<cnt_tag Tag, typename T, typename E, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
-  using cnt_data_t = cnt_data<Tag, T, std::decay_t<F>>;
-  using cnt_action_t = cnt_action<Tag, T, std::decay_t<F>>;
+  using cnt_data_t = cnt_state<Tag, T, std::decay_t<F>>;
   using res_t = typename cnt_data_t::res_t;
   struct executor_bind {
     std::decay_t<E> exec;
@@ -237,7 +255,7 @@ auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
   auto data = std::make_shared<executor_bind>(std::forward<E>(exec), std::forward<F>(f), std::move(parent));
   parent_continuations.push([wdata = weak(data)]() mutable {
     if (auto data = wdata.lock())
-      post(std::move(data->exec), cnt_action_t{std::shared_ptr<cnt_data_t>{data, &data->data}});
+      post(std::move(data->exec), cnt_action{std::shared_ptr<cnt_data_t>{data, &data->data}});
   });
   return std::shared_ptr<future_state<res_t>>{data, &data->data};
 }
