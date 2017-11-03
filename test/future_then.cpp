@@ -8,9 +8,9 @@
 #include "test_tools.h"
 #include "test_helpers.h"
 
+namespace portable_concurrency {
 namespace {
-
-using namespace std::literals;
+namespace test {
 
 std::string stringify(pc::future<int> f) {
   return std::to_string(f.get());
@@ -63,63 +63,65 @@ TEST_F(FutureThen, continuation_is_executed_once_when_source_becomes_ready) {
   auto cnt_future = future.then([&](pc::future<int>) {
     ++cnt_exec_count;
   });
-  set_promise_value(promise);
+  promise.set_value(42);
   EXPECT_EQ(cnt_exec_count, 1u);
 }
 
 TEST_F(FutureThen, continuation_arg_is_ready_for_ready_source) {
-  set_promise_value(promise);
+  promise.set_value(42);
   auto cnt_future = future.then([](pc::future<int> f) {
-    EXPECT_TRUE(f.is_ready());
+    return f.is_ready();
   });
+  EXPECT_TRUE(cnt_future.get());
 }
 
 TEST_F(FutureThen, continuation_arg_is_ready_for_not_ready_source) {
   auto cnt_future = future.then([](pc::future<int> f) {
-    EXPECT_TRUE(f.is_ready());
+    return f.is_ready();
   });
-  set_promise_value(promise);
+  promise.set_value(42);
+  EXPECT_TRUE(cnt_future.get());
 }
 
 TEST_F(FutureThen, exception_from_continuation_delivered_to_returned_future) {
   pc::future<bool> cnt_f = future.then([](pc::future<int>) -> bool {
     throw std::runtime_error("continuation error");
   });
-  set_promise_value(promise);
+  promise.set_value(42);
   EXPECT_RUNTIME_ERROR(cnt_f, "continuation error");
 }
 
 TEST_F(FutureThen, value_is_delivered_to_continuation_for_not_ready_source) {
   pc::future<void> cnt_f = future.then([](pc::future<int> f) {
-    EXPECT_SOME_VALUE(f);
+    EXPECT_EQ(f.get(), 42);
   });
-  set_promise_value(promise);
+  promise.set_value(42);
   cnt_f.get();
 }
 
 TEST_F(FutureThen, value_is_delivered_to_continuation_for_ready_source) {
-  set_promise_value(promise);
+  promise.set_value(42);
   pc::future<void> cnt_f = future.then([](pc::future<int> f) {
-    EXPECT_SOME_VALUE(f);
+    EXPECT_EQ(f.get(), 42);
   });
   cnt_f.get();
 }
 
 TEST_F(FutureThen, result_of_continuation_delivered_to_returned_future) {
   pc::future<std::string> cnt_f = future.then(stringify);
-  set_promise_value(promise);
+  promise.set_value(42);
 
-  EXPECT_EQ(cnt_f.get(), this->stringified_value);
+  EXPECT_EQ(cnt_f.get(), "42");
 }
 
-TEST_F(FutureThen, ready_continuation_call) {
-  set_promise_value(promise);
+TEST_F(FutureThen, result_of_continuation_delivered_to_returned_future_for_ready_future) {
+  promise.set_value(42);
   pc::future<std::string> cnt_f = future.then(stringify);
 
-  EXPECT_EQ(cnt_f.get(), this->stringified_value);
+  EXPECT_EQ(cnt_f.get(), "42");
 }
 
-TEST_F(FutureThen, async_continuation_call) {
+TEST_F(FutureThen, result_of_continuation_delivered_to_returned_future_for_async_future) {
   auto f = set_value_in_other_thread<int>(25ms);
 
   pc::future<std::string> cnt_f = f.then(stringify);
@@ -156,14 +158,6 @@ TEST_F(FutureThen, run_continuation_on_specific_executor) {
   EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
 }
 
-TEST_F(FutureThen, run_unwrapped_continuation_on_specific_executor) {
-  pc::future<std::thread::id> cnt_f = future.then(g_future_tests_env, [](pc::future<int>) {
-    return pc::make_ready_future(std::this_thread::get_id());
-  });
-  set_promise_value(promise);
-  EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
-}
-
 TEST_F(FutureThen, then_with_executor_supportds_state_abandon) {
   pc::future<std::string> cnt_f = future.then(null_executor, [](pc::future<int> f) {
     return std::to_string(f.get());
@@ -172,4 +166,6 @@ TEST_F(FutureThen, then_with_executor_supportds_state_abandon) {
   EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
 }
 
+} // namespace test
 } // anonymous namespace
+} // namespace portable_concurrency

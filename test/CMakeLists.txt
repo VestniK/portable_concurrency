@@ -12,6 +12,7 @@ set(SRC
   promise.cpp
   shared_future.cpp
   shared_future_then.cpp
+  shared_future_then_unwrap.cpp
   test_tools.cpp
   type_erasure_owner.cpp
   unique_function.cpp
