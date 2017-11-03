@@ -199,26 +199,37 @@ struct cnt_action {
 template<cnt_tag Tag, typename T, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
   using cnt_data_t = cnt_data<Tag, T, std::decay_t<F>>;
+  using cnt_action_t = cnt_action<Tag, T, std::decay_t<F>>;
   using res_t = typename cnt_data_t::res_t;
 
   auto& parent_continuations = parent->continuations();
   auto data = std::make_shared<cnt_data_t>(std::forward<F>(f), std::move(parent));
-  parent_continuations.push(cnt_action<Tag, T, std::decay_t<F>>{data});
+  parent_continuations.push(cnt_action_t{data});
   return std::shared_ptr<future_state<res_t>>{std::move(data)};
 }
 
 template<cnt_tag Tag, typename T, typename E, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
   using cnt_data_t = cnt_data<Tag, T, std::decay_t<F>>;
+  using cnt_action_t = cnt_action<Tag, T, std::decay_t<F>>;
   using res_t = typename cnt_data_t::res_t;
+  struct executor_bind {
+    std::decay_t<E> exec;
+    cnt_data_t data;
+
+    executor_bind(E&& e, F&& f, std::shared_ptr<future_state<T>> parent):
+      exec(std::forward<E>(e)),
+      data(std::forward<F>(f), std::move(parent))
+    {}
+  };
 
   auto& parent_continuations = parent->continuations();
-  auto data = std::make_shared<cnt_data_t>(std::forward<F>(f), std::move(parent));
-  parent_continuations.push([exec = std::decay_t<E>{std::forward<E>(exec)}, wdata = weak(data)]() mutable {
-    if (!wdata.expired())
-      post(std::move(exec), cnt_action<Tag, T, std::decay_t<F>>{std::move(wdata)});
+  auto data = std::make_shared<executor_bind>(std::forward<E>(exec), std::forward<F>(f), std::move(parent));
+  parent_continuations.push([wdata = weak(data)]() mutable {
+    if (auto data = wdata.lock())
+      post(std::move(data->exec), cnt_action_t{std::shared_ptr<cnt_data_t>{data, &data->data}});
   });
-  return std::shared_ptr<future_state<res_t>>{std::move(data)};
+  return std::shared_ptr<future_state<res_t>>{data, &data->data};
 }
 
 } // namespace detail
