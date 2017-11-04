@@ -120,6 +120,8 @@ auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>> paren
 
 template<typename F, typename T>
 struct cnt_closure {
+  cnt_closure(F&& func, std::shared_ptr<future_state<T>> parent): func(std::move(func)), parent(std::move(parent)) {}
+
   F func;
   std::shared_ptr<future_state<T>> parent;
 };
@@ -168,7 +170,7 @@ public:
       if (auto error = action.parent->exception()) {
         storage_.clean();
         exception_ = std::move(error);
-        continuations().execute();
+        continuations_.execute();
         return;
       }
     }
@@ -195,8 +197,9 @@ private:
     }
     auto& continuations = state_of(res_future)->continuations();
     continuations.push([wstate = weak(std::shared_ptr<cnt_state>{self_sp, this})] {
-      if (auto state = wstate.lock())
+      if (auto state = wstate.lock()) {
         state->continuations_.execute();
+      }
     });
   }
 
@@ -211,8 +214,18 @@ struct cnt_action {
 
   cnt_action(const cnt_action&) = delete;
 
+#if defined(__GNUC__) && __GNUC__ < 5
+  cnt_action(std::weak_ptr<continuation_state> wdata): wdata(std::move(wdata)) {}
+  cnt_action(cnt_action&& rhs) noexcept: wdata(std::move(rhs.wdata)) {rhs.wdata.reset();}
+  cnt_action& operator=(cnt_action&& rhs) noexcept {
+    wdata = std::move(rhs.wdata);
+    rhs.wdata.reset();
+    return *this;
+  }
+#else
   cnt_action(cnt_action&&) noexcept = default;
   cnt_action& operator=(cnt_action&&) noexcept = default;
+#endif
 
   void operator() () {
     if (auto data = wdata.lock())

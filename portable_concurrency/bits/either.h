@@ -71,14 +71,14 @@ public:
   template<typename... A>
   void emplace(first_t tag, A&&... a) {
     clean();
-    new(storage(tag)) T{std::forward<A>(a)...};
+    new(storage(tag)) T(std::forward<A>(a)...);
     state_ = first_t::value;
   }
 
   template<typename... A>
   void emplace(second_t tag, A&&... a) {
     clean();
-    new(storage(tag)) U{std::forward<A>(a)...};
+    new(storage(tag)) U(std::forward<A>(a)...);
     state_ = second_t::value;
   }
 
