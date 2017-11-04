@@ -60,7 +60,7 @@ struct cnt_arg<cnt_tag::shared_then, T> {
 };
 template<typename T>
 struct cnt_arg<cnt_tag::shared_next, T> {
-  using type = T;
+  using type = std::add_lvalue_reference_t<std::add_const_t<T>>;
   static const type& extract(std::shared_ptr<future_state<T>>& state) {return state->value_ref();}
 };
 template<>

@@ -27,6 +27,12 @@ TEST_F(SharedFutureThen, src_future_remains_valid) {
   EXPECT_TRUE(future.valid());
 }
 
+TEST_F(SharedFutureThen, contunuation_receives_shared_future) {
+  auto cnt_future = future.then([](auto&& f) {
+    static_assert(std::is_same<std::decay_t<decltype(f)>, pc::shared_future<int>>::value, "");
+  });
+}
+
 TEST_F(SharedFutureThen, returned_future_is_valid) {
   auto cnt_future = future.then([](pc::shared_future<int>) {});
   EXPECT_TRUE(cnt_future.valid());

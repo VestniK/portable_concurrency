@@ -11,6 +11,7 @@ set(SRC
   packaged_task.cpp
   promise.cpp
   shared_future.cpp
+  shared_future_next.cpp
   shared_future_then.cpp
   shared_future_then_unwrap.cpp
   test_tools.cpp

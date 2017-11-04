@@ -27,6 +27,12 @@ TEST_F(FutureThen, src_future_invalidated) {
   EXPECT_FALSE(future.valid());
 }
 
+TEST_F(FutureThen, contunuation_receives_future) {
+  auto cnt_future = future.then([](auto&& f) {
+    static_assert(std::is_same<std::decay_t<decltype(f)>, pc::future<int>>::value, "");
+  });
+}
+
 TEST_F(FutureThen, returned_future_is_valid) {
   auto cnt_future = future.then([](pc::future<int>) {});
   EXPECT_TRUE(cnt_future.valid());

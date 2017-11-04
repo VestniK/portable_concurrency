@@ -18,6 +18,7 @@ class shared_future {
     !detail::is_future<T>::value,
     "shared_future<future<T> and shared_future<shared_future<T>> are not allowed"
   );
+  using get_result_type = std::add_lvalue_reference_t<std::add_const_t<T>>;
 public:
   shared_future() noexcept = default;
   shared_future(const shared_future&) noexcept = default;
@@ -54,7 +55,7 @@ public:
 
   bool valid() const noexcept {return static_cast<bool>(state_);}
 
-  std::add_lvalue_reference_t<std::add_const_t<T>> get() {
+  get_result_type get() {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
     wait();
@@ -90,7 +91,7 @@ public:
   }
 
   template<typename F>
-  detail::cnt_future_t<F, T> next(F&& f) {
+  detail::cnt_future_t<F, get_result_type> next(F&& f) {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
     return detail::make_then_state<detail::cnt_tag::shared_next, T, F>(state_, std::forward<F>(f));
@@ -99,7 +100,7 @@ public:
   template<typename E, typename F>
   auto next(E&& exec, F&& f) -> std::enable_if_t<
     is_executor<std::decay_t<E>>::value,
-    detail::cnt_future_t<F, T>
+    detail::cnt_future_t<F, get_result_type>
   > {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
