@@ -2,6 +2,7 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
 set(SRC
+  async.cpp
   cancelation.cpp
   either.cpp
   future.cpp
