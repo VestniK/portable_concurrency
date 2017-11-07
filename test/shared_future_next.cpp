@@ -30,7 +30,7 @@ TEST_F(SharedFutureNext, continuation_gets_result_via_lvalue_reference) {
 }
 
 TEST_F(SharedFutureNext, continuation_receives_value) {
-  pc::future<std::string> cnt_f = future.next([](int val) {return std::to_string(val);});
+  pc::future<std::string> cnt_f = future.next([](int val) {return to_string(val);});
   promise.set_value(42);
   EXPECT_EQ(cnt_f.get(), "42");
 }
@@ -75,7 +75,7 @@ TEST_F(SharedFutureNext, continuation_executed_on_specified_executor) {
 
 TEST_F(SharedFutureNext, executor_version_supports_state_abandon) {
   pc::future<std::string> cnt_f = future.next(null_executor, [](int val) {
-    return std::to_string(val);
+    return to_string(val);
   });
   promise.set_value(42);
   EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);

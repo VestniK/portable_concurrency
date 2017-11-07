@@ -173,7 +173,7 @@ TEST(WhenAllVectorTest, multiple_shared_futures) {
 
   for (std::size_t pos: {3, 0, 1, 4, 2}) {
     EXPECT_FALSE(f.is_ready());
-    ps[pos].set_value(std::to_string(42*pos));
+    ps[pos].set_value(to_string(42*pos));
   }
   ASSERT_TRUE(f.is_ready());
 
@@ -183,7 +183,7 @@ TEST(WhenAllVectorTest, multiple_shared_futures) {
   for (auto& fc: res) {
     ASSERT_TRUE(fc.valid());
     ASSERT_TRUE(fc.is_ready());
-    EXPECT_EQ(fc.get(), std::to_string(42*idx++));
+    EXPECT_EQ(fc.get(), to_string(42*idx++));
   }
 }
 

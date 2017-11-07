@@ -30,7 +30,7 @@ TEST_F(FutureNext, arg_is_moved_to_continuation) {
 }
 
 TEST_F(FutureNext, continuation_receives_value) {
-  pc::future<std::string> cnt_f = future.next([](int val) {return std::to_string(val);});
+  pc::future<std::string> cnt_f = future.next([](int val) {return to_string(val);});
   promise.set_value(42);
   EXPECT_EQ(cnt_f.get(), "42");
 }
@@ -75,7 +75,7 @@ TEST_F(FutureNext, continuation_executed_on_specified_executor) {
 
 TEST_F(FutureNext, executor_version_supports_state_abandon) {
   pc::future<std::string> cnt_f = future.next(null_executor, [](int val) {
-    return std::to_string(val);
+    return to_string(val);
   });
   promise.set_value(42);
   EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);

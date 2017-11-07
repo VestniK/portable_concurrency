@@ -13,7 +13,7 @@ namespace {
 namespace test {
 
 std::string stringify(pc::shared_future<int> f) {
-  return std::to_string(f.get());
+  return to_string(f.get());
 }
 
 struct SharedFutureThen: future_test {
@@ -165,9 +165,7 @@ TEST_F(SharedFutureThen, run_continuation_on_specific_executor) {
 }
 
 TEST_F(SharedFutureThen, then_with_executor_supportds_state_abandon) {
-  pc::future<std::string> cnt_f = future.then(null_executor, [](pc::shared_future<int> f) {
-    return std::to_string(f.get());
-  });
+  pc::future<std::string> cnt_f = future.then(null_executor, stringify);
   promise.set_value(42);
   EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
 }

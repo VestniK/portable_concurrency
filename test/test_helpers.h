@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sstream>
+
 #include <gtest/gtest.h>
 
 #include "test_tools.h"
@@ -103,17 +105,21 @@ auto set_error_in_other_thread(
 
 inline
 std::string to_string(int val) {
-  return std::to_string(val);
+  std::ostringstream oss;
+  oss << val;
+  return oss.str();
 }
 
 inline
 std::string to_string(const std::unique_ptr<int>& val) {
-  return val ? std::to_string(*val) : "nullptr"s;
+  return val ? to_string(*val) : "nullptr"s;
 }
 
 inline
 std::string to_string(const future_tests_env& val) {
-  return std::to_string(reinterpret_cast<uintptr_t>(&val));
+  std::ostringstream oss;
+  oss << reinterpret_cast<uintptr_t>(&val);
+  return oss.str();
 }
 
 inline
