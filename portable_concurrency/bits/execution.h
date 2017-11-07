@@ -10,12 +10,24 @@ namespace portable_concurrency {
  * function are only participate in overload resolution if this trait is specialized for the executor argument and
  * `is_executor<E>::value` is `true`.
  *
- * In addition to this trait specialization there should be ADL discoverable function `post(E, F)` where E is executor
- * type and F is type satisfying @b MoveConstructable, @b MoveAssignable and @b Callable (with signature `void()`)
- * concepts of the standard library. This function should schedule execution if the function specified on the executor
- * provided and exit immediatelly. Function object passed to this function must be called only once.
+ * In addition to this trait specialization there should be @ref post function provided in order to use executor type
+ * E with portable_concurrency library.
+ *
+ * @sa post
  */
-template<typename T>
+template<typename E>
 struct is_executor {static constexpr bool value = false;};
 
 } // namespace portable_concurrency
+
+/**
+ * @fn post(Executor, Functor)
+ *
+ * Function which must be ADL descoverable for user provided executor classes. This function must schedule execution of
+ * the functor passed as second argument on the executor provided with first argument.
+ *
+ * Functor type meets MoveConstructable, MoveAssignable and Callable (with signature `void()`) standard library
+ * requirements.
+ *
+ * @sa is_executor
+ */
