@@ -5,10 +5,10 @@
 
 #include <gtest/gtest.h>
 
-#include "portable_concurrency/future"
-#include "portable_concurrency/latch"
+#include <portable_concurrency/future>
+#include <portable_concurrency/latch>
 
-#include "../portable_concurrency/bits/once_consumable_stack.h"
+#include <portable_concurrency/bits/once_consumable_stack.h>
 
 #include "test_tools.h"
 

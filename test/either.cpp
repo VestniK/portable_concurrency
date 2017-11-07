@@ -3,8 +3,8 @@
 
 #include <gtest/gtest.h>
 
-#include "../portable_concurrency/bits/alias_namespace.h"
-#include "../portable_concurrency/bits/either.h"
+#include <portable_concurrency/bits/alias_namespace.h>
+#include <portable_concurrency/bits/either.h>
 
 namespace portable_concurrency {
 namespace test {

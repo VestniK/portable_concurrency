@@ -6,8 +6,8 @@
 
 #include <gtest/gtest.h>
 
-#include "../portable_concurrency/bits/alias_namespace.h"
-#include "../portable_concurrency/bits/type_erasure_owner.h"
+#include <portable_concurrency/bits/alias_namespace.h>
+#include <portable_concurrency/bits/type_erasure_owner.h>
 
 namespace {
 

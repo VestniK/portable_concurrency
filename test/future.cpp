@@ -6,7 +6,7 @@
 
 #include <gtest/gtest.h>
 
-#include "portable_concurrency/future"
+#include <portable_concurrency/future>
 
 #include "test_tools.h"
 #include "test_helpers.h"

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "portable_concurrency/future"
-#include "portable_concurrency/latch"
+#include <portable_concurrency/future>
+#include <portable_concurrency/latch>
 
 #include "test_tools.h"
 
