@@ -115,17 +115,17 @@ TEST(TypeErasureOwner, second_enlisted_type_is_embeded) {
 
 TEST(TypeErasureOwner, small_type_is_embeded) {
   static_assert(
-    sizeof(double) <= sizeof(std::string),
+    sizeof(uint16_t) <= sizeof(std::string),
     "Test assumptions on types size are not satisfied"
   );
   static_assert(
-    alignof(double) <= alignof(std::string),
+    alignof(uint16_t) <= alignof(std::string),
     "Test assumptions on types alignment are not satisfied"
   );
-  type_erasure_owner var{emplace_t<double>{}, 2.37};
+  type_erasure_owner var{emplace_t<uint16_t>{}, uint16_t{1632}};
   EXPECT_NE(var.get(), nullptr);
   EXPECT_TRUE(var.is_embeded());
-  EXPECT_EQ(var.get()->to_string(), "2.37");
+  EXPECT_EQ(var.get()->to_string(), "1632");
 }
 
 struct error {
@@ -194,20 +194,20 @@ TEST(TypeErasureOwner, move_second_enlisted_type) {
 
 TEST(TypeErasureOwner, move_small_type) {
   static_assert(
-    sizeof(double) <= sizeof(std::string),
+    sizeof(uint16_t) <= sizeof(std::string),
     "Test assumptions on types size are not satisfied"
   );
   static_assert(
-    alignof(double) <= alignof(std::string),
+    alignof(uint16_t) <= alignof(std::string),
     "Test assumptions on types alignment are not satisfied"
   );
-  type_erasure_owner src{emplace_t<double>{}, 2.37};
+  type_erasure_owner src{emplace_t<uint16_t>{}, uint16_t{324}};
 
   type_erasure_owner dest = std::move(src);
   EXPECT_NE(dest.get(), nullptr);
   EXPECT_EQ(src.get(), nullptr);
   EXPECT_TRUE(dest.is_embeded());
-  EXPECT_EQ(dest.get()->to_string(), "2.37");
+  EXPECT_EQ(dest.get()->to_string(), "324");
 }
 
 TEST(TypeErasureOwner, move_big_type) {
