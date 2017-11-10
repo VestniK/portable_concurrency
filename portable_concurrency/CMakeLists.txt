@@ -1,11 +1,12 @@
 find_package(Threads REQUIRED)
 
-set(HEADERS
+set(PUBLIC_HEADERS
   execution
   functional
   future
   latch
-
+)
+set(INSTALL_HEADERS
   bits/alias_namespace.h
   bits/align.h
   bits/async.h
@@ -19,7 +20,6 @@ set(HEADERS
   bits/invoke.h
   bits/latch.h
   bits/make_future.h
-  bits/once_consumable_stack.h
   bits/once_consumable_stack_fwd.h
   bits/packaged_task.h
   bits/promise.h
@@ -33,13 +33,20 @@ set(HEADERS
   bits/when_all.h
 )
 
+set(HEADERS
+  ${PUBLIC_HEADERS}
+  ${INSTALL_HEADERS}
+
+  bits/once_consumable_stack.h
+)
+
 set(SRC
   bits/portable_concurrency.cpp
 )
 
 add_library(portable_concurrency ${SRC})
 target_sources(portable_concurrency PRIVATE ${HEADERS})
-target_link_libraries(portable_concurrency INTERFACE Threads::Threads)
+target_link_libraries(portable_concurrency Threads::Threads)
 target_include_directories(portable_concurrency INTERFACE
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include>
@@ -50,6 +57,9 @@ install(TARGETS portable_concurrency EXPORT portable_concurrency
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES ${HEADERS}
+install(FILES ${PUBLIC_HEADERS}
   DESTINATION include/portable_concurrency COMPONENT Devel
+)
+install(FILES ${INSTALL_HEADERS}
+  DESTINATION include/portable_concurrency/bits COMPONENT Devel
 )
