@@ -18,6 +18,11 @@ struct emplace_t {};
 /// Small Object Optimized type erased object owner.
 template<typename Iface, size_t Len, size_t Align = alignof(void*)>
 class type_erasure_owner {
+#if defined(_MSC_VER) && !defined(_WIN64)
+  static constexpr size_t storage_alignment = 4;
+#else
+  static constexpr size_t storage_alignment = Align;
+#endif
 public:
   type_erasure_owner() = default;
   type_erasure_owner(std::nullptr_t): type_erasure_owner() {}
@@ -56,7 +61,7 @@ public:
     destroy();
     static_assert(std::is_base_of<Iface, T>::value, "T must be derived from Iface");
 
-    constexpr size_t max_align_offset = (alignof(T) - Align%alignof(T))%alignof(T);
+    constexpr size_t max_align_offset = (alignof(T) - storage_alignment%alignof(T))%alignof(T);
     void* ptr = &embeded_buf_;
     size_t space = Len;
     void* obj_start = align(alignof(T), sizeof(T), ptr, space);
@@ -101,11 +106,7 @@ private:
 
 private:
   Iface* ptr_ = nullptr;
-#if defined(_MSC_VER) && !defined(_WIN64)
-  std::aligned_storage_t<Len, 4> embeded_buf_;
-#else
-  std::aligned_storage_t<Len, Align> embeded_buf_;
-#endif
+  std::aligned_storage_t<Len, storage_alignment> embeded_buf_;
 };
 
 /**
