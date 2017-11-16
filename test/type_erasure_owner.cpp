@@ -11,7 +11,7 @@
 
 namespace {
 
-#if defined(_MSC_VER) || (defined(__GNUC__) && __GNUC__ < 5)
+#if defined(_MSC_VER) || (defined(__GNUC__) && (__GNUC__ < 5 || defined(_GLIBCXX_DEBUG)))
 template<typename Iface, template<typename> class Adapter, typename... T>
 struct type_erasure_owner_t_helper {
 #if defined(_MSC_VER) && (_MSC_VER > 1900)
