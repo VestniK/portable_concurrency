@@ -101,7 +101,11 @@ private:
 
 private:
   Iface* ptr_ = nullptr;
+#if defined(_MSC_VER) && !defined(_WIN64)
+  std::aligned_storage_t<Len, 4> embeded_buf_;
+#else
   std::aligned_storage_t<Len, Align> embeded_buf_;
+#endif
 };
 
 /**

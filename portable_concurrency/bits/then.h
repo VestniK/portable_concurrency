@@ -165,6 +165,10 @@ public:
   }
 
   void run(std::shared_ptr<void> self_sp) override try {
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4127) // conditional expression is constant
+#endif
     auto& action = storage_.get(first_t{});
     if (Tag != cnt_tag::then && Tag != cnt_tag::shared_then) {
       if (auto error = action.parent->exception()) {
@@ -174,6 +178,9 @@ public:
         return;
       }
     }
+#ifdef _MSC_VER
+pragma warning(pop)
+#endif
 
     invoke_emplace<Tag>(storage_, std::move(action.func), std::move(action.parent));
     unwrap(std::move(self_sp), is_future<cnt_result_t<F, cnt_arg_t<Tag, T>>>{});
