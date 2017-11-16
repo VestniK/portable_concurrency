@@ -63,7 +63,7 @@ public:
     if (
       std::is_nothrow_move_constructible<T>::value &&
       std::is_nothrow_destructible<T>::value &&
-      sizeof(T) <= Len - max_align_offset &&
+      sizeof(T) + max_align_offset <= Len &&
       obj_start
     )
       ptr_ = new(obj_start) T{std::forward<A>(a)...};
