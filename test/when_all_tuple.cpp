@@ -153,7 +153,7 @@ TEST(WhenAllTupleTest, ready_on_all_only) {
 TEST(WhenAllTupleTest, concurrent_result_delivery) {
   pc::latch latch{4};
   pc::packaged_task<int()> t0([&latch] {latch.count_down_and_wait(); return 42;});
-  pc::packaged_task<std::string()> t1([&latch] {latch.count_down_and_wait(); return "qwe"s;});
+  pc::packaged_task<std::string()> t1([&latch] {latch.count_down_and_wait(); return std::string{"qwe"};});
   pc::packaged_task<void()> t2([&latch] {latch.count_down_and_wait();});
 
   auto f = pc::when_all(t0.get_future().share(), t1.get_future(), t2.get_future());
@@ -178,7 +178,7 @@ TEST(WhenAllTupleTest, concurrent_result_delivery) {
 
 TEST(WhenAllTupleTest, some_initially_redy) {
   pc::promise<int> p0;
-  auto f1 = pc::make_ready_future("qwe"s).share();
+  auto f1 = pc::make_ready_future(std::string{"qwe"}).share();
   pc::promise<void> p2;
 
   auto f = pc::when_all(p0.get_future(), f1, p2.get_future());
@@ -207,7 +207,7 @@ TEST(WhenAllTupleTest, some_initially_redy) {
 
 TEST(WhenAllTupleTest, all_initially_redy) {
   auto f0 = pc::make_ready_future(42).share();
-  auto f1 = pc::make_ready_future("qwe"s);
+  auto f1 = pc::make_ready_future(std::string{"qwe"});
   auto f2 = pc::make_ready_future().share();
 
   auto f = pc::when_all(f0, std::move(f1), f2);

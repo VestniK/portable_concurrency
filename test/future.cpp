@@ -305,10 +305,10 @@ void test_ready_future_maker<int>() {
 
 template<>
 void test_ready_future_maker<std::string>() {
-  auto future = pc::make_ready_future("hello"s);
+  auto future = pc::make_ready_future(std::string{"hello"});
   ASSERT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
-  EXPECT_EQ("hello"s, future.get());
+  EXPECT_EQ(future.get(), "hello");
 }
 
 template<>

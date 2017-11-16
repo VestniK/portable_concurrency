@@ -251,7 +251,7 @@ TEST_P(WhenAnyTupleTest, multiple_futures) {
 
   switch (idx_first) {
   case 0: EXPECT_EQ(std::get<0>(res.futures).get(), 345); break;
-  case 1: EXPECT_EQ(std::get<1>(res.futures).get(), "hello world"s); break;
+  case 1: EXPECT_EQ(std::get<1>(res.futures).get(), "hello world"); break;
   case 2: EXPECT_EQ(*std::get<2>(res.futures).get(), 42); break;
   case 3: EXPECT_NO_THROW(std::get<3>(res.futures).get()); break;
   case 4: EXPECT_EQ(&std::get<4>(res.futures).get(), g_future_tests_env); break;
@@ -314,7 +314,7 @@ TEST_P(WhenAnyTupleTest, multiple_futures_one_initially_ready) {
 
   switch (idx_first) {
   case 0: EXPECT_EQ(std::get<0>(res.futures).get(), 345); break;
-  case 1: EXPECT_EQ(std::get<1>(res.futures).get(), "hello world"s); break;
+  case 1: EXPECT_EQ(std::get<1>(res.futures).get(), "hello world"); break;
   case 2: EXPECT_EQ(*std::get<2>(res.futures).get(), 42); break;
   case 3: EXPECT_NO_THROW(std::get<3>(res.futures).get()); break;
   case 4: EXPECT_EQ(&std::get<4>(res.futures).get(), g_future_tests_env); break;

@@ -137,9 +137,9 @@ TEST_F(SharedFutureThen, result_of_continuation_delivered_to_returned_future_for
 TEST_F(SharedFutureThen, exception_to_continuation) {
   pc::shared_future<int> f = set_error_in_other_thread<int>(25ms, std::runtime_error("test error"));
 
-  pc::future<std::string> string_f = f.then([](pc::shared_future<int> ready_f) {
+  pc::future<std::string> string_f = f.then([](pc::shared_future<int> ready_f) -> std::string {
     EXPECT_RUNTIME_ERROR(ready_f, "test error");
-    return "Exception delivered"s;
+    return "Exception delivered";
   });
 
   string_f.get();
@@ -148,9 +148,9 @@ TEST_F(SharedFutureThen, exception_to_continuation) {
 TEST_F(SharedFutureThen, exception_to_ready_continuation) {
   pc::shared_future<int> f = pc::make_exceptional_future<int>(std::runtime_error("test error"));
 
-  pc::future<std::string> string_f = f.then([](pc::shared_future<int> ready_f) {
+  pc::future<std::string> string_f = f.then([](pc::shared_future<int> ready_f) -> std::string {
     EXPECT_RUNTIME_ERROR(ready_f, "test error");
-    return "Exception delivered"s;
+    return "Exception delivered";
   });
 
   string_f.get();

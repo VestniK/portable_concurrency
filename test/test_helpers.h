@@ -112,7 +112,7 @@ std::string to_string(int val) {
 
 inline
 std::string to_string(const std::unique_ptr<int>& val) {
-  return val ? to_string(*val) : "nullptr"s;
+  return val ? to_string(*val) : "nullptr";
 }
 
 inline
