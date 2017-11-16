@@ -14,16 +14,21 @@ extensions. Strict TS implementation is developed in the `strict-ts` branch.
 
 ## Difference from TS
 
- * future<future<T>>, future<shared_future<T>>, shared_future<future<T>> and shared_future<shared_future<T>> are not
-   allowed.
- * No packaged_task<R(A...)>::reset() method provided.
- * Basic executor support for future::then and shared_future::then
+ * `future<future<T>>`, `future<shared_future<T>>`, `shared_future<future<T>>` and `shared_future<shared_future<T>>` are
+   not allowed.
+ * Implicit unwrap for continuations with `shared_future` result type.
+ * No `packaged_task<R(A...)>::reset()` method provided.
+ * `future::next` and `shared_future::next` implementation from N3865.
+ * Basic executor support for all fucntions attaching continuations.
+ * Executor aware version of async.
+ * `future` destuctor (as well as destructor of the last `shared_future` pointing to particular shared state) has cancel
+   semantics. If continuation or `packaged_task` which calculates value fot this `future` is not yet started it will not
+   be executed at all.
 
 ## Build
 
     mkdir -p build/debug
     cd build/debug
-    conan remote add VestniK https://api.bintray.com/conan/vestnik/VestniK
     conan install --build=missing ../..
     cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ../..
     ninja

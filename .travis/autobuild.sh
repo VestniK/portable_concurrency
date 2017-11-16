@@ -21,7 +21,7 @@ conan profile update settings.build_type="${DEPS_BUILD_TYPE}" default
 # dump toolchain info
 conan profile show default
 
-conan remote add VestniK https://api.bintray.com/conan/vestnik/VestniK
+conan remote add VestniK https://api.bintray.com/conan/pdeps/deps
 conan install --build=missing ${SRCDIR}
 
 cmake -G Ninja ${SRCDIR} \
