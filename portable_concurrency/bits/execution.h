@@ -20,9 +20,8 @@ struct is_executor {static constexpr bool value = false;};
 
 } // namespace portable_concurrency
 
+#if defined(DOXYGEN)
 /**
- * @fn post(Executor, Functor)
- *
  * Function which must be ADL descoverable for user provided executor classes. This function must schedule execution of
  * the functor passed as second argument on the executor provided with first argument.
  *
@@ -31,3 +30,6 @@ struct is_executor {static constexpr bool value = false;};
  *
  * @sa is_executor
  */
+template<typename Executor, typename Functor>
+void post(Executor exec, Functor func);
+#endif
