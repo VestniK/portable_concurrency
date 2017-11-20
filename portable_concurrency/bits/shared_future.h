@@ -55,7 +55,7 @@ public:
 
   bool valid() const noexcept {return static_cast<bool>(state_);}
 
-  get_result_type get() {
+  get_result_type get() const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
     wait();
@@ -123,7 +123,7 @@ private:
 
 template<>
 inline
-std::add_lvalue_reference_t<std::add_const_t<void>> shared_future<void>::get() {
+std::add_lvalue_reference_t<std::add_const_t<void>> shared_future<void>::get() const {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
   wait();

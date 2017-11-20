@@ -157,7 +157,7 @@ TYPED_TEST_P(SharedFutureTests, get_on_invalid) {
 
 template<typename T>
 void test_retrieve_shared_future_result() {
-  pc::shared_future<T> future = set_value_in_other_thread<T>(25ms).share();
+  const pc::shared_future<T> future = set_value_in_other_thread<T>(25ms).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(some_value<T>(), future.get());
@@ -166,7 +166,7 @@ void test_retrieve_shared_future_result() {
 
 template<>
 void test_retrieve_shared_future_result<std::unique_ptr<int>>() {
-  auto future = set_value_in_other_thread<std::unique_ptr<int>>(25ms).share();
+  const auto future = set_value_in_other_thread<std::unique_ptr<int>>(25ms).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(42, *future.get());
@@ -175,7 +175,7 @@ void test_retrieve_shared_future_result<std::unique_ptr<int>>() {
 
 template<>
 void test_retrieve_shared_future_result<void>() {
-  auto future = set_value_in_other_thread<void>(25ms).share();
+  const auto future = set_value_in_other_thread<void>(25ms).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_NO_THROW(future.get());
@@ -184,7 +184,7 @@ void test_retrieve_shared_future_result<void>() {
 
 template<>
 void test_retrieve_shared_future_result<future_tests_env&>() {
-  auto future = set_value_in_other_thread<future_tests_env&>(25ms).share();
+  const auto future = set_value_in_other_thread<future_tests_env&>(25ms).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(g_future_tests_env, &future.get());
@@ -196,7 +196,7 @@ TYPED_TEST_P(SharedFutureTests, retrieve_result) {
 }
 
 TYPED_TEST_P(SharedFutureTests, retrieve_exception) {
-  auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error")).share();
+  const auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error")).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_RUNTIME_ERROR(future, "test error");

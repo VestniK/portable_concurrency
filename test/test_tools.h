@@ -111,7 +111,7 @@ void expect_future_exception(pc::future<T>& future, const std::string& what) {
 }
 
 template<typename T>
-void expect_future_exception(pc::shared_future<T>& future, const std::string& what) {
+void expect_future_exception(const pc::shared_future<T>& future, const std::string& what) {
   try {
     const T& unexpected_res = future.get();
     ADD_FAILURE() << "Value " << printable<T>{unexpected_res} << " was returned instead of exception";
@@ -139,7 +139,7 @@ void expect_future_exception(pc::future<void>& future, const std::string& what) 
 }
 
 inline
-void expect_future_exception(pc::shared_future<void>& future, const std::string& what) {
+void expect_future_exception(const pc::shared_future<void>& future, const std::string& what) {
   try {
     future.get();
     ADD_FAILURE() << "void value was returned instead of exception";
