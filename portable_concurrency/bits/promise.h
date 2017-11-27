@@ -7,6 +7,10 @@
 #include "future.h"
 #include "shared_state.h"
 
+#if defined(__cpp_coroutines)
+#include <experimental/coroutine>
+#endif
+
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
@@ -83,6 +87,15 @@ public:
   future<T> get_future() {return common_.get_future();}
   void set_exception(std::exception_ptr error) {common_.set_exception(error);}
 
+#if defined(__cpp_coroutines)
+  std::experimental::suspend_never initial_suspend() const noexcept {return {};}
+  std::experimental::suspend_never final_suspend() const noexcept {return {};}
+  auto get_return_object() {return get_future();}
+  void unhandled_exception() {set_exception(std::current_exception());}
+  void return_value(const T& val) {set_value(val);}
+  void return_value(T&& val) {set_value(std::move(val));}
+#endif
+
 private:
   detail::promise_common<T> common_;
 };
@@ -108,6 +121,14 @@ public:
   future<T&> get_future() {return common_.get_future();}
   void set_exception(std::exception_ptr error) {common_.set_exception(error);}
 
+#if defined(__cpp_coroutines)
+  std::experimental::suspend_never initial_suspend() const noexcept {return {};}
+  std::experimental::suspend_never final_suspend() const noexcept {return {};}
+  auto get_return_object() {return get_future();}
+  void unhandled_exception() {set_exception(std::current_exception());}
+  void return_value(T& val) {set_value(val);}
+#endif
+
 private:
   detail::promise_common<T&> common_;
 };
@@ -132,6 +153,14 @@ public:
 
   future<void> get_future() {return common_.get_future();}
   void set_exception(std::exception_ptr error) {common_.set_exception(error);}
+
+#if defined(__cpp_coroutines)
+  std::experimental::suspend_never initial_suspend() const noexcept {return {};}
+  std::experimental::suspend_never final_suspend() const noexcept {return {};}
+  auto get_return_object() {return get_future();}
+  void unhandled_exception() {set_exception(std::current_exception());}
+  void return_void() {set_value();}
+#endif
 
 private:
   detail::promise_common<void> common_;

@@ -2,6 +2,10 @@
 
 #include <future>
 
+#if defined(__cpp_coroutines)
+#include <experimental/coroutine>
+#endif
+
 #include "fwd.h"
 
 #include "concurrency_type_traits.h"
@@ -113,6 +117,16 @@ public:
   shared_future(std::shared_ptr<detail::future_state<T>>&& state) noexcept:
     state_(std::move(state))
   {}
+
+#if defined(__cpp_coroutines)
+  // Corouttines TS support
+  using promise_type = promise<T>;
+  bool await_ready() const noexcept {return is_ready();}
+  decltype(auto) await_resume() {return get();}
+  void await_suspend(std::experimental::coroutine_handle<> handle) {
+    state_->continuations().push(std::move(handle));
+  }
+#endif
 
 private:
   friend std::shared_ptr<detail::future_state<T>>& detail::state_of<T>(shared_future<T>&);
