@@ -1,0 +1,335 @@
+\documentclass[aspectratio=169,pdf,hyperref={unicode},14pt]{beamer}
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian,english]{babel}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{default}
+\usepackage{hyperref}
+
+% Настройки бимера
+\usetheme{Copenhagen}
+
+% Настройки листинга
+\definecolor{comments}{rgb}{0.5,0.5,0.5}
+\definecolor{stdtypes}{rgb}{0.3,0.0,0.0}
+
+\lstdefinestyle{cppcode}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  frame=L,
+  xleftmargin=\parindent,
+  language=C++,
+  showstringspaces=false,
+  basicstyle=\footnotesize\ttfamily,
+  morekeywords={constexpr,static_assert,decltype,co_await,co_return},
+  keywordstyle=\bfseries\color{blue},
+  commentstyle=\itshape\color{comments},
+  stringstyle=\color{brown},
+  classoffset=1,
+  morekeywords=[1]{function,unique_function,string,future,shared_future,promise,packaged_task,current_exception,async,move,to_string,when_any_result,when_any,tuple,when_all,list,vector,cout,flush},
+  keywordstyle=[1]\bfseries\color{stdtypes},
+}
+
+\newcommand{\gooditem}[1]{\setbeamercolor{local structure}{fg=green}\item #1}
+\newcommand{\baditem}[1]{\setbeamercolor{local structure}{fg=red}\item #1}
+\newcommand{\isodoc}[1]{{\scriptsize \color{gray} #1}}
+
+\title{Асинхронное будущее стандартной библиотеки}
+\subtitle{\texttt{std::promise<std::future>}}
+\author{Сергей Видюк}
+\date{7 декабря 2017}
+
+\begin{document}
+
+\begin{frame}
+ \maketitle
+\end{frame}
+
+\begin{frame}[t]{Кратко обо мне}
+ \begin{itemize}[<+->]
+  \item Работаю в команде v4core мобильной верси 2ГИС
+  \item Написал свою реализацию \texttt{future} из Concurrency TS \url{https://github.com/VestniK/portable_concurrency}
+ \end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile,t]{Где не место \texttt{std::function}}
+  \begin{onlyenv}<1-2>
+  \begin{lstlisting}[style=cppcode]
+struct ThreadPool {
+  void post(function<void()> task);
+};
+  \end{lstlisting}
+  \end{onlyenv}
+
+  \begin{onlyenv}<3>
+  \begin{lstlisting}[style=cppcode]
+struct ThreadPool {
+  void post(unique_function<void()> task);
+};
+  \end{lstlisting}
+  \end{onlyenv}
+
+  \begin{itemize}
+   \begin{onlyenv}<2->
+   \baditem Трудно работать с данными некопируемых типов
+   \end{onlyenv}
+   \begin{onlyenv}<3->
+   \gooditem \texttt{std::unique\_function} \isodoc{N4543}
+   \end{onlyenv}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Extensions for Concurrency, ISO/IEC TS 19571:2016}
+  \begin{onlyenv}<1>
+    \begin{itemize}
+      \item Набор расширений стандартной библиотеки для написания многопоточного кода. Опубликован 19 января 2016.
+      \item Частично добавлен в текущий черновик C++20
+    \end{itemize}
+  \end{onlyenv}
+  \begin{onlyenv}<2->
+    \begin{itemize}
+      \item<2-> Семафороподобные примитивы синхронизации \texttt{std::latch} \texttt{std::barrier} \texttt{std::flex\_barrier} \isodoc{C++20}
+      \item<3-> Атомарные умные указатели \texttt{std::atomic<shared\_ptr>} \texttt{std::atomic<weak\_ptr>} \isodoc{C++20}
+      \item<4-> Композиция задач через \texttt{std::future::then} \isodoc{Concurrency~TS}
+    \end{itemize}
+  \end{onlyenv}
+\end{frame}
+
+\begin{frame}[fragile,t]{Базовый курс по \texttt{std::future}}
+  \begin{itemize}
+    \begin{onlyenv}<1>
+    \item \texttt{std::future} позволяет забрать результат асинхронной операции
+    \item \texttt{std::shared\_future} позволяет получить константрую ссылку на результат асинхронной операции
+    \end{onlyenv}
+
+    \begin{onlyenv}<2>
+    \item \texttt{std::promise} позовляет в ручную высталвлять результат асинхронной операции
+    \begin{lstlisting}[style=cppcode,belowskip=0pt]
+future<int> do_stuff_async() {
+  promise<int> p;
+\end{lstlisting}
+\begin{lstlisting}[style=cppcode,backgroundcolor=\color{gray!30},aboveskip=0pt,belowskip=0pt]
+  auto res = p.get_future();
+\end{lstlisting}
+\begin{lstlisting}[style=cppcode,aboveskip=0pt,belowskip=0pt]
+  g_thread_pool.post([p = move(p)]() mutable {
+    try {
+\end{lstlisting}
+\begin{lstlisting}[style=cppcode,backgroundcolor=\color{gray!30},aboveskip=0pt,belowskip=0pt]
+      p.set_value(do_stuff());
+\end{lstlisting}
+\begin{lstlisting}[style=cppcode,aboveskip=0pt,belowskip=0pt]
+    } catch(...) {
+\end{lstlisting}
+\begin{lstlisting}[style=cppcode,backgroundcolor=\color{gray!30},aboveskip=0pt,belowskip=0pt]
+      p.set_exception(current_exception());
+\end{lstlisting}
+\begin{lstlisting}[style=cppcode,aboveskip=0pt]
+    }
+  });
+  return res;
+}
+    \end{lstlisting}
+    \end{onlyenv}
+
+    \begin{onlyenv}<3>
+    \item \texttt{std::packaged\_task} позволяет получать результат вызова функции через \texttt{std::future}
+    \begin{lstlisting}[style=cppcode]
+future<int> do_stuff_async() {
+  packaged_task<int()> task{do_stuff};
+  auto res = task.get_future();
+  g_thread_pool.post(move(task));
+  return res;
+}
+    \end{lstlisting}
+    \end{onlyenv}
+
+    \begin{onlyenv}<4>
+    \item \texttt{std::async} позволяет запустить функцию асинхронно и получить результат через \texttt{std::future} \isodoc{P0443R2}
+    \begin{lstlisting}[style=cppcode]
+future<int> do_stuff_async() {
+  return async(g_thread_pool, do_stuff);
+}
+    \end{lstlisting}
+    \end{onlyenv}
+
+    \begin{onlyenv}<5>
+    \item Корутины могут возвращать \texttt{std::future} \isodoc{Coroutines~TS}
+    \begin{lstlisting}[style=cppcode]
+future<size_t> print_slowly(string str) {
+  for (char c: str) {
+    co_await 300ms;
+    cout << c << flush;
+  }
+  co_return str.size();
+}
+    \end{lstlisting}
+    \end{onlyenv}
+
+    \begin{onlyenv}<6>
+    \item Канал записи значения в \texttt{std::future} гарантированно уникален
+    \item Попытка записи значения повторно вызывает исключение \texttt{std::future\_errc::promise\_already\_satisfied}
+    \item Разрушение канала без записи складывает в \texttt{std::future} исключение \texttt{std::future\_errc::broken\_promise}
+    \end{onlyenv}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile,t]{Цепочки задач \texttt{future::then}}
+  \begin{itemize}
+    \begin{onlyenv}<1>
+    \item Строим цепочку снаружи
+    \begin{lstlisting}[style=cppcode]
+int foo();
+
+future<string> f =
+  async(g_thread_pool, foo)
+  .then([](future<int> ready) {
+    return to_string(ready.get());
+  });
+    \end{lstlisting}
+    \end{onlyenv}
+
+    \begin{onlyenv}<2>
+    \item Достраиваем цепочку изнутри
+    \begin{lstlisting}[style=cppcode]
+int foo();
+
+future<string> f =
+  async(g_thread_pool, foo)
+  .then([](future<int> ready) {
+    return async(g_ui_thread, to_string, ready.get());
+  });
+    \end{lstlisting}
+    \end{onlyenv}
+
+    \begin{onlyenv}<3>
+    \item Прозрачно пробрасываем ошибку до конца цепочки \isodoc{N3865}
+    \begin{lstlisting}[style=cppcode]
+int foo();
+
+future<string> f =
+  async(g_thread_pool, foo)
+  .next(to_string);
+    \end{lstlisting}
+    \end{onlyenv}
+
+    \begin{onlyenv}<4>
+    \item Управляем потоками \isodoc{P0443R2}
+    \begin{lstlisting}[style=cppcode]
+int foo();
+
+future<string> f =
+  async(g_thread_pool, foo)
+  .next(g_ui_thread, to_string);
+    \end{lstlisting}
+    \end{onlyenv}
+
+    \begin{onlyenv}<5>
+    \item Асинхронно ждём \isodoc{Coroutines~TS}
+    \begin{lstlisting}[style=cppcode]
+int foo();
+
+string f = to_string(
+  co_await async(g_thread_pool, foo)
+);
+    \end{lstlisting}
+    \end{onlyenv}
+
+    \begin{onlyenv}<6>
+    \item Стартуем несколько задач
+    \begin{lstlisting}[style=cppcode]
+int foo();
+
+shared_future<int> int_f = async(g_thread_pool, foo);
+future<string> f1 = int_f.next(to_string);
+future<int> f2 = int_f.next([](int res) {
+  return 10*res;
+});
+    \end{lstlisting}
+    \end{onlyenv}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile,t]{Ждём всех \texttt{std::when\_all}}
+  \begin{itemize}
+    \begin{onlyenv}<1>
+    \item Разные \texttt{std::future} фиксированное количество
+    \begin{lstlisting}[style=cppcode]
+future<tuple<future<int>, future<void>>> f =
+  when_all(
+    async(g_thread_pool, foo),
+    async(g_thread_pool, bar)
+  );
+    \end{lstlisting}
+    \end{onlyenv}
+
+    \begin{onlyenv}<2>
+    \item Одинаковые \texttt{std::future} заранее неизвестное количество
+    \begin{lstlisting}[style=cppcode]
+list<future<int>> future_list = bar();
+
+future<vector<future<int>>> f =
+  when_all(future_list.begin(), future_list.end());
+    \end{lstlisting}
+    \end{onlyenv}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile,t]{Ждём первого \texttt{std::when\_any}}
+  \begin{itemize}
+    \begin{onlyenv}<1>
+    \item Разные \texttt{std::future} фиксированное количество
+    \begin{lstlisting}[style=cppcode]
+net::steady_timer timer(my_io_context);
+timer.expires_after(300ms);
+
+using futures = tuple<future<int>, future<void>>;
+future<when_any_result<futures>> f =
+  when_any(
+    async(g_thread_pool, foo),
+    timer.async_wait(net::use_future_t{})
+  );
+    \end{lstlisting}
+    \end{onlyenv}
+
+    \begin{onlyenv}<2>
+    \item Одинаковые \texttt{std::future} заранее неизвестное количество
+    \begin{lstlisting}[style=cppcode]
+list<future<int>> future_list = bar();
+
+future<when_any_result<vector<future<int>>>> f =
+  when_any(future_list.begin(), future_list.end());
+    \end{lstlisting}
+    \end{onlyenv}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile,t]{Полезные мелочи Concurrency TS}
+  \begin{itemize}[<+->]
+   \item Проверка готовности без подписок и блокирововк \texttt{std::future::is\_ready}
+   \item Создание готового \texttt{std::future}: \texttt{std::make\_ready\_future}
+   \item Создание \texttt{std::future} с ошибкой: \texttt{std::make\_exceptional\_future}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile,t]{Особенности реализации portable\_concurrency}
+  \begin{itemize}[<+->]
+   \item Деструктор \texttt{pc::future} отменяет ещё не начатые действия.
+   \item В качестве \texttt{Executor}'а используется любой тип \texttt{E} для которого:
+   \begin{itemize}
+    \item Переопределён шаблон \texttt{portable\_concurrency::is\_executor<E>}
+    \item Через ADL может быть найдена функция \texttt{post(E,~Func)}
+   \end{itemize}
+
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Спасибо за внимание}
+\centerline{\includegraphics[height=4.5cm]{question_mark_blue.png}}
+\end{frame}
+
+\end{document}
