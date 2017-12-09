@@ -1,0 +1,1 @@
+add_library(portable_concurrency::portable_concurrency ALIAS portable_concurrency)

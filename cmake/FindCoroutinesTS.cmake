@@ -1,0 +1,30 @@
+if (CoroutinesTS_FOUND)
+  return()
+endif()
+
+include(CheckIncludeFileCXX)
+
+if (NOT cxx_std_17 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+  if (CoroutinesTS_FIND_REQUIRED)
+    message(FATAL_ERROR "C++17 support is not available")
+  elseif(NOT CoroutinesTS_FIND_QUIETLY)
+    message(STATUS "C++17 support is not available")
+  endif()
+  return()
+endif()
+
+check_include_file_cxx(experimental/coroutine CLANG_COROUTINES_FOUND "-fcoroutines-ts")
+
+if (CLANG_COROUTINES_FOUND)
+  add_library(coroutines::coroutines-ts INTERFACE IMPORTED)
+  set_target_properties(coroutines::coroutines-ts PROPERTIES INTERFACE_COMPILE_OPTIONS -fcoroutines-ts)
+  set(CoroutinesTS_FOUND YES)
+  message(STATUS "Clang implementation of the CoroutinesTS detected")
+  return()
+endif()
+
+if (CoroutinesTS_FIND_REQUIRED)
+  message(FATAL_ERROR "No CoroutinesTS provided by the compiler")
+elseif(NOT CoroutinesTS_FIND_QUIETLY)
+  message(STATUS "No CoroutinesTS provided by the compiler")
+endif()
