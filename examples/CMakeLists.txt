@@ -15,3 +15,8 @@ find_package(CoroutinesTS QUIET)
 if (CoroutinesTS_FOUND)
   add_subdirectory(coroutine)
 endif()
+
+find_package(Qt5Core QUIET)
+if (Qt5Core_FOUND)
+  add_subdirectory(qt)
+endif()
