@@ -15,5 +15,5 @@ add_executable(qt_pc
 )
 target_link_libraries(qt_pc
   Qt5::Core
-  portable_concurrency
+  portable_concurrency::portable_concurrency
 )

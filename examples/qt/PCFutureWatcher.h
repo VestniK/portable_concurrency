@@ -1,8 +1,7 @@
 #pragma once
 
-#include <memory>
-
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 
 #include <portable_concurrency/future>
 
@@ -35,9 +34,9 @@ private:
   struct SafeRef;
 
   static void notify(SafeRef& ref);
-  std::shared_ptr<SafeRef> createNewRef();
+  QSharedPointer<SafeRef> createNewRef();
   void detachCurrRef();
 
 private:
-  std::shared_ptr<SafeRef> cur_ref_;
+  QSharedPointer<SafeRef> cur_ref_;
 };

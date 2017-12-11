@@ -35,9 +35,9 @@ int main(int argc, char** argv) {
     return QStringLiteral("Hello Qt Concurent");
   });
   PCFutureWatcher watcher;
-  watcher.setFuture(f);
   QObject::connect(&watcher, &PCFutureWatcher::finished, [&f]() {qInfo() << f.get();});
   QObject::connect(&watcher, &PCFutureWatcher::finished, &app, &QCoreApplication::quit);
+  watcher.setFuture(f);
 
   return  app.exec();
 }

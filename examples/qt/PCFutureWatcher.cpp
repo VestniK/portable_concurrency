@@ -24,9 +24,9 @@ void PCFutureWatcher::notify(SafeRef& ref) {
   QMetaObject::invokeMethod(ref.ref, "finished", Qt::QueuedConnection);
 }
 
-std::shared_ptr<PCFutureWatcher::SafeRef> PCFutureWatcher::createNewRef() {
+QSharedPointer<PCFutureWatcher::SafeRef> PCFutureWatcher::createNewRef() {
   detachCurrRef();
-  return cur_ref_ = std::make_shared<SafeRef>(this);
+  return cur_ref_ = QSharedPointer<SafeRef>::create(this);
 }
 
 void PCFutureWatcher::detachCurrRef() {
