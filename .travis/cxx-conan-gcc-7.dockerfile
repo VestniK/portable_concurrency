@@ -13,7 +13,7 @@ VOLUME /home/builder/src
 USER builder
 ENV CC gcc-7
 ENV CXX g++-7
-RUN mkdir /home/builder/build && conan install || true
+RUN mkdir /home/builder/build && conan profile new --detect default
 WORKDIR /home/builder/build
 
 CMD ["libstdc++11", "Release"]

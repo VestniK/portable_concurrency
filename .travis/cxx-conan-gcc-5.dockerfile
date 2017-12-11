@@ -11,7 +11,8 @@ VOLUME /home/builder/src
 USER builder
 ENV CC gcc-5
 ENV CXX g++-5
-RUN mkdir /home/builder/build && conan install || true
+RUN mkdir /home/builder/build && conan profile new --detect default
+ADD settings.yml /home/builder/.conan/
 WORKDIR /home/builder/build
 
 CMD ["libstdc++11", "Release"]

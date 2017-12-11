@@ -18,7 +18,7 @@ VOLUME /home/builder/src
 USER builder
 ENV CC clang-3.8
 ENV CXX clang++-3.8
-RUN mkdir /home/builder/build && conan install || true
+RUN mkdir /home/builder/build && conan profile new --detect default
 WORKDIR /home/builder/build
 
 CMD ["libstdc++11", "Release"]
