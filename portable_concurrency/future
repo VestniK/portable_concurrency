@@ -1,6 +1,13 @@
 // <future> -*- C++ -*-
 #pragma once
 
+/**
+ * @defgroup future <portable_concurrency/future>
+ * @headerfile portable_concurrency/future
+ *
+ * `future` API imlementation with continuations and executors support
+ */
+
 #include "bits/alias_namespace.h"
 #include "bits/async.h"
 #include "bits/future.h"

@@ -29,6 +29,7 @@ extensions. Strict TS implementation is developed in the `strict-ts` branch.
 
     mkdir -p build/debug
     cd build/debug
+    conan remote add pdeps https://api.bintray.com/conan/pdeps/deps
     conan install --build=missing ../..
     cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ../..
     ninja

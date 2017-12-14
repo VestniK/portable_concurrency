@@ -1,5 +1,12 @@
 // <functional> -*- C++ -*-
 #pragma once
 
+/**
+ * @defgroup functional <portable_concurrency/functional>
+ * @headerfile portable_concurrency/functional
+ *
+ * Extra functional types proposed for standartization in future C++ versions
+ */
+
 #include "bits/alias_namespace.h"
 #include "bits/unique_function.h"

@@ -82,6 +82,7 @@ class unique_function;
 
 /**
  * @headerfile portable_concurrency/functional
+ * @ingroup functional
  * @brief Move-only type erasure for arbitrary callable object.
  *
  * Implementation of http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4543.pdf proposal.
