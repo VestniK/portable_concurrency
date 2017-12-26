@@ -16,7 +16,7 @@ auto async(E&& exec, F&& func, A&&... a) -> std::enable_if_t<
   // TODO: provide better implementation
   return make_ready_future().next(
     std::forward<E>(exec),
-    std::bind(std::forward<F>(func), std::forward<F>(a)...)
+    std::bind(std::forward<F>(func), std::forward<A>(a)...)
   );
 }
 

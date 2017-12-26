@@ -4,6 +4,8 @@
 
 #include "test_tools.h"
 
+using namespace std::literals;
+
 namespace portable_concurrency {
 namespace {
 namespace test {
@@ -31,9 +33,10 @@ TEST_F(Async, support_abandon_operation) {
 }
 
 TEST_F(Async, unwraps_future) {
-  pc::future<int> future = pc::async(g_future_tests_env, [] {
+  auto future = pc::async(g_future_tests_env, [] {
     return pc::async(g_future_tests_env, [] {return 100500;});
   });
+  static_assert(std::is_same<decltype(future), pc::future<int>>::value, "");
   EXPECT_EQ(future.get(), 100500);
 }
 
@@ -41,8 +44,13 @@ TEST_F(Async, unwraps_shared_future) {
   auto future = pc::async(g_future_tests_env, [] {
     return pc::async(g_future_tests_env, [] {return 100500;}).share();
   });
-  static_assert (std::is_same<decltype(future), pc::shared_future<int>>::value, "");
+  static_assert(std::is_same<decltype(future), pc::shared_future<int>>::value, "");
   EXPECT_EQ(future.get(), 100500);
+}
+
+TEST_F(Async, captures_parameters) {
+  pc::future<size_t> future = pc::async(g_future_tests_env, std::hash<std::string>{}, "qwe"s);
+  EXPECT_EQ(future.get(), std::hash<std::string>{}("qwe"s));
 }
 
 } // namespace test
