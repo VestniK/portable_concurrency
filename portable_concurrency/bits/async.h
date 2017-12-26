@@ -8,6 +8,16 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
+/**
+ * @ingroup future_hdr
+ * @brief Executor aware analog of the `std::async`.
+ *
+ * Runs the function `func` with arguments `a` asynchronyously using executor `exec` and returns a @ref future that will
+ * eventually hold the result of that function call. The `func` and `a` parameters are decay-copied before sending
+ * to executor.
+ *
+ * The function participates in overload resolution only if `is_executor<E>::value` is `true`
+ */
 template<typename E, typename F, typename... A>
 auto async(E&& exec, F&& func, A&&... a) -> std::enable_if_t<
   is_executor<std::decay_t<E>>::value,

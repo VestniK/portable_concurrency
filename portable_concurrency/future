@@ -2,7 +2,7 @@
 #pragma once
 
 /**
- * @defgroup future <portable_concurrency/future>
+ * @defgroup future_hdr <portable_concurrency/future>
  * @headerfile portable_concurrency/future
  *
  * `future` API imlementation with continuations and executors support

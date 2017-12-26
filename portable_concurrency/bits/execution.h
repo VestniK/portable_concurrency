@@ -17,7 +17,12 @@ namespace portable_concurrency {
  * @sa post
  */
 template<typename E>
-struct is_executor {static constexpr bool value = false;};
+struct is_executor {
+  /**
+   * `true` if E is executor type, `false` otherwise
+   */
+  static constexpr bool value = false;
+};
 
 } // namespace portable_concurrency
 

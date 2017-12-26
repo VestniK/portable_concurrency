@@ -17,19 +17,46 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
+/**
+ * @ingroup future_hdr
+ * @brief The class template future provides a mechanism to access the result of asynchronous operations.
+ */
 template<typename T>
 class future {
   static_assert(!detail::is_future<T>::value, "future<future<T>> and future<shared_future<T>> are not allowed");
 public:
+  /**
+   * Constructs invalid future object
+   *
+   * @post this->valid() == false
+   */
   future() noexcept = default;
-  future(future&&) noexcept = default;
+  /**
+   * Move constructor
+   *
+   * @post rhs.valid() == false
+   */
+  future(future&& rhs) noexcept = default;
   future(const future&) = delete;
 
   future& operator= (const future&) = delete;
+  /**
+   * Move assignmet
+   *
+   * @post rhs.valid() == false
+   */
   future& operator= (future&& rhs) noexcept = default;
 
+  /**
+   * Destroys associated shared state and cancel not yet started operations.
+   */
   ~future() = default;
 
+  /**
+   * Creates shared_future object and move ownership on the shared state associated to this object to it
+   *
+   * @post this->valid() == false
+   */
   shared_future<T> share() noexcept {
     return {std::move(*this)};
   }
@@ -63,6 +90,11 @@ public:
     return wait_for(abs_time - Clock::now());
   }
 
+  /**
+   * Checks if future has associated shared state
+   *
+   * @note All operations except this method, move assignment and destructor on an invalid future are UB.
+   */
   bool valid() const noexcept {return static_cast<bool>(state_);}
 
   bool is_ready() const {
