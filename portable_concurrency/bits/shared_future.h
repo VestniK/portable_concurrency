@@ -16,6 +16,10 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
+/**
+ * @ingroup future_hdr
+ * @brief The class template shared_future provides a mechanism to access the result of asynchronous operations.
+ */
 template<typename T>
 class shared_future {
   static_assert (

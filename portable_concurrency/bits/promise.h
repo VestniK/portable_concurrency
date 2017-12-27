@@ -56,10 +56,23 @@ struct promise_common {
       throw std::future_error(std::future_errc::no_state);
     return nullptr;
   }
+
+  bool is_awaiten() const {
+    switch (state_.state()) {
+    case either_state::first: break;
+    case either_state::second: return !state_.get(second_t{}).expired();
+    case either_state::empty: throw std::future_error(std::future_errc::no_state);
+    }
+    return true;
+  }
 };
 
 } // namespace detail
 
+/**
+ * @ingroup future_hdr
+ * @brief The class template promise is a simpliest write end of a future.
+ */
 template<typename T>
 class promise {
 public:
@@ -86,6 +99,13 @@ public:
 
   future<T> get_future() {return common_.get_future();}
   void set_exception(std::exception_ptr error) {common_.set_exception(error);}
+
+  /**
+   * Checks if there is a @ref future or @ref shared_future awaiting for the result from this promise object. This
+   * method returns `false` only if there is absolutelly no way to get a @ref future or @ref shared_future object which
+   * can be used to retreive a value or exception set by this promise object.
+   */
+  bool is_awaiten() const {return common_.is_awaiten();}
 
 #if defined(__cpp_coroutines)
   std::experimental::suspend_never initial_suspend() const noexcept {return {};}
@@ -121,6 +141,8 @@ public:
   future<T&> get_future() {return common_.get_future();}
   void set_exception(std::exception_ptr error) {common_.set_exception(error);}
 
+  bool is_awaiten() const {return common_.is_awaiten();}
+
 #if defined(__cpp_coroutines)
   std::experimental::suspend_never initial_suspend() const noexcept {return {};}
   std::experimental::suspend_never final_suspend() const noexcept {return {};}
@@ -153,6 +175,8 @@ public:
 
   future<void> get_future() {return common_.get_future();}
   void set_exception(std::exception_ptr error) {common_.set_exception(error);}
+
+  bool is_awaiten() const {return common_.is_awaiten();}
 
 #if defined(__cpp_coroutines)
   std::experimental::suspend_never initial_suspend() const noexcept {return {};}

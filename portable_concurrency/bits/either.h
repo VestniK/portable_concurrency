@@ -90,6 +90,14 @@ public:
     return *storage(tag);
   }
 
+  template<either_state State>
+  const auto& get(either_state_t<State> tag) const noexcept {
+    // `storage` is not const because it uses `std::align` on internal storage and this function has no overload for
+    // `const void*`. Using `const_cast` inside the `storage` function requires more unnecessary code duplication so
+    // it's used here.
+    return const_cast<either*>(this)->get(tag);
+  }
+
   void clean() noexcept {
     switch (state_) {
     case either_state::empty: return;

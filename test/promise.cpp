@@ -167,4 +167,27 @@ TYPED_TEST(PromiseTest, moved_from_throws_no_state_on_set_value) {
   EXPECT_FUTURE_ERROR(set_promise_value(promise), std::future_errc::no_state);
 }
 
+TEST(Promise, is_awaiten_returns_ture_before_get_fututre_call) {
+  pc::promise<void> p;
+  EXPECT_TRUE(p.is_awaiten());
+}
+
+TEST(Promise, is_awaiten_returns_true_before_future_destruction) {
+  pc::promise<std::string> p;
+  auto f = p.get_future();
+  EXPECT_TRUE(p.is_awaiten());
+}
+
+TEST(Promise, is_awaiten_returns_false_after_future_destruction) {
+  pc::promise<int&> p;
+  p.get_future();
+  EXPECT_FALSE(p.is_awaiten());
+}
+
+TEST(Promise, is_awaiten_returns_true_after_future_sharing) {
+  pc::promise<int> p;
+  pc::shared_future<int> sf = p.get_future();
+  EXPECT_TRUE(p.is_awaiten());
+}
+
 } // anonymous namespace
