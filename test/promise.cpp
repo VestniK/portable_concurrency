@@ -172,22 +172,4 @@ TEST(Promise, is_awaiten_returns_ture_before_get_fututre_call) {
   EXPECT_TRUE(p.is_awaiten());
 }
 
-TEST(Promise, is_awaiten_returns_true_before_future_destruction) {
-  pc::promise<std::string> p;
-  auto f = p.get_future();
-  EXPECT_TRUE(p.is_awaiten());
-}
-
-TEST(Promise, is_awaiten_returns_false_after_future_destruction) {
-  pc::promise<int&> p;
-  p.get_future();
-  EXPECT_FALSE(p.is_awaiten());
-}
-
-TEST(Promise, is_awaiten_returns_true_after_future_sharing) {
-  pc::promise<int> p;
-  pc::shared_future<int> sf = p.get_future();
-  EXPECT_TRUE(p.is_awaiten());
-}
-
 } // anonymous namespace

@@ -99,6 +99,49 @@ TEST(ContinuationCancelation, next_continuation_with_executor_is_not_executed_af
   EXPECT_FALSE(executed);
 }
 
+TEST(Promise, is_awaiten_returns_true_before_future_destruction) {
+  pc::promise<std::string> p;
+  auto f = p.get_future();
+  EXPECT_TRUE(p.is_awaiten());
+}
+
+TEST(Promise, is_awaiten_returns_false_after_future_destruction) {
+  pc::promise<int&> p;
+  p.get_future();
+  EXPECT_FALSE(p.is_awaiten());
+}
+
+TEST(Promise, is_awaiten_returns_true_after_future_sharing) {
+  pc::promise<int> p;
+  pc::shared_future<int> sf = p.get_future();
+  EXPECT_TRUE(p.is_awaiten());
+}
+
+TEST(Promise, is_awaiten_returns_true_after_attaching_continuation) {
+  pc::promise<int> p;
+  auto f = p.get_future().next([](int val) {return 5*val;});
+  EXPECT_TRUE(p.is_awaiten());
+}
+
+TEST(Promise, is_awaiten_returns_false_after_continuation_future_abandoned) {
+  pc::promise<int> p;
+  p.get_future().next([](int val) {return 5*val;});
+  EXPECT_FALSE(p.is_awaiten());
+}
+
+TEST(FutureDetach, invalidates_future) {
+  pc::promise<int> p;
+  auto f = p.get_future();
+  f.detach();
+  EXPECT_FALSE(f.valid());
+}
+
+TEST(Promise, is_awaiten_returns_true_after_future_detach) {
+  pc::promise<std::string> p;
+  p.get_future().detach();
+  EXPECT_TRUE(p.is_awaiten());
+}
+
 } // namespace
 } // namespace test
 } // namespace portable_concurrency

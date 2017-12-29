@@ -144,6 +144,18 @@ public:
     );
   }
 
+  /**
+   * Prevents cancelation of the operations of this future value calculation on its destruction.
+   *
+   * @post this->valid() == false
+   */
+  void detach() {
+    if (!state_)
+      throw std::future_error(std::future_errc::no_state);
+    auto* state = state_.get();
+    state->continuations().push([captured_state = std::move(state_)]() {});
+  }
+
   // implementation detail
   future(std::shared_ptr<detail::future_state<T>>&& state) noexcept:
     state_(std::move(state))
