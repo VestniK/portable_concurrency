@@ -61,6 +61,14 @@ public:
     return {std::move(*this)};
   }
 
+  /**
+   * @brief Get the result of asynchronyous operation stored in this future object.
+   *
+   * If the value is not yet set block current thread and wait for it. The value stored in the future is moved to the
+   * caller.
+   *
+   * @post this->valid() == false
+   */
   T get() {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
