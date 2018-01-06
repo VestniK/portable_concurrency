@@ -97,26 +97,64 @@ class unique_function<R(A...)> {
   template<typename F>
   using emplace_t = detail::emplace_t<detail::callable_wrapper<F, R(A...)>>;
 public:
+  /**
+   * Creates empty `unique_function` object
+   */
   unique_function() noexcept = default;
+  /**
+   * Creates empty `unique_function` object
+   */
   unique_function(std::nullptr_t) noexcept: type_erasure_() {}
 
+  /**
+   * Creates `unique_function` holding a function @a f.
+   *
+   * Result of the expression `INVOKE(f, std::declval<A>()...)` must be convertable to type `R`. Where `INVOKE` is an
+   * operation defined in the section 20.9.2 of the C++14 standard with additional overload defined in the section
+   * 20.9.4.4.
+   *
+   * If type `F` is pointer to function, pointer to member function or specialization of the `std::refference_wrapper`
+   * class template this constructor is guarantied to store passed function object in a small internal buffer and
+   * perform no heap allocations or deallocations.
+   */
   template<typename F>
   unique_function(F&& f):
     unique_function(std::forward<F>(f), detail::is_nullable_functor<std::decay_t<F>>{})
   {}
 
+  /**
+   * Destroys any stored function object.
+   */
   ~unique_function() = default;
 
+  /**
+   * Move @a rhs into newlly created object.
+   *
+   * @post `rhs` is empty.
+   */
   unique_function(unique_function&& rhs) noexcept = default;
 
+  /**
+   * Destroy function object stored in this `unique_function` object (if any) and move function object from `rhs`
+   * to `*this`.
+   *
+   * @post `rhs` is empty.
+   */
   unique_function& operator= (unique_function&& rhs) noexcept = default;
 
+  /**
+   * Calls stored function object with parameters @a args and returns result of the operation. If `this` object is empty
+   * throws `std::bad_function_call`.
+   */
   R operator() (A... args) {
     if (!type_erasure_.get())
       throw std::bad_function_call{};
     return type_erasure_.get()->call(args...);
   }
 
+  /**
+   * Checks if this object holds a function (not empty).
+   */
   explicit operator bool () const noexcept {
     return type_erasure_.get();
   }
