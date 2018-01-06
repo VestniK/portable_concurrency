@@ -37,8 +37,14 @@ public:
    * @post rhs.valid() == false
    */
   future(future&& rhs) noexcept = default;
+  /**
+   * Copy constructor is explicitly deleted. Future object is not copyable.
+   */
   future(const future&) = delete;
 
+  /**
+   * Copy assignment operator is explicitly deleted. Future object is not copyable.
+   */
   future& operator= (const future&) = delete;
   /**
    * Move assignmet
@@ -77,6 +83,9 @@ public:
     return std::move(state->value_ref());
   }
 
+  /**
+   * Blocks curent thread until this future object becomes ready.
+   */
   void wait() const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
@@ -105,6 +114,9 @@ public:
    */
   bool valid() const noexcept {return static_cast<bool>(state_);}
 
+  /**
+   * Checks if associated shared state is ready
+   */
   bool is_ready() const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
@@ -160,8 +172,8 @@ public:
   void detach() {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    auto* state = state_.get();
-    state->continuations().push([captured_state = std::move(state_)]() {});
+    auto& continuations = state_->continuations();
+    continuations.push([captured_state = std::move(state_)]() {});
   }
 
   // implementation detail

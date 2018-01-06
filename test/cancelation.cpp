@@ -142,6 +142,19 @@ TEST(Promise, is_awaiten_returns_true_after_future_detach) {
   EXPECT_TRUE(p.is_awaiten());
 }
 
+TEST(SharedFutureDetach, invalidates_future) {
+  pc::promise<int> p;
+  auto f = p.get_future().share();
+  f.detach();
+  EXPECT_FALSE(f.valid());
+}
+
+TEST(Promise, is_awaiten_returns_true_after_shared_future_detach) {
+  pc::promise<std::string> p;
+  p.get_future().share().detach();
+  EXPECT_TRUE(p.is_awaiten());
+}
+
 } // namespace
 } // namespace test
 } // namespace portable_concurrency
