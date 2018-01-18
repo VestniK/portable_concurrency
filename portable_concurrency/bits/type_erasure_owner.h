@@ -12,11 +12,16 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
+struct move_constructable {
+  virtual ~move_constructable() = default;
+  virtual move_constructable* move_to(void* location, size_t space) noexcept = 0;
+};
+
 template<typename T>
 struct emplace_t {};
 
 /// Small Object Optimized type erased object owner.
-template<typename Iface, size_t Len, size_t Align = alignof(void*)>
+template<size_t Len, size_t Align = alignof(void*)>
 class type_erasure_owner {
 #if defined(_MSC_VER) && !defined(_WIN64)
   static constexpr size_t storage_alignment = 4;
@@ -59,7 +64,7 @@ public:
   template<typename T, typename... A>
   void emplace(emplace_t<T>, A&&... a) {
     destroy();
-    static_assert(std::is_base_of<Iface, T>::value, "T must be derived from Iface");
+    static_assert(std::is_base_of<move_constructable, T>::value, "T must be derived from move_constructable");
 
     constexpr size_t max_align_offset = (alignof(T) - storage_alignment%alignof(T))%alignof(T);
     void* ptr = &embeded_buf_;
@@ -76,7 +81,7 @@ public:
       ptr_ = new T{std::forward<A>(a)...};
   }
 
-  Iface* get() const noexcept {
+  move_constructable* get() const noexcept {
     return ptr_;
   }
 
@@ -97,7 +102,7 @@ private:
       return;
     if (is_embeded())
     {
-      ptr_->~Iface();
+      ptr_->~move_constructable();
     } else {
       delete ptr_;
     }
@@ -105,21 +110,8 @@ private:
   }
 
 private:
-  Iface* ptr_ = nullptr;
+  move_constructable* ptr_ = nullptr;
   std::aligned_storage_t<Len, storage_alignment> embeded_buf_;
-};
-
-/**
- * CRTP helper to erase move constructor to make class usable with type_erasure_owner
- */
-template<typename Iface, typename Impl>
-class move_erased: public Iface {
-public:
-  Iface* move_to(void* location, size_t space) noexcept final {
-    void* obj_start = align(alignof(Impl), sizeof(Impl), location, space);
-    assert(obj_start);
-    return new(obj_start) Impl{std::move(*static_cast<Impl*>(this))};
-  }
 };
 
 } // namespace detail

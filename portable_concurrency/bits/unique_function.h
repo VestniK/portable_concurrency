@@ -13,29 +13,30 @@ inline namespace cxx14_v1 {
 namespace detail {
 
 template<typename S>
-class callable;
+struct callable;
 
 template<typename R, typename... A>
-class callable<R(A...)> {
-public:
-  virtual ~callable() = default;
-  virtual callable* move_to(void* location, size_t space) noexcept = 0;
+struct callable<R(A...)>: move_constructable {
   virtual R call(A... a) = 0;
 };
 
 template<typename F, typename S>
-class callable_wrapper;
+struct callable_wrapper;
 
 template<typename F, typename R, typename... A>
-class callable_wrapper<F, R(A...)> final:
-  public move_erased<callable<R(A...)>, callable_wrapper<F, R(A...)>>
-{
-public:
-  callable_wrapper(F&& f): func_(std::forward<F>(f)) {}
-  R call(A... a) override {return portable_concurrency::cxx14_v1::detail::invoke(func_, a...);}
+struct callable_wrapper<F, R(A...)> final: callable<R(A...)> {
+  template<typename U>
+  callable_wrapper(U&& val): func{std::forward<U>(val)} {}
 
-private:
-  std::decay_t<F> func_;
+  R call(A... a) final {return portable_concurrency::cxx14_v1::detail::invoke(func, a...);}
+
+  move_constructable* move_to(void* location, size_t space) noexcept final {
+    void* obj_start = align(alignof(callable_wrapper), sizeof(callable_wrapper), location, space);
+    assert(obj_start);
+    return new(obj_start) callable_wrapper{std::move(func)};
+  }
+
+  F func;
 };
 
 template<template<typename...> class Tmpl, typename T>
@@ -89,13 +90,9 @@ class unique_function;
  */
 template<typename R, typename... A>
 class unique_function<R(A...)> {
-  using type_erasure_t = detail::type_erasure_owner<
-    detail::callable<R(A...)>,
-    sizeof(std::function<R(A...)>),
-    alignof(std::function<R(A...)>)
-  >;
+  using type_erasure_t = detail::type_erasure_owner<sizeof(std::function<R(A...)>), alignof(std::function<R(A...)>)>;
   template<typename F>
-  using emplace_t = detail::emplace_t<detail::callable_wrapper<F, R(A...)>>;
+  using emplace_t = detail::emplace_t<detail::callable_wrapper<std::decay_t<F>, R(A...)>>;
 public:
   /**
    * Creates empty `unique_function` object
@@ -149,7 +146,7 @@ public:
   R operator() (A... args) {
     if (!type_erasure_.get())
       throw std::bad_function_call{};
-    return type_erasure_.get()->call(args...);
+    return static_cast<detail::callable<R(A...)>*>(type_erasure_.get())->call(args...);
   }
 
   /**
