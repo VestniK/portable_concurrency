@@ -1,8 +1,4 @@
-#include <cstring>
 #include <memory>
-#include <sstream>
-#include <string>
-#include <system_error>
 
 #include <gtest/gtest.h>
 
@@ -11,183 +7,124 @@
 
 namespace {
 
-#if defined(_MSC_VER) || (defined(__GNUC__) && (__GNUC__ < 5 || defined(_GLIBCXX_DEBUG)))
-template<template<typename> class Adapter, typename... T>
-struct type_erasure_owner_t_helper {
-#if defined(_MSC_VER) && (_MSC_VER > 1900)
-  static constexpr size_t storage_size = std::max(std::initializer_list<size_t>{sizeof(Adapter<T>)...});
-  static constexpr size_t storage_align = std::max(std::initializer_list<size_t>{alignof(Adapter<T>)...});
-#else
-  constexpr static size_t max_sz(size_t sz) {return sz;}
-
-  template<typename... Size_t>
-  constexpr static size_t max_sz(size_t sz, Size_t... szs) {
-    return sz > max_sz(szs...) ? sz : max_sz(szs...);
-  }
-
-  static constexpr size_t storage_size = max_sz(sizeof(Adapter<T>)...);
-  static constexpr size_t storage_align = max_sz(alignof(Adapter<T>)...);
-#endif
-  using type = pc::detail::type_erasure_owner<storage_size, storage_align>;
-};
-
-template<template<typename> class Adapter, typename... T>
-using type_erasure_owner_t = typename type_erasure_owner_t_helper<Adapter, T...>::type;
-#else
-template<template<typename> class Adapter, typename... T>
-using type_erasure_owner_t = pc::detail::type_erasure_owner<
-  std::max({sizeof(Adapter<T>)...}),
-  std::max({alignof(Adapter<T>)...})
->;
-#endif
-
-struct stringifiable: pc::detail::move_constructable {
-  virtual std::string to_string() const = 0;
-};
-
 template<typename T>
-struct stringifiable_adapter final: stringifiable {
-  stringifiable_adapter(T val): val(std::move(val)) {}
-
-  std::string to_string() const override {
-    std::ostringstream oss;
-    oss << val;
-    return oss.str();
-  }
+struct adapter final: pc::detail::move_constructable {
+  adapter(T val): val(std::move(val)) {}
 
   move_constructable* move_to(void* location, size_t space) noexcept final {
-    void* obj_start = pc::detail::align(alignof(stringifiable_adapter), sizeof(stringifiable_adapter), location, space);
+    void* obj_start = pc::detail::align(alignof(adapter), sizeof(adapter), location, space);
     assert(obj_start);
-    return new(obj_start) stringifiable_adapter{std::move(val)};
+    return new(obj_start) adapter{std::move(val)};
   }
 
   T val;
 };
 
-using type_erasure_owner = type_erasure_owner_t<stringifiable_adapter, std::string, const char*>;
-std::string to_string(const type_erasure_owner& val) {
-  return static_cast<const stringifiable*>(val.get())->to_string();
-}
+using type_erasure_owner = pc::detail::type_erasure_owner<sizeof(adapter<uint64_t>), alignof(adapter<uint64_t>)>;
 
 template<typename T>
-using emplace_t = pc::detail::emplace_t<stringifiable_adapter<std::decay_t<T>>>;
+using emplace_t = pc::detail::emplace_t<adapter<std::decay_t<T>>>;
 
-TEST(TypeErasureOwner, empty) {
+TEST(TypeErasureOwner, default_constructed_is_empty) {
   type_erasure_owner empty;
   EXPECT_EQ(empty.get(), nullptr);
 }
 
-TEST(TypeErasureOwner, first_enlisted_type_is_embeded) {
-  type_erasure_owner var{emplace_t<std::string>{}, "Hello"};
-  EXPECT_NE(var.get(), nullptr);
-  EXPECT_TRUE(var.is_embeded());
-  EXPECT_EQ(to_string(var), "Hello");
-}
-
-TEST(TypeErasureOwner, second_enlisted_type_is_embeded) {
-  type_erasure_owner var{emplace_t<const char*>{}, "Hello"};
-  EXPECT_NE(var.get(), nullptr);
-  EXPECT_TRUE(var.is_embeded());
-  EXPECT_EQ(to_string(var), "Hello");
-}
-
 TEST(TypeErasureOwner, small_type_is_embeded) {
-  static_assert(
-    sizeof(uint16_t) <= sizeof(std::string),
-    "Test assumptions on types size are not satisfied"
-  );
-  static_assert(
-    alignof(uint16_t) <= alignof(std::string),
-    "Test assumptions on types alignment are not satisfied"
-  );
   type_erasure_owner var{emplace_t<uint16_t>{}, uint16_t{1632}};
-  EXPECT_NE(var.get(), nullptr);
   EXPECT_TRUE(var.is_embeded());
-  EXPECT_EQ(to_string(var), "1632");
 }
 
-struct error {
-  std::string scope;
-  std::error_code ec;
-};
-
-std::ostream& operator<< (std::ostream& out, const error& val) {
-  return out << val.scope << ": " << val.ec.message();
+TEST(TypeErasureOwner, stored_small_object_has_correct_type) {
+  type_erasure_owner var{emplace_t<uint16_t>{}, uint16_t{3259}};
+  EXPECT_NE(dynamic_cast<adapter<uint16_t>*>(var.get()), nullptr);
 }
+
+TEST(TypeErasureOwner, stored_small_object_has_correct_value) {
+  type_erasure_owner var{emplace_t<uint16_t>{}, uint16_t{47296}};
+  EXPECT_EQ(dynamic_cast<adapter<uint16_t>*>(var.get())->val, 47296);
+}
+
+TEST(TypeErasureOwner, instance_with_embeded_objet_is_empty_after_move) {
+  type_erasure_owner src{emplace_t<uint16_t>{}, uint16_t{47296}};
+  type_erasure_owner dst = std::move(src);
+  EXPECT_EQ(src.get(), nullptr);
+}
+
+TEST(TypeErasureOwner, small_object_remains_embeded_after_move) {
+  type_erasure_owner src{emplace_t<uint16_t>{}, uint16_t{47296}};
+  type_erasure_owner dst = std::move(src);
+  EXPECT_TRUE(dst.is_embeded());
+}
+
+struct bigpt {uint64_t x; uint64_t y;};
 
 TEST(TypeErasureOwner, big_type_is_heap_allocated) {
-  const auto ec = std::make_error_code(std::errc::permission_denied);
-  type_erasure_owner var{emplace_t<error>{}, error{"open", ec}};
-  EXPECT_NE(var.get(), nullptr);
+  type_erasure_owner var{emplace_t<bigpt>{}, bigpt{123, 456}};
   EXPECT_FALSE(var.is_embeded());
-  EXPECT_EQ(to_string(var), "open: " + ec.message());
 }
 
-using unique_str = std::unique_ptr<char[]>;
-std::ostream& operator<< (std::ostream& out, const unique_str& val) {
-  return out << val.get();
+TEST(TypeErasureOwner, stored_big_object_has_correct_type) {
+  type_erasure_owner var{emplace_t<bigpt>{}, bigpt{321, 654}};
+  EXPECT_NE(dynamic_cast<adapter<bigpt>*>(var.get()), nullptr);
 }
 
-unique_str make_unique_str(const char* str) {
-  unique_str res(new char[std::strlen(str) + 1]);
-  std::strcpy(res.get(), str);
-  return res;
+TEST(TypeErasureOwner, stored_big_object_has_correct_value) {
+  type_erasure_owner var{emplace_t<bigpt>{}, bigpt{987, 543}};
+  const bigpt& stored = dynamic_cast<adapter<bigpt>*>(var.get())->val;
+  EXPECT_EQ(stored.x, 987);
+  EXPECT_EQ(stored.y, 543);
 }
 
-TEST(TypeErasureOwner, non_copyable_small_type) {
-  type_erasure_owner var{emplace_t<unique_str>{}, make_unique_str("Unique str")};
-  EXPECT_NE(var.get(), nullptr);
+TEST(TypeErasureOwner, instance_with_big_objet_is_empty_after_move) {
+  type_erasure_owner src{emplace_t<bigpt>{}, bigpt{123, 100500}};
+  type_erasure_owner dst = std::move(src);
+  EXPECT_EQ(src.get(), nullptr);
+}
+
+TEST(TypeErasureOwner, big_object_remains_heap_allocated_after_move) {
+  type_erasure_owner src{emplace_t<bigpt>{}, bigpt{123, 100500}};
+  type_erasure_owner dst = std::move(src);
+  EXPECT_FALSE(dst.is_embeded());
+}
+
+TEST(TypeErasureOwner, big_object_is_not_reallocated_by_move) {
+  type_erasure_owner src{emplace_t<bigpt>{}, bigpt{123, 100500}};
+  const auto* src_addr = src.get();
+  type_erasure_owner dst = std::move(src);
+  EXPECT_EQ(src_addr, dst.get());
+}
+
+struct move_only_int {
+  move_only_int(int32_t val = 0): val(val) {}
+
+  move_only_int(const move_only_int&) = delete;
+  move_only_int(move_only_int&&) = default;
+
+  move_only_int& operator= (move_only_int&&) = default;
+
+  int32_t val;
+};
+
+TEST(TypeErasureOwner, non_copyable_small_type_is_embeded) {
+  type_erasure_owner var{emplace_t<move_only_int>{}, 100500};
   EXPECT_TRUE(var.is_embeded());
-  EXPECT_EQ(to_string(var), "Unique str");
 }
 
-TEST(TypeErasureOwner, move_first_enlisted_type) {
-  type_erasure_owner src{emplace_t<std::string>{}, "Hello"};
+TEST(TypeErasureOwner, move_instance_with_embeded_object_moves_content) {
+  type_erasure_owner src{emplace_t<move_only_int>{}, 42};
 
   type_erasure_owner dest = std::move(src);
-  EXPECT_NE(dest.get(), nullptr);
-  EXPECT_EQ(src.get(), nullptr);
-  EXPECT_TRUE(dest.is_embeded());
-  EXPECT_EQ(to_string(dest), "Hello");
+  EXPECT_EQ(dynamic_cast<adapter<move_only_int>*>(dest.get())->val.val, 42);
 }
 
-TEST(TypeErasureOwner, move_second_enlisted_type) {
-  type_erasure_owner src{emplace_t<const char*>{}, "Hello C str"};
+TEST(TypeErasureOwner, move_instance_with_heap_allocated_object_moves_content) {
+  type_erasure_owner src{emplace_t<bigpt>{}, bigpt{32, 45}};
 
   type_erasure_owner dest = std::move(src);
-  EXPECT_NE(dest.get(), nullptr);
-  EXPECT_EQ(src.get(), nullptr);
-  EXPECT_TRUE(dest.is_embeded());
-  EXPECT_EQ(to_string(dest), "Hello C str");
-}
-
-TEST(TypeErasureOwner, move_small_type) {
-  static_assert(
-    sizeof(uint16_t) <= sizeof(std::string),
-    "Test assumptions on types size are not satisfied"
-  );
-  static_assert(
-    alignof(uint16_t) <= alignof(std::string),
-    "Test assumptions on types alignment are not satisfied"
-  );
-  type_erasure_owner src{emplace_t<uint16_t>{}, uint16_t{324}};
-
-  type_erasure_owner dest = std::move(src);
-  EXPECT_NE(dest.get(), nullptr);
-  EXPECT_EQ(src.get(), nullptr);
-  EXPECT_TRUE(dest.is_embeded());
-  EXPECT_EQ(to_string(dest), "324");
-}
-
-TEST(TypeErasureOwner, move_big_type) {
-  const auto ec = std::make_error_code(std::errc::permission_denied);
-  type_erasure_owner src{emplace_t<error>{}, error{"open", ec}};
-
-  type_erasure_owner dest = std::move(src);
-  EXPECT_NE(dest.get(), nullptr);
-  EXPECT_EQ(src.get(), nullptr);
-  EXPECT_FALSE(dest.is_embeded());
-  EXPECT_EQ(to_string(dest), "open: " + ec.message());
+  const bigpt& stored = dynamic_cast<adapter<bigpt>*>(dest.get())->val;
+  EXPECT_EQ(stored.x, 32);
+  EXPECT_EQ(stored.y, 45);
 }
 
 }
