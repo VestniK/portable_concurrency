@@ -132,7 +132,6 @@ TEST(UniqueFunction, call_small_functor_after_move_ctor) {
   EXPECT_TRUE(f0);
   pc::unique_function<int(point)> f1 = std::move(f0);
   EXPECT_TRUE(f1);
-  EXPECT_FALSE(f0);
   EXPECT_EQ(f1(point{3, 4}), 5);
 }
 
@@ -143,7 +142,6 @@ TEST(UniqueFunction, call_big_functor_after_move_ctor) {
   EXPECT_TRUE(f0);
   pc::unique_function<uint64_t(uint64_t)> f1 = std::move(f0);
   EXPECT_TRUE(f1);
-  EXPECT_FALSE(f0);
   EXPECT_EQ(f1(42), 63u);
 }
 
@@ -157,7 +155,6 @@ TEST(UniqueFunction, call_small_functor_after_move_asign) {
   f1 = std::move(f0);
 
   EXPECT_TRUE(f1);
-  EXPECT_FALSE(f0);
   EXPECT_EQ(f1(point{3, 4}), 5);
 }
 
@@ -171,7 +168,6 @@ TEST(UniqueFunction, call_big_functor_after_move_asign) {
 
   f1 = std::move(f0);
 
-  EXPECT_FALSE(f0);
   EXPECT_TRUE(f1);
   EXPECT_EQ(f1(42), 63u);
 }

@@ -26,7 +26,6 @@ set(INSTALL_HEADERS
   bits/shared_future.h
   bits/shared_state.h
   bits/then.h
-  bits/type_erasure_owner.h
   bits/unique_function.h
   bits/utils.h
   bits/when_any.h

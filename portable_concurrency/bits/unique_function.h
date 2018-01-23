@@ -5,19 +5,34 @@
 #include <type_traits>
 
 #include "invoke.h"
-#include "type_erasure_owner.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
 namespace detail {
 
+constexpr size_t small_buffer_size = 5*sizeof(void*);
+constexpr size_t small_buffer_align = alignof(void*);
+using small_buffer = std::aligned_storage_t<small_buffer_size, small_buffer_align>;
+
 template<typename S>
 struct callable;
 
 template<typename R, typename... A>
-struct callable<R(A...)>: move_constructable {
-  virtual R call(A... a) = 0;
+struct callable<R(A...)> {
+  virtual ~callable() = default;
+  virtual void move_to(small_buffer& dest) noexcept = 0;
+  virtual R call(A... a) {throw std::bad_function_call{};}
+  virtual bool is_null() const noexcept {return true;}
+};
+
+template<typename S>
+struct null_callable final: callable<S> {
+  void move_to(small_buffer& dest) noexcept {
+    static_assert(alignof(null_callable) <= small_buffer_align, "Object can't be aligned in the buffer properly");
+    static_assert(sizeof(null_callable) <= small_buffer_size, "Object too big");
+    new(&dest) null_callable{};
+  }
 };
 
 template<typename F, typename S>
@@ -30,14 +45,41 @@ struct callable_wrapper<F, R(A...)> final: callable<R(A...)> {
 
   R call(A... a) final {return portable_concurrency::cxx14_v1::detail::invoke(func, a...);}
 
-  move_constructable* move_to(void* location, size_t space) noexcept final {
-    void* obj_start = align(alignof(callable_wrapper), sizeof(callable_wrapper), location, space);
-    assert(obj_start);
-    return new(obj_start) callable_wrapper{std::move(func)};
+  void move_to(small_buffer& dest) noexcept final {
+    static_assert(alignof(callable_wrapper) <= small_buffer_align, "Object can't be aligned in the buffer properly");
+    static_assert(sizeof(callable_wrapper) <= small_buffer_size, "Object too big");
+    new(&dest) callable_wrapper{std::move(func)};
   }
+
+  bool is_null() const noexcept final {return false;}
 
   F func;
 };
+
+template<typename F, typename R, typename... A>
+struct callable_wrapper<std::unique_ptr<F>, R(A...)> final: callable<R(A...)> {
+  template<typename U>
+  callable_wrapper(U&& val): func{std::make_unique<F>(std::forward<U>(val))} {}
+  callable_wrapper(std::unique_ptr<F>&& val): func{std::move(val)} {}
+
+  R call(A... a) final {return portable_concurrency::cxx14_v1::detail::invoke(*func, a...);}
+
+  void move_to(small_buffer& dest) noexcept final {
+    static_assert(alignof(callable_wrapper) <= small_buffer_align, "Object can't be aligned in the buffer properly");
+    static_assert(sizeof(callable_wrapper) <= small_buffer_size, "Object too big");
+    new(&dest) callable_wrapper{std::move(func)};
+  }
+
+  bool is_null() const noexcept final {return false;}
+
+  std::unique_ptr<F> func;
+};
+
+template<typename F, typename S>
+using is_storable_t = std::integral_constant<bool,
+  alignof(callable_wrapper<F, S>) <= small_buffer_align &&
+  sizeof(callable_wrapper<F, S>) <= small_buffer_size
+>;
 
 template<typename T>
 auto is_null(const T&) noexcept
@@ -67,18 +109,15 @@ class unique_function;
  */
 template<typename R, typename... A>
 class unique_function<R(A...)> {
-  using type_erasure_t = detail::type_erasure_owner<sizeof(std::function<R(A...)>), alignof(std::function<R(A...)>)>;
-  template<typename F>
-  using emplace_t = detail::emplace_t<detail::callable_wrapper<std::decay_t<F>, R(A...)>>;
 public:
   /**
    * Creates empty `unique_function` object
    */
-  unique_function() noexcept = default;
+  unique_function() noexcept {new(&buffer_) detail::null_callable<R(A...)>;}
   /**
    * Creates empty `unique_function` object
    */
-  unique_function(std::nullptr_t) noexcept: type_erasure_() {}
+  unique_function(std::nullptr_t) noexcept: unique_function() {}
 
   /**
    * Creates `unique_function` holding a function @a f.
@@ -92,22 +131,24 @@ public:
    * perform no heap allocations or deallocations.
    */
   template<typename F>
-  unique_function(F&& f) {
-    if (!detail::is_null(f))
-      type_erasure_.emplace(emplace_t<F>{}, std::forward<F>(f));
-  }
+  unique_function(F&& f): unique_function(std::forward<F>(f), detail::is_storable_t<std::decay_t<F>, R(A...)>{}) {}
 
   /**
    * Destroys any stored function object.
    */
-  ~unique_function() = default;
+  ~unique_function() {
+    using F = detail::callable<R(A...)>;
+    func().~F();
+  }
 
   /**
    * Move @a rhs into newlly created object.
    *
    * @post `rhs` is empty.
    */
-  unique_function(unique_function&& rhs) noexcept = default;
+  unique_function(unique_function&& rhs) noexcept {
+    rhs.func().move_to(buffer_);
+  }
 
   /**
    * Destroy function object stored in this `unique_function` object (if any) and move function object from `rhs`
@@ -115,27 +156,52 @@ public:
    *
    * @post `rhs` is empty.
    */
-  unique_function& operator= (unique_function&& rhs) noexcept = default;
+  unique_function& operator= (unique_function&& rhs) noexcept {
+    using F = detail::callable<R(A...)>;
+    func().~F();
+    rhs.func().move_to(buffer_);
+    return *this;
+  }
 
   /**
    * Calls stored function object with parameters @a args and returns result of the operation. If `this` object is empty
    * throws `std::bad_function_call`.
    */
   R operator() (A... args) {
-    if (!type_erasure_.get())
-      throw std::bad_function_call{};
-    return static_cast<detail::callable<R(A...)>*>(type_erasure_.get())->call(args...);
+    return func().call(args...);
   }
 
   /**
    * Checks if this object holds a function (not empty).
    */
   explicit operator bool () const noexcept {
-    return type_erasure_.get();
+    return !func().is_null();
   }
 
 private:
-  type_erasure_t type_erasure_;
+  template<typename F>
+  unique_function(F&& f, std::true_type) {
+    if (detail::is_null(f))
+      new(&buffer_) detail::null_callable< R(A...)>;
+    else
+      new(&buffer_) detail::callable_wrapper<std::decay_t<F>, R(A...)>{std::forward<F>(f)};
+  }
+
+  template<typename F>
+  unique_function(F&& f, std::false_type) {
+    if (detail::is_null(f))
+      new(&buffer_) detail::null_callable< R(A...)>;
+    else
+      new(&buffer_) detail::callable_wrapper<std::unique_ptr<std::decay_t<F>>, R(A...)>{
+       std::make_unique<F>(std::forward<F>(f))
+      };
+  }
+
+  detail::callable<R(A...)>& func() {return reinterpret_cast<detail::callable<R(A...)>&>(buffer_);}
+  const detail::callable<R(A...)>& func() const {return reinterpret_cast<const detail::callable<R(A...)>&>(buffer_);}
+
+private:
+  detail::small_buffer buffer_;
 };
 
 } // inline namespace cxx14_v1
