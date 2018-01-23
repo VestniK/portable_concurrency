@@ -39,41 +39,18 @@ struct callable_wrapper<F, R(A...)> final: callable<R(A...)> {
   F func;
 };
 
-template<template<typename...> class Tmpl, typename T>
-struct is_instantiation_of: std::false_type {};
-template<template<typename...> class Tmpl, typename... P>
-struct is_instantiation_of<Tmpl, Tmpl<P...>>: std::true_type {};
-
-template<typename F>
-using is_raw_nullable_functor = std::integral_constant<
-  bool,
-  std::is_member_function_pointer<F>::value ||
-  std::is_member_object_pointer<F>::value ||
-  std::is_function<std::remove_pointer_t<F>>::value ||
-  is_instantiation_of<std::function, F>::value
->;
-
-template<typename F>
-struct is_nullable_functor_ref: std::false_type {};
-template<typename F>
-struct is_nullable_functor_ref<std::reference_wrapper<F>>:
-  is_raw_nullable_functor<std::decay_t<F>>
-{};
-
-template<typename F>
-using is_nullable_functor = std::integral_constant<
-  bool,
-  is_raw_nullable_functor<F>::value || is_nullable_functor_ref<F>::value
->;
-
-template<typename F>
-bool is_null_func(F&& f) noexcept {
-  return f == nullptr;
+template<typename T>
+auto is_null(const T&) noexcept
+  -> std::enable_if_t<!std::is_convertible<std::nullptr_t, T>::value, bool>
+{
+  return false;
 }
 
-template<typename R, typename... A>
-bool is_null_func(R(&)(A...)) {
-  return false;
+template<typename T>
+auto is_null(const T& val) noexcept
+  -> std::enable_if_t<std::is_convertible<std::nullptr_t, T>::value, bool>
+{
+  return val == nullptr;
 }
 
 } // namespace detail
@@ -115,9 +92,10 @@ public:
    * perform no heap allocations or deallocations.
    */
   template<typename F>
-  unique_function(F&& f):
-    unique_function(std::forward<F>(f), detail::is_nullable_functor<std::decay_t<F>>{})
-  {}
+  unique_function(F&& f) {
+    if (!detail::is_null(f))
+      type_erasure_.emplace(emplace_t<F>{}, std::forward<F>(f));
+  }
 
   /**
    * Destroys any stored function object.
@@ -154,16 +132,6 @@ public:
    */
   explicit operator bool () const noexcept {
     return type_erasure_.get();
-  }
-
-private:
-  template<typename F>
-  unique_function(F&& f, std::false_type): type_erasure_(emplace_t<F>{}, std::forward<F>(f)) {}
-
-  template<typename F>
-  unique_function(F&& f, std::true_type) {
-    if (!detail::is_null_func(f))
-      type_erasure_.emplace(emplace_t<F>{}, std::forward<F>(f));
   }
 
 private:
