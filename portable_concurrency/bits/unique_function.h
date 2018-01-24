@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cassert>
 #include <functional>
+#include <memory>
 #include <type_traits>
 
 #include "invoke.h"
@@ -15,72 +15,35 @@ constexpr size_t small_buffer_size = 5*sizeof(void*);
 constexpr size_t small_buffer_align = alignof(void*);
 using small_buffer = std::aligned_storage_t<small_buffer_size, small_buffer_align>;
 
-template<typename S>
-struct callable;
-
-template<typename R, typename... A>
-struct callable<R(A...)> {
-  virtual ~callable() = default;
-  virtual void move_to(small_buffer& dest) noexcept = 0;
-  virtual R call(A...) {throw std::bad_function_call{};}
-  virtual bool is_null() const noexcept {return true;}
-};
-
-template<typename S>
-struct null_callable final: callable<S> {
-  void move_to(small_buffer& dest) noexcept {
-    static_assert(alignof(null_callable) <= small_buffer_align, "Object can't be aligned in the buffer properly");
-    static_assert(sizeof(null_callable) <= small_buffer_size, "Object too big");
-    new(&dest) null_callable{};
-  }
-};
-
-template<typename F, typename S>
-struct callable_wrapper;
-
-template<typename F, typename R, typename... A>
-struct callable_wrapper<F, R(A...)> final: callable<R(A...)> {
-  template<typename U>
-  callable_wrapper(U&& val): func{std::forward<U>(val)} {}
-
-  R call(A... a) final {return portable_concurrency::cxx14_v1::detail::invoke(func, a...);}
-
-  void move_to(small_buffer& dest) noexcept final {
-    static_assert(alignof(callable_wrapper) <= small_buffer_align, "Object can't be aligned in the buffer properly");
-    static_assert(sizeof(callable_wrapper) <= small_buffer_size, "Object too big");
-    new(&dest) callable_wrapper{std::move(func)};
-  }
-
-  bool is_null() const noexcept final {return false;}
-
-  F func;
-};
-
-template<typename F, typename R, typename... A>
-struct callable_wrapper<std::unique_ptr<F>, R(A...)> final: callable<R(A...)> {
-  template<typename U>
-  callable_wrapper(U&& val): func{std::make_unique<F>(std::forward<U>(val))} {}
-  callable_wrapper(std::unique_ptr<F>&& val): func{std::move(val)} {}
-
-  R call(A... a) final {return portable_concurrency::cxx14_v1::detail::invoke(*func, a...);}
-
-  void move_to(small_buffer& dest) noexcept final {
-    static_assert(alignof(callable_wrapper) <= small_buffer_align, "Object can't be aligned in the buffer properly");
-    static_assert(sizeof(callable_wrapper) <= small_buffer_size, "Object too big");
-    new(&dest) callable_wrapper{std::move(func)};
-  }
-
-  bool is_null() const noexcept final {return false;}
-
-  std::unique_ptr<F> func;
-};
-
-template<typename F, typename S>
+template<typename F>
 using is_storable_t = std::integral_constant<bool,
-  alignof(callable_wrapper<F, S>) <= small_buffer_align &&
-  sizeof(callable_wrapper<F, S>) <= small_buffer_size &&
+  alignof(F) <= small_buffer_align &&
+  sizeof(F) <= small_buffer_size &&
   std::is_nothrow_move_constructible<F>::value
 >;
+
+template<typename R, typename... A>
+using func_ptr_t = R (*) (A...);
+
+template<typename R, typename... A>
+struct callable_vtbl {
+  func_ptr_t<void, small_buffer&> destroy;
+  func_ptr_t<void, small_buffer&, small_buffer&> move;
+  func_ptr_t<R, small_buffer&, A...> call;
+};
+
+template<typename F, typename R, typename... A>
+const callable_vtbl<R, A...>& get_callable_vtbl() {
+  static_assert (is_storable_t<F>::value, "Can't embed object into small buffer");
+  static const callable_vtbl<R, A...> res = {
+    [](small_buffer& buf) {reinterpret_cast<F&>(buf).~F();},
+    [](small_buffer& src, small_buffer& dst) {new(&dst) F{std::move(reinterpret_cast<F&>(src))};},
+    [](small_buffer& buf, A... a) -> R {
+      return portable_concurrency::cxx14_v1::detail::invoke(reinterpret_cast<F&>(buf), a...);
+    }
+  };
+  return res;
+}
 
 template<typename T>
 auto is_null(const T&) noexcept
@@ -114,7 +77,7 @@ public:
   /**
    * Creates empty `unique_function` object
    */
-  unique_function() noexcept {new(&buffer_) detail::null_callable<R(A...)>;}
+  unique_function() noexcept = default;
   /**
    * Creates empty `unique_function` object
    */
@@ -132,14 +95,14 @@ public:
    * perform no heap allocations or deallocations.
    */
   template<typename F>
-  unique_function(F&& f): unique_function(std::forward<F>(f), detail::is_storable_t<std::decay_t<F>, R(A...)>{}) {}
+  unique_function(F&& f): unique_function(std::forward<F>(f), detail::is_storable_t<std::decay_t<F>>{}) {}
 
   /**
    * Destroys any stored function object.
    */
   ~unique_function() {
-    using F = detail::callable<R(A...)>;
-    func().~F();
+    if (vtbl_)
+      vtbl_->destroy(buffer_);
   }
 
   /**
@@ -148,7 +111,9 @@ public:
    * @post `rhs` is empty.
    */
   unique_function(unique_function&& rhs) noexcept {
-    rhs.func().move_to(buffer_);
+    if (rhs.vtbl_)
+      rhs.vtbl_->move(rhs.buffer_, buffer_);
+    vtbl_ = rhs.vtbl_;
   }
 
   /**
@@ -158,51 +123,57 @@ public:
    * @post `rhs` is empty.
    */
   unique_function& operator= (unique_function&& rhs) noexcept {
-    using F = detail::callable<R(A...)>;
-    func().~F();
-    rhs.func().move_to(buffer_);
+    if (vtbl_)
+      vtbl_->destroy(buffer_);
+    if (rhs.vtbl_)
+      rhs.vtbl_->move(rhs.buffer_, buffer_);
+    vtbl_ = rhs.vtbl_;
     return *this;
   }
 
   /**
    * Calls stored function object with parameters @a args and returns result of the operation. If `this` object is empty
    * throws `std::bad_function_call`.
+   *
+   * The behaviour is undefined if called on moved from instance.
    */
   R operator() (A... args) {
-    return func().call(args...);
+    if (!vtbl_)
+      throw std::bad_function_call{};
+    return vtbl_->call(buffer_, args...);
   }
 
   /**
    * Checks if this object holds a function (not empty).
    */
   explicit operator bool () const noexcept {
-    return !func().is_null();
+    return vtbl_ != nullptr;
   }
 
 private:
   template<typename F>
   unique_function(F&& f, std::true_type) {
     if (detail::is_null(f))
-      new(&buffer_) detail::null_callable< R(A...)>;
-    else
-      new(&buffer_) detail::callable_wrapper<std::decay_t<F>, R(A...)>{std::forward<F>(f)};
+      return;
+    new(&buffer_) std::decay_t<F>{std::forward<F>(f)};
+    vtbl_ = &detail::get_callable_vtbl<std::decay_t<F>, R, A...>();
   }
 
   template<typename F>
   unique_function(F&& f, std::false_type) {
     if (detail::is_null(f))
-      new(&buffer_) detail::null_callable< R(A...)>;
-    else
-      new(&buffer_) detail::callable_wrapper<std::unique_ptr<std::decay_t<F>>, R(A...)>{
-       std::make_unique<F>(std::forward<F>(f))
-      };
+      return;
+    auto wrapped_func = [func = std::make_unique<std::decay_t<F>>(std::forward<F>(f))](A... a) {
+      return detail::invoke(*func, a...);
+    };
+    using wrapped_func_t = decltype(wrapped_func);
+    new(&buffer_) wrapped_func_t{std::move(wrapped_func)};
+    vtbl_ = &detail::get_callable_vtbl<wrapped_func_t, R, A...>();
   }
-
-  detail::callable<R(A...)>& func() {return reinterpret_cast<detail::callable<R(A...)>&>(buffer_);}
-  const detail::callable<R(A...)>& func() const {return reinterpret_cast<const detail::callable<R(A...)>&>(buffer_);}
 
 private:
   detail::small_buffer buffer_;
+  const detail::callable_vtbl<R, A...>* vtbl_ = nullptr;
 };
 
 } // inline namespace cxx14_v1
