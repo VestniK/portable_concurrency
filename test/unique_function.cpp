@@ -25,6 +25,34 @@ struct big {
   std::uint64_t u5;
 };
 
+struct move_only_functor {
+  move_only_functor(int val): data(new int{val}) {}
+
+  int operator() (int x) const {return x + *data;}
+
+  std::unique_ptr<int> data;
+};
+
+struct throw_on_move_functor {
+  throw_on_move_functor() = default;
+
+  throw_on_move_functor(throw_on_move_functor&& rhs) {
+    if (rhs.must_throw)
+      throw std::runtime_error{"move ctor"};
+    must_throw = rhs.must_throw;
+  }
+  throw_on_move_functor& operator= (throw_on_move_functor&& rhs) {
+    if (rhs.must_throw)
+      throw std::runtime_error{"move ctor"};
+    must_throw = rhs.must_throw;
+    return *this;
+  }
+
+  void operator() (bool must_throw) {this->must_throw = must_throw;}
+
+  bool must_throw = false;
+};
+
 TEST(UniqueFunction, default_constructed_is_empty) {
   pc::unique_function<void()> f;
   EXPECT_FALSE(f);
@@ -35,6 +63,18 @@ TEST(UniqueFunction, nullptr_constructed_is_empty) {
   pc::unique_function<void()> f = nullptr;
   EXPECT_FALSE(f);
   ASSERT_THROW(f(), std::bad_function_call);
+}
+
+TEST(UniqueFunction, move_ctor_do_not_throw_when_captured_func_move_throws) {
+  pc::unique_function<void(bool)> f0 = throw_on_move_functor{};
+  f0(true);
+  EXPECT_NO_THROW(pc::unique_function<void(bool)>{std::move(f0)});
+}
+
+TEST(UniqueFunction, move_assign_do_not_throw_when_captured_func_move_throws) {
+  pc::unique_function<void(bool)> f0 = throw_on_move_functor{}, f1;
+  f0(true);
+  EXPECT_NO_THROW(f1 = std::move(f0));
 }
 
 TEST(UniqueFunction, null_func_ptr_constructed_is_empty) {
@@ -127,6 +167,11 @@ TEST(UniqueFunction, refference_wrapper_call) {
   EXPECT_EQ(func(" World"), "Hello World");
 }
 
+TEST(UniqueFunction, call_small_non_copyable_function) {
+  pc::unique_function<int(int)> f = move_only_functor{42};
+  EXPECT_EQ(f(42), 84);
+}
+
 TEST(UniqueFunction, call_small_functor_after_move_ctor) {
   pc::unique_function<int(point)> f0 = &point::dist_from_center;
   EXPECT_TRUE(f0);
@@ -143,6 +188,12 @@ TEST(UniqueFunction, call_big_functor_after_move_ctor) {
   pc::unique_function<uint64_t(uint64_t)> f1 = std::move(f0);
   EXPECT_TRUE(f1);
   EXPECT_EQ(f1(42), 63u);
+}
+
+TEST(UniqueFunction, call_small_non_copyable_function_after_move_ctor) {
+  pc::unique_function<int(int)> f0 = move_only_functor{42};
+  pc::unique_function<int(int)> f1 = std::move(f0);
+  EXPECT_EQ(f1(42), 84);
 }
 
 TEST(UniqueFunction, call_small_functor_after_move_asign) {
@@ -170,6 +221,13 @@ TEST(UniqueFunction, call_big_functor_after_move_asign) {
 
   EXPECT_TRUE(f1);
   EXPECT_EQ(f1(42), 63u);
+}
+
+TEST(UniqueFunction, call_small_non_copyable_function_after_move_asign) {
+  pc::unique_function<int(int)> f0 = move_only_functor{42};
+  pc::unique_function<int(int)> f1;
+  f1 = std::move(f0);
+  EXPECT_EQ(f1(42), 84);
 }
 
 } // namespace test

@@ -22,7 +22,7 @@ template<typename R, typename... A>
 struct callable<R(A...)> {
   virtual ~callable() = default;
   virtual void move_to(small_buffer& dest) noexcept = 0;
-  virtual R call(A... a) {throw std::bad_function_call{};}
+  virtual R call(A...) {throw std::bad_function_call{};}
   virtual bool is_null() const noexcept {return true;}
 };
 
@@ -78,7 +78,8 @@ struct callable_wrapper<std::unique_ptr<F>, R(A...)> final: callable<R(A...)> {
 template<typename F, typename S>
 using is_storable_t = std::integral_constant<bool,
   alignof(callable_wrapper<F, S>) <= small_buffer_align &&
-  sizeof(callable_wrapper<F, S>) <= small_buffer_size
+  sizeof(callable_wrapper<F, S>) <= small_buffer_size &&
+  std::is_nothrow_move_constructible<F>::value
 >;
 
 template<typename T>
