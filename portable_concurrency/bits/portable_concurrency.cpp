@@ -4,6 +4,7 @@
 #include "once_consumable_stack.h"
 #include "promise.h"
 #include "shared_state.h"
+#include "unique_function.hpp"
 #include "when_all.h"
 #include "when_any.h"
 
@@ -90,6 +91,8 @@ void* align(std::size_t alignment, std::size_t size, void*& ptr, std::size_t& sp
 #endif
 
 } // namespace detail
+
+template class unique_function<void()>;
 
 latch::~latch() {
   std::unique_lock<std::mutex> lock{mutex_};

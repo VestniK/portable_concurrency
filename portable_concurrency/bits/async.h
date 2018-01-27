@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "concurrency_type_traits.h"
 #include "execution.h"
 #include "make_future.h"

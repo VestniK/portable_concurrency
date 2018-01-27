@@ -1,0 +1,12 @@
+// <functional_fwd> -*- C++ -*-
+#pragma once
+
+/**
+ * @defgroup functional <portable_concurrency/functional_fwd>
+ * @headerfile portable_concurrency/functional_fwd
+ *
+ * Forward declarations for extra functional types proposed for standartization in future C++ versions
+ */
+
+#include "bits/alias_namespace.h"
+#include "bits/unique_function.h"

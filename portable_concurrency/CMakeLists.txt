@@ -3,6 +3,7 @@ find_package(Threads REQUIRED)
 set(PUBLIC_HEADERS
   execution
   functional
+  functional_fwd
   future
   latch
 )
@@ -27,6 +28,7 @@ set(INSTALL_HEADERS
   bits/shared_state.h
   bits/then.h
   bits/unique_function.h
+  bits/unique_function.hpp
   bits/utils.h
   bits/when_any.h
   bits/when_all.h
