@@ -2,132 +2,85 @@
 
 #include <atomic>
 #include <memory>
-#include <type_traits>
-#include <utility>
-
-#include "allocate_unique.h"
-#include "once_consumable_stack_fwd.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
 template<typename T>
-struct forward_list_node {
-  // make_unique can't use universal initialization so some garbage code requred :(
-  template<typename U>
-  forward_list_node(U&& val, forward_list_node* next = nullptr):
-    val(std::forward<U>(val)),
-    next(next)
-  {}
+struct forward_list_node;
 
-  T val;
-  forward_list_node* next;
+template<typename T>
+struct forward_list_deleter {
+  void operator() (forward_list_node<T>* head) noexcept;
 };
 
 template<typename T>
-void forward_list_deleter<T>::operator() (forward_list_node<T>* head) noexcept {
-  if (!head)
-    return;
-  for (auto* p = head; p != nullptr;) {
-    auto* to_delete = p;
-    p = p->next;
-    delete to_delete;
-  }
-}
+using forward_list = std::unique_ptr<forward_list_node<T>, forward_list_deleter<T>>;
 
-template<typename T>
-class forward_list_iterator {
+/**
+ * @internal
+ *
+ * Multy-producer single-consumer atomic stack with extra properties:
+ * @li Consume operation can happen only once and switch the stack into @em consumed state.
+ * @li Attempt to push new item into @em consumed stack failes. Item remains unchanged.
+ * @li When producer get the information that the stack is @em consumed all side effects
+ * of operations sequenced before consume operation in the consumer thread are observable
+ * in the thread of this particulair producer.
+ *
+ * Last requrement allows consumer atomically trasfer data to producers with a single
+ * operation of stack consumption.
+ */
+template<typename T, typename Alloc = std::allocator<forward_list_node<T>>>
+class once_consumable_stack {
+    Alloc allocator_;
 public:
-  forward_list_iterator() noexcept = default;
-  forward_list_iterator(forward_list<T>& list) noexcept: node_(list.get()) {}
+  once_consumable_stack(const Alloc& allocator = Alloc()) noexcept;
+  ~once_consumable_stack();
 
-  forward_list_iterator operator++ () noexcept {
-    if (!node_)
-      return *this;
-    node_ = node_->next;
-    return *this;
-  }
+  /**
+   * Push an object to the stack in a thread safe way. If the stack is not yet
+   * @em consumed then this function moves the value from the paremeter @a val and
+   * returns true. Otherwise the value of the @a val object remains untoched and
+   * function returns false.
+   *
+   * @note Can be called from multiple threads.
+   *
+   * @note This function assumes that moving the value from an object and then moving
+   * it back remains an object in initial state.
+   */
+  bool push(T& val);
 
-  T& operator* () noexcept {
-    return node_->val;
-  }
+  /**
+   * Checks if the stack is @em consumed.
+   *
+   * @note Can be called from multiple threads.
+   */
+  bool is_consumed() const noexcept;
 
-  bool operator== (const forward_list_iterator& rhs) const noexcept {
-    return node_ == rhs.node_;
-  }
+  /**
+   * Consumes the stack and switch it into @em consumed state. Running this function
+   * concurrently with any other function in this class (excpet constructor, destructor
+   * and consume function itself) is safe.
+   *
+   * @note Must be called from a single thread. Must not be called twice on a same
+   * queue.
+   */
+  forward_list<T> consume() noexcept;
 
-  bool operator!= (const forward_list_iterator& rhs) const noexcept {
-    return node_ != rhs.node_;
-  }
+  /**
+   * Get the allocator associated with the stack
+   */
+  Alloc get_allocator() const;
+private:
+  // Return address of some valid object which can not alias with forward_list_node<T>
+  // instances. Can be used as marker in pointer compariaions but must never be
+  // dereferenced.
+  forward_list_node<T>* consumed_marker() const noexcept;
 
 private:
-  forward_list_node<T>* node_ = nullptr;
+  std::atomic<forward_list_node<T>*> head_{nullptr};
 };
-
-template<typename T>
-forward_list_iterator<T> begin(forward_list<T>& list) noexcept {
-  return {list};
-}
-
-template<typename T>
-forward_list_iterator<T> end(forward_list<T>&) noexcept {
-  return {};
-}
-
-template<typename T, typename Alloc>
-once_consumable_stack<T, Alloc>::once_consumable_stack(const Alloc& allocator) noexcept :
-    allocator_(allocator)
-{ }
-
-template<typename T, typename Alloc>
-once_consumable_stack<T, Alloc>::~once_consumable_stack() {
-  // Create temporary forward_list which can destroy all nodes properly. Nobody
-  // else should access this object anymore at the momont of destruction so
-  // relaxed memory order is enough.
-  auto* head = head_.load(std::memory_order_relaxed);
-  if (head && head != consumed_marker())
-    forward_list<T>{head};
-}
-
-template<typename T, typename Alloc>
-bool once_consumable_stack<T, Alloc>::push(T& val) {
-  auto* curr_head = head_.load(std::memory_order_acquire);
-  if (curr_head == consumed_marker())
-    return false;
-  auto new_head = allocate_unique<forward_list_node<T>>(allocator_, std::move(val), curr_head);
-  while (!head_.compare_exchange_strong(new_head->next, new_head.get(), std::memory_order_acq_rel)) {
-    if (new_head->next == consumed_marker()) {
-      val = std::move(new_head->val);
-      return false;
-    }
-  }
-  new_head.release();
-  return true;
-}
-
-template<typename T, typename Alloc>
-bool once_consumable_stack<T, Alloc>::is_consumed() const noexcept {
-  return head_.load(std::memory_order_acquire) == consumed_marker();
-}
-
-template<typename T, typename Alloc>
-forward_list<T> once_consumable_stack<T, Alloc>::consume() noexcept {
-  auto* curr_head = head_.exchange(consumed_marker(), std::memory_order_acq_rel);
-  if (curr_head == consumed_marker())
-    return {};
-  return forward_list<T>{curr_head};
-}
-
-template<typename T, typename Alloc>
-Alloc once_consumable_stack<T, Alloc>::get_allocator() const {
-  return allocator_;
-}
-
-template<typename T, typename Alloc>
-forward_list_node<T>* once_consumable_stack<T, Alloc>::consumed_marker() const noexcept {
-  return reinterpret_cast<forward_list_node<T>*>(const_cast<once_consumable_stack*>(this));
-}
 
 } // namespace detail
 } // inline namespace cxx14_v1

@@ -21,8 +21,8 @@ set(INSTALL_HEADERS
   bits/invoke.h
   bits/latch.h
   bits/make_future.h
-  bits/once_consumable_stack_fwd.h
   bits/once_consumable_stack.h
+  bits/once_consumable_stack.hpp
   bits/packaged_task.h
   bits/promise.h
   bits/shared_future.h

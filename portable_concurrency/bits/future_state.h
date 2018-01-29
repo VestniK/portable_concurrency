@@ -6,10 +6,9 @@
 
 #include "fwd.h"
 
-#include "once_consumable_stack_fwd.h"
-#include "unique_function.h"
 #include "allocate_unique.h"
-#include "once_consumable_stack.h"
+#include "once_consumable_stack.hpp"
+#include "unique_function.hpp"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -27,7 +26,7 @@ public:
   { }
   ~continuations_stack() = default;
 
-  void push(value_type cnt);
+  void push(value_type&& cnt);
   void execute();
   bool executed() const;
   void wait();
@@ -71,7 +70,7 @@ private:
 };
 
 template<typename Alloc>
-void continuations_stack<Alloc>::push(value_type cnt) {
+void continuations_stack<Alloc>::push(value_type&& cnt) {
   if (!stack_.push(cnt))
     cnt();
 }
