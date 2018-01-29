@@ -17,11 +17,15 @@ namespace detail {
 
 template<typename T>
 struct promise_common {
-  either<std::shared_ptr<shared_state<T>>, std::weak_ptr<shared_state<T>>> state_{
-    first_t{}, std::make_shared<shared_state<T>>()
-  };
+  either<std::shared_ptr<shared_state<T>>, std::weak_ptr<shared_state<T>>> state_;
 
-  promise_common() = default;
+  promise_common() :
+      state_{ first_t{}, std::make_shared<shared_state<T>>() }
+  { }
+  template<typename Alloc>
+  explicit promise_common(const Alloc& allocator) :
+      state_{ first_t{}, std::allocate_shared<shared_state<T>>(allocator) }
+  { }
   ~promise_common() {
     auto state = get_state(false);
     if (state && !state->continuations().executed())
@@ -77,6 +81,10 @@ template<typename T>
 class promise {
 public:
   promise() = default;
+  template<typename Alloc>
+  promise(std::allocator_arg_t, const Alloc& allocator = Alloc()) :
+      common_(allocator)
+  { }
   promise(promise&&) noexcept = default;
   promise(const promise&) = delete;
 
@@ -124,6 +132,10 @@ template<typename T>
 class promise<T&> {
 public:
   promise() = default;
+  template<typename Alloc>
+  promise(std::allocator_arg_t, const Alloc& allocator = Alloc()) :
+      common_(allocator)
+  { }
   promise(promise&&) noexcept = default;
   promise(const promise&) = delete;
 
@@ -159,6 +171,10 @@ template<>
 class promise<void> {
 public:
   promise() = default;
+  template<typename Alloc>
+  promise(std::allocator_arg_t, const Alloc& allocator = Alloc()) :
+      common_(allocator)
+  { }
   promise(promise&&) noexcept = default;
   promise(const promise&) = delete;
 
