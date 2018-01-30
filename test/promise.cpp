@@ -53,7 +53,7 @@ class local_static_allocator {
   static constexpr std::size_t elem_size = sizeof(T);
   static_arena<alignment, MaxSize>& arena_;
 
-  template<typename _Tp1, size_t _MaxSize, size_t _Align>
+  template<typename _T, size_t _MaxSize, size_t _Align>
   friend class local_static_allocator;
 public:
   using arena_type = static_arena<alignment, MaxSize>;
@@ -63,8 +63,8 @@ public:
       arena_(arena)
   { }
 
-  template<typename _Tp1>
-  local_static_allocator(const local_static_allocator<_Tp1, MaxSize, alignment>& other) :
+  template<typename _T>
+  local_static_allocator(const local_static_allocator<_T, MaxSize, alignment>& other) :
           arena_(other.arena_)
   { }
 
@@ -87,23 +87,23 @@ class local_static_allocator<void, MaxSize, alignof(std::max_align_t)> {
   static constexpr std::size_t elem_size = 1;
   static_arena<alignment, MaxSize>& arena_;
 
-  template<typename _Tp1, size_t _MaxSize, size_t _Align>
+  template<typename _T, size_t _MaxSize, size_t _Align>
   friend class local_static_allocator;
 public:
   using arena_type = static_arena<alignment, MaxSize>;
   using value_type = void;
 
-  template<typename _Tp1>
+  template<typename _T>
   struct rebind {
-      using other = local_static_allocator<_Tp1>;
+      using other = local_static_allocator<_T>;
   };
 
   local_static_allocator(arena_type& arena) :
       arena_(arena)
   { }
 
-  template<typename _Tp1>
-  local_static_allocator(const local_static_allocator<_Tp1, MaxSize>& other) :
+  template<typename _T>
+  local_static_allocator(const local_static_allocator<_T, MaxSize>& other) :
       arena_(other.arena_)
   { }
 
