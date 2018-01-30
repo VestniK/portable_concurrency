@@ -82,7 +82,7 @@ public:
 
   template<typename _T>
   struct rebind {
-    using other = local_static_allocator<_T, MaxSize, alignment>;
+    typedef local_static_allocator<_T, MaxSize, alignment> other;
   };
 
 };
@@ -104,7 +104,7 @@ public:
   { }
 
   template<typename _T>
-  local_static_allocator(const local_static_allocator<_T, MaxSize>& other) :
+  local_static_allocator(const local_static_allocator<_T, MaxSize, alignment>& other) :
       arena_(other.arena_)
   { }
 
@@ -122,7 +122,7 @@ public:
 
   template<typename _T>
   struct rebind {
-    using other = local_static_allocator<_T, MaxSize, alignment>;
+    typedef local_static_allocator<_T, MaxSize, alignment> other;
   };
 
 };
