@@ -79,6 +79,12 @@ public:
   std::size_t max_size() const {
     return arena_.max_size()/elem_size;
   }
+
+  template<typename _T>
+  struct rebind {
+    using other = local_static_allocator<_T, MaxSize, alignment>;
+  };
+
 };
 
 template<size_t MaxSize>
@@ -92,11 +98,6 @@ class local_static_allocator<void, MaxSize, alignof(std::max_align_t)> {
 public:
   using arena_type = static_arena<alignment, MaxSize>;
   using value_type = void;
-
-  template<typename _T>
-  struct rebind {
-      using other = local_static_allocator<_T>;
-  };
 
   local_static_allocator(arena_type& arena) :
       arena_(arena)
@@ -118,6 +119,12 @@ public:
   std::size_t max_size() const {
     return arena_.max_size()/elem_size;
   }
+
+  template<typename _T>
+  struct rebind {
+    using other = local_static_allocator<_T, MaxSize, alignment>;
+  };
+
 };
 
 template<typename T>
