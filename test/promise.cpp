@@ -1,6 +1,6 @@
 #include <string>
 #include <memory>
-
+#include <array>
 #include <gtest/gtest.h>
 
 #include <portable_concurrency/future>
