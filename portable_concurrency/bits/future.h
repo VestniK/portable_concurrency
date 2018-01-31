@@ -165,14 +165,15 @@ public:
   }
 
   /**
-   * Prevents cancelation of the operations of this future value calculation on its destruction.
+   * Prevents cancellation of the operations of this future value calculation on its destruction.
    *
    * @post this->valid() == false
    */
   void detach() {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    state_->push_continuation([captured_state = std::move(state_)]() {});
+    auto state_ref = state_;
+    state_ref->push_continuation([captured_state = std::move(state_)]() { });
   }
 
   // implementation detail

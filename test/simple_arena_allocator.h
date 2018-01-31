@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include <portable_concurrency/bits/align.h>
 
 template<typename T, typename Arena>
 struct arena_allocator {
@@ -65,7 +65,7 @@ public:
   void* allocate(std::size_t bytes, std::size_t alignment) {
     void* start = data_.data() + offset_;
     size_t sz = data_.size() - offset_;
-    void* result = std::align(alignment, bytes, start, sz);
+    void* result = pc::cxx14_v1::detail::align(alignment, bytes, start, sz);
     if (!result)
       throw std::bad_alloc{};
     offset_ = static_cast<size_t>(reinterpret_cast<std::uint8_t*>(result) - data_.data() + bytes);

@@ -20,7 +20,7 @@ struct promise_common {
   either<std::shared_ptr<basic_shared_state<T>>, std::weak_ptr<basic_shared_state<T>>> state_;
 
   promise_common() :
-      state_{ first_t{}, std::make_shared<shared_state<T, std::allocator<void>>>() }
+      state_{ first_t{}, std::make_shared<shared_state<T, std::allocator<forward_list_node<typename future_state<T>::continuation>>>>() }
   { }
   template<typename Alloc>
   explicit promise_common(const Alloc& allocator) :

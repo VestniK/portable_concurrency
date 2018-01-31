@@ -138,6 +138,7 @@ class cnt_state final:
   public future_state<remove_future_t<cnt_result_t<F, cnt_arg_t<Tag, T>>>>,
   public continuation_state
 {
+  using continuation = typename future_state<T>::continuation;
 public:
   using cnt_res = cnt_result_t<F, cnt_arg_t<Tag, T>>;
   using res_t = remove_future_t<cnt_res>;
@@ -189,7 +190,7 @@ public:
     continuations_.execute();
   }
 
-  void push_continuation(typename future_state<T>::continuation&& cnt) final {
+  void push_continuation(continuation&& cnt) final {
     continuations_.push(std::move(cnt));
   }
   void execute_continuations() final {
@@ -227,7 +228,7 @@ private:
 private:
   either<cnt_closure<F, T>, stored_cnt_res> storage_;
   std::exception_ptr exception_ = nullptr;
-  continuations_stack<std::allocator<void>> continuations_;
+  continuations_stack<std::allocator<continuation>> continuations_;
 };
 
 struct cnt_action {
