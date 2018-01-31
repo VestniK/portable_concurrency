@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 
 template<typename T, typename Arena>
 struct arena_allocator {
