@@ -8,7 +8,7 @@
 
 #include "allocate_unique.h"
 #include "once_consumable_stack.hpp"
-#include "unique_function.hpp"
+#include "small_unique_function.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -16,9 +16,9 @@ namespace detail {
 
 template<typename Alloc>
 class continuations_stack {
-  using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<forward_list_node<unique_function<void()>>>;
+  using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<forward_list_node<small_unique_function<void()>>>;
 public:
-  using value_type = unique_function<void()>;
+  using value_type = small_unique_function<void()>;
 
   continuations_stack(const Alloc& allocator = Alloc()) :
       stack_(allocator),
@@ -125,7 +125,7 @@ using state_storage_t = std::conditional_t<std::is_void<T>::value,
 template<typename T>
 class future_state {
 public:
-  using continuation = unique_function<void()>;
+  using continuation = small_unique_function<void()>;
 
   virtual ~future_state() = default;
 
