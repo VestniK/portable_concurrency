@@ -5,6 +5,7 @@
 #include "once_consumable_stack.hpp"
 #include "promise.h"
 #include "shared_state.h"
+#include "small_unique_function.hpp"
 #include "unique_function.hpp"
 #include "when_all.h"
 #include "when_any.h"
@@ -27,6 +28,8 @@ void* align(std::size_t alignment, std::size_t size, void*& ptr, std::size_t& sp
 }
 
 #endif
+
+template class small_unique_function<void()>;
 
 } // namespace detail
 

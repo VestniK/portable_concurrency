@@ -3,19 +3,10 @@
 #include <cstddef>
 #include <type_traits>
 
+#include "small_unique_function.h"
+
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
-
-namespace detail {
-
-constexpr size_t small_buffer_size = 5*sizeof(void*);
-constexpr size_t small_buffer_align = alignof(void*);
-using small_buffer = std::aligned_storage_t<small_buffer_size, small_buffer_align>;
-
-template<typename R, typename... A>
-struct callable_vtbl;
-
-} // namespace detail
 
 template<typename S>
 class unique_function;
@@ -65,6 +56,7 @@ public:
    */
   unique_function(unique_function&& rhs) noexcept;
 
+
   /**
    * Destroy function object stored in this `unique_function` object (if any) and move function object from `rhs`
    * to `*this`.
@@ -72,6 +64,14 @@ public:
    * @post `rhs` is empty.
    */
   unique_function& operator= (unique_function&& rhs) noexcept;
+
+  unique_function(detail::small_unique_function<R(A...)>&& rhs) noexcept;
+  unique_function& operator= (detail::small_unique_function<R(A...)>&& rhs) noexcept;
+#if defined(__GNUC__) && __GNUC__ < 5
+  operator detail::small_unique_function<R(A...)>& () noexcept;
+#else
+  operator detail::small_unique_function<R(A...)>&& () && noexcept;
+#endif
 
   /**
    * Calls stored function object with parameters @a args and returns result of the operation. If `this` object is empty
@@ -84,16 +84,12 @@ public:
   /**
    * Checks if this object holds a function (not empty).
    */
-  explicit operator bool () const noexcept {
-    return vtbl_ != nullptr;
-  }
+  explicit operator bool () const noexcept {return static_cast<bool>(func_);}
 
   /**
    * Also checks if this object holds a function
    */
-  bool operator==(std::nullptr_t) const {
-    return vtbl_ == nullptr;
-  }
+  bool operator==(std::nullptr_t) const {return static_cast<bool>(func_);}
 
 private:
   template<typename F>
@@ -103,8 +99,7 @@ private:
   unique_function(F&& f, std::false_type);
 
 private:
-  detail::small_buffer buffer_;
-  const detail::callable_vtbl<R, A...>* vtbl_ = nullptr;
+  detail::small_unique_function<R(A...)> func_;
 };
 
 extern template class unique_function<void()>;

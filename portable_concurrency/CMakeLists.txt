@@ -27,6 +27,8 @@ set(INSTALL_HEADERS
   bits/promise.h
   bits/shared_future.h
   bits/shared_state.h
+  bits/small_unique_function.h
+  bits/small_unique_function.hpp
   bits/then.h
   bits/unique_function.h
   bits/unique_function.hpp
