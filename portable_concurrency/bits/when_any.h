@@ -40,6 +40,7 @@ public:
     continuations_.execute();
   }
 
+  // TODO: overload with allocator
   static std::shared_ptr<future_state<when_any_result<Sequence>>> make(Sequence&& seq) {
 #if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 3900
     // looks like std::make_shared is affected by https://bugs.llvm.org/show_bug.cgi?id=22806
@@ -52,14 +53,10 @@ public:
     sequence_traits<Sequence>::for_each(
       state->result_.futures,
       [state, idx = std::size_t(0)](auto& f) mutable {
-        state_of(f)->continuations().push([state, pos = idx++] {state->notify(pos);});
+        state_of(f)->push_continuation([state, pos = idx++] {state->notify(pos);});
       }
     );
     return state;
-  }
-
-  continuations_stack& continuations() override {
-    return continuations_;
   }
 
   when_any_result<Sequence>& value_ref() override {
@@ -72,10 +69,26 @@ public:
     return nullptr;
   }
 
+  void push_continuation(typename future_state<when_any_result<Sequence>>::continuation&& cnt) final {
+    continuations_.push(std::move(cnt));
+  }
+  void execute_continuations() final {
+    continuations_.execute();
+  }
+  bool continuations_executed() const final {
+    return continuations_.executed();
+  }
+  void wait() final {
+    continuations_.wait();
+  }
+  bool wait_for(std::chrono::nanoseconds timeout) final {
+    return continuations_.wait_for(timeout);
+  }
+
 private:
   when_any_result<Sequence> result_;
   std::atomic_flag ready_flag_ = ATOMIC_FLAG_INIT;
-  continuations_stack continuations_;
+  continuations_stack<std::allocator<void>> continuations_;
 };
 
 } // namespace detail

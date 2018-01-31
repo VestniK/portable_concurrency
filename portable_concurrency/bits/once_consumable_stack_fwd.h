@@ -31,10 +31,11 @@ using forward_list = std::unique_ptr<forward_list_node<T>, forward_list_deleter<
  * Last requrement allows consumer atomically trasfer data to producers with a single
  * operation of stack consumption.
  */
-template<typename T>
+template<typename T, typename Alloc = std::allocator<forward_list_node<T>>>
 class once_consumable_stack {
+    Alloc allocator_;
 public:
-  once_consumable_stack() noexcept = default;
+  once_consumable_stack(const Alloc& allocator = Alloc()) noexcept;
   ~once_consumable_stack();
 
   /**
@@ -67,6 +68,10 @@ public:
    */
   forward_list<T> consume() noexcept;
 
+  /**
+   * Get the allocator associated with the stack
+   */
+  Alloc get_allocator() const;
 private:
   // Return address of some valid object which can not alias with forward_list_node<T>
   // instances. Can be used as marker in pointer compariaions but must never be
