@@ -125,7 +125,8 @@ public:
   void detach() {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    state_->push_continuation([captured_state = std::move(state_)]() {});
+    auto stateref = state_;
+    stateref->push_continuation([captured_state = std::move(state_)]() {});
   }
 
   // Implementation detail
