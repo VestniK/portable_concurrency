@@ -91,7 +91,7 @@ public:
   /**
    * Also checks if this object holds a function
    */
-  bool operator==(nullptr_t) const {
+  bool operator==(std::nullptr_t) const {
     return vtbl_ == nullptr;
   }
 
