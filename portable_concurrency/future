@@ -8,7 +8,7 @@
  * `future` API imlementation with continuations and executors support
  */
 
-#include "bits/alias_namespace.h"
+#include "functional"
 #include "bits/async.h"
 #include "bits/future.h"
 #include "bits/packaged_task.h"
