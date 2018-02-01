@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "allocate_unique.h"
 #include "once_consumable_stack_fwd.h"
 
 namespace portable_concurrency {
@@ -74,8 +75,13 @@ forward_list_iterator<T> end(forward_list<T>&) noexcept {
   return {};
 }
 
-template<typename T>
-once_consumable_stack<T>::~once_consumable_stack() {
+template<typename T, typename Alloc>
+once_consumable_stack<T, Alloc>::once_consumable_stack(const Alloc& allocator) noexcept :
+    allocator_(allocator)
+{ }
+
+template<typename T, typename Alloc>
+once_consumable_stack<T, Alloc>::~once_consumable_stack() {
   // Create temporary forward_list which can destroy all nodes properly. Nobody
   // else should access this object anymore at the momont of destruction so
   // relaxed memory order is enough.
@@ -84,12 +90,12 @@ once_consumable_stack<T>::~once_consumable_stack() {
     forward_list<T>{head};
 }
 
-template<typename T>
-bool once_consumable_stack<T>::push(T& val) {
+template<typename T, typename Alloc>
+bool once_consumable_stack<T, Alloc>::push(T& val) {
   auto* curr_head = head_.load(std::memory_order_acquire);
   if (curr_head == consumed_marker())
     return false;
-  auto new_head = std::make_unique<forward_list_node<T>>(std::move(val), curr_head);
+  auto new_head = allocate_unique<forward_list_node<T>>(allocator_, std::move(val), curr_head);
   while (!head_.compare_exchange_strong(new_head->next, new_head.get(), std::memory_order_acq_rel)) {
     if (new_head->next == consumed_marker()) {
       val = std::move(new_head->val);
@@ -100,21 +106,26 @@ bool once_consumable_stack<T>::push(T& val) {
   return true;
 }
 
-template<typename T>
-bool once_consumable_stack<T>::is_consumed() const noexcept {
+template<typename T, typename Alloc>
+bool once_consumable_stack<T, Alloc>::is_consumed() const noexcept {
   return head_.load(std::memory_order_acquire) == consumed_marker();
 }
 
-template<typename T>
-forward_list<T> once_consumable_stack<T>::consume() noexcept {
+template<typename T, typename Alloc>
+forward_list<T> once_consumable_stack<T, Alloc>::consume() noexcept {
   auto* curr_head = head_.exchange(consumed_marker(), std::memory_order_acq_rel);
   if (curr_head == consumed_marker())
     return {};
   return forward_list<T>{curr_head};
 }
 
-template<typename T>
-forward_list_node<T>* once_consumable_stack<T>::consumed_marker() const noexcept {
+template<typename T, typename Alloc>
+Alloc once_consumable_stack<T, Alloc>::get_allocator() const {
+  return allocator_;
+}
+
+template<typename T, typename Alloc>
+forward_list_node<T>* once_consumable_stack<T, Alloc>::consumed_marker() const noexcept {
   return reinterpret_cast<forward_list_node<T>*>(const_cast<once_consumable_stack*>(this));
 }
 

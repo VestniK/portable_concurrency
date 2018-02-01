@@ -10,7 +10,7 @@ inline namespace cxx14_v1 {
 namespace detail {
 
 template<typename R, typename F, typename... A>
-void set_state_value(shared_state<R>& state, F&& f, A&&... a) {
+void set_state_value(basic_shared_state<R>& state, F&& f, A&&... a) {
   bool executed = false;
   try {
     auto&& res = ::portable_concurrency::cxx14_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
@@ -24,7 +24,7 @@ void set_state_value(shared_state<R>& state, F&& f, A&&... a) {
 }
 
 template<typename R, typename F, typename... A>
-void set_state_value(shared_state<R&>& state, F&& f, A&&... a) {
+void set_state_value(basic_shared_state<R&>& state, F&& f, A&&... a) {
   bool executed = false;
   try {
     R& res = ::portable_concurrency::cxx14_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);
@@ -38,7 +38,7 @@ void set_state_value(shared_state<R&>& state, F&& f, A&&... a) {
 }
 
 template<typename F, typename... A>
-void set_state_value(shared_state<void>& state, F&& f, A&&... a) {
+void set_state_value(basic_shared_state<void>& state, F&& f, A&&... a) {
   bool executed = false;
   try {
     ::portable_concurrency::cxx14_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...);

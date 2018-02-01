@@ -16,7 +16,7 @@
 #define EXPECT_FUTURE_ERROR(statement, errc) \
   try { \
     statement; \
-    ADD_FAILURE() << "Excpected exception was not thrown"; \
+    ADD_FAILURE() << "Expected exception was not thrown"; \
   } catch(const std::future_error& err) { \
     EXPECT_EQ(err.code(), errc) << "received error message: " << err.code().message(); \
   } catch(const std::exception& err) { \

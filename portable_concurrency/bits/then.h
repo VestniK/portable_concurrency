@@ -138,6 +138,7 @@ class cnt_state final:
   public future_state<remove_future_t<cnt_result_t<F, cnt_arg_t<Tag, T>>>>,
   public continuation_state
 {
+  using continuation = typename future_state<T>::continuation;
 public:
   using cnt_res = cnt_result_t<F, cnt_arg_t<Tag, T>>;
   using res_t = remove_future_t<cnt_res>;
@@ -146,8 +147,6 @@ public:
   cnt_state(F func, std::shared_ptr<future_state<T>> parent):
     storage_(first_t{}, std::move(func), std::move(parent))
   {}
-
-  continuations_stack& continuations() override {return  continuations_;}
 
   std::add_lvalue_reference_t<state_storage_t<res_t>> value_ref() override {
     if (exception_)
@@ -191,6 +190,22 @@ public:
     continuations_.execute();
   }
 
+  void push_continuation(continuation&& cnt) final {
+    continuations_.push(std::move(cnt));
+  }
+  void execute_continuations() final {
+    continuations_.execute();
+  }
+  bool continuations_executed() const final {
+    return continuations_.executed();
+  }
+  void wait() final {
+    continuations_.wait();
+  }
+  bool wait_for(std::chrono::nanoseconds timeout) final {
+    return continuations_.wait_for(timeout);
+  }
+
 private:
   auto unwrap(std::shared_ptr<void>, std::false_type) {
     continuations_.execute();
@@ -203,8 +218,7 @@ private:
       continuations_.execute();
       return;
     }
-    auto& continuations = state_of(res_future)->continuations();
-    continuations.push([wstate = weak(std::shared_ptr<cnt_state>{self_sp, this})] {
+    state_of(res_future)->push_continuation([wstate = weak(std::shared_ptr<cnt_state>{self_sp, this})] {
       if (auto state = wstate.lock()) {
         state->continuations_.execute();
       }
@@ -214,7 +228,7 @@ private:
 private:
   either<cnt_closure<F, T>, stored_cnt_res> storage_;
   std::exception_ptr exception_ = nullptr;
-  continuations_stack continuations_;
+  continuations_stack<std::allocator<continuation>> continuations_;
 };
 
 struct cnt_action {
@@ -252,9 +266,9 @@ auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
   using cnt_data_t = cnt_state<Tag, T, std::decay_t<F>>;
   using res_t = typename cnt_data_t::res_t;
 
-  auto& parent_continuations = parent->continuations();
+  auto parent_ref = parent;
   auto data = std::make_shared<cnt_data_t>(std::forward<F>(f), std::move(parent));
-  parent_continuations.push(cnt_action{data});
+  parent_ref->push_continuation(cnt_action{data});
   return std::shared_ptr<future_state<res_t>>{std::move(data)};
 }
 
@@ -272,9 +286,10 @@ auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
     {}
   };
 
-  auto& parent_continuations = parent->continuations();
+  // TODO use the parent allocator
+  auto parent_ref = parent;
   auto data = std::make_shared<executor_bind>(std::forward<E>(exec), std::forward<F>(f), std::move(parent));
-  parent_continuations.push([wdata = weak(data)]() mutable {
+  parent_ref->push_continuation([wdata = weak(data)]() mutable {
     if (auto data = wdata.lock())
       post(std::move(data->exec), cnt_action{std::shared_ptr<cnt_data_t>{data, &data->data}});
   });

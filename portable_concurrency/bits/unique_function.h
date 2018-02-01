@@ -88,6 +88,13 @@ public:
     return vtbl_ != nullptr;
   }
 
+  /**
+   * Also checks if this object holds a function
+   */
+  bool operator==(std::nullptr_t) const {
+    return vtbl_ == nullptr;
+  }
+
 private:
   template<typename F>
   unique_function(F&& f, std::true_type);

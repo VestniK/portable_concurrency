@@ -21,6 +21,7 @@ namespace detail {
 template<typename Sequence>
 class when_all_state final: public future_state<Sequence>
 {
+  using continuation = typename future_state<Sequence>::continuation;
 public:
   when_all_state(Sequence&& futures):
     futures_(std::move(futures)),
@@ -37,7 +38,7 @@ public:
     auto state = std::make_shared<when_all_state<Sequence>>(std::move(futures));
 #endif
     sequence_traits<Sequence>::for_each(state->futures_, [state](auto& f) {
-      state_of(f)->continuations().push([state]{state->notify();});
+      state_of(f)->push_continuation([state]{state->notify();});
     });
     state->notify();
     return state;
@@ -47,10 +48,6 @@ public:
     if (--operations_remains_ != 0)
       return;
     continuations_.execute();
-  }
-
-  continuations_stack& continuations() override {
-    return continuations_;
   }
 
   Sequence& value_ref() override {
@@ -63,10 +60,26 @@ public:
     return nullptr;
   }
 
+  void push_continuation(continuation&& cnt) final {
+    continuations_.push(std::move(cnt));
+  }
+  void execute_continuations() final {
+    continuations_.execute();
+  }
+  bool continuations_executed() const final {
+    return continuations_.executed();
+  }
+  void wait() final {
+    continuations_.wait();
+  }
+  bool wait_for(std::chrono::nanoseconds timeout) final {
+    return continuations_.wait_for(timeout);
+  }
+
 private:
   Sequence futures_;
   std::atomic<size_t> operations_remains_;
-  continuations_stack continuations_;
+  continuations_stack<std::allocator<continuation>> continuations_;
 };
 
 } // namespace detail

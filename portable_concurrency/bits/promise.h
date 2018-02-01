@@ -17,14 +17,18 @@ namespace detail {
 
 template<typename T>
 struct promise_common {
-  either<std::shared_ptr<shared_state<T>>, std::weak_ptr<shared_state<T>>> state_{
-    first_t{}, std::make_shared<shared_state<T>>()
-  };
+  either<std::shared_ptr<basic_shared_state<T>>, std::weak_ptr<basic_shared_state<T>>> state_;
 
-  promise_common() = default;
+  promise_common() :
+      state_{ first_t{}, std::make_shared<shared_state<T, std::allocator<forward_list_node<typename future_state<T>::continuation>>>>() }
+  { }
+  template<typename Alloc>
+  explicit promise_common(const Alloc& allocator) :
+      state_{ first_t{}, std::allocate_shared<shared_state<T, Alloc>>(allocator, allocator) }
+  { }
   ~promise_common() {
     auto state = get_state(false);
-    if (state && !state->continuations().executed())
+    if (state && !state->continuations_executed())
       state->set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
   }
 
@@ -45,7 +49,7 @@ struct promise_common {
       state->set_exception(error);
   }
 
-  std::shared_ptr<shared_state<T>> get_state(bool throw_no_state = true) {
+  std::shared_ptr<basic_shared_state<T>> get_state(bool throw_no_state = true) {
     switch (state_.state())
     {
     case either_state::first: return state_.get(first_t{});
@@ -77,6 +81,10 @@ template<typename T>
 class promise {
 public:
   promise() = default;
+  template<typename Alloc>
+  promise(std::allocator_arg_t, const Alloc& allocator = Alloc()) :
+      common_(allocator)
+  { }
   promise(promise&&) noexcept = default;
   promise(const promise&) = delete;
 
@@ -124,6 +132,10 @@ template<typename T>
 class promise<T&> {
 public:
   promise() = default;
+  template<typename Alloc>
+  promise(std::allocator_arg_t, const Alloc& allocator = Alloc()) :
+      common_(allocator)
+  { }
   promise(promise&&) noexcept = default;
   promise(const promise&) = delete;
 
@@ -159,6 +171,10 @@ template<>
 class promise<void> {
 public:
   promise() = default;
+  template<typename Alloc>
+  promise(std::allocator_arg_t, const Alloc& allocator = Alloc()) :
+      common_(allocator)
+  { }
   promise(promise&&) noexcept = default;
   promise(const promise&) = delete;
 

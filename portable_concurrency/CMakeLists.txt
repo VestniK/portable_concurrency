@@ -22,6 +22,7 @@ set(INSTALL_HEADERS
   bits/latch.h
   bits/make_future.h
   bits/once_consumable_stack_fwd.h
+  bits/once_consumable_stack.h
   bits/packaged_task.h
   bits/promise.h
   bits/shared_future.h
@@ -37,8 +38,6 @@ set(INSTALL_HEADERS
 set(HEADERS
   ${PUBLIC_HEADERS}
   ${INSTALL_HEADERS}
-
-  bits/once_consumable_stack.h
 )
 
 set(SRC

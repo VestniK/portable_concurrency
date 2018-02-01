@@ -89,14 +89,14 @@ public:
   void wait() const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    state_->continuations().wait();
+    state_->wait();
   }
 
   template<typename Rep, typename Period>
   std::future_status wait_for(const std::chrono::duration<Rep, Period>& rel_time) const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return state_->continuations().wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time)) ?
+    return state_->wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time)) ?
       std::future_status::ready:
       std::future_status::timeout
     ;
@@ -120,7 +120,7 @@ public:
   bool is_ready() const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return state_->continuations().executed();
+    return state_->continuations_executed();
   }
 
   template<typename F>
@@ -165,15 +165,15 @@ public:
   }
 
   /**
-   * Prevents cancelation of the operations of this future value calculation on its destruction.
+   * Prevents cancellation of the operations of this future value calculation on its destruction.
    *
    * @post this->valid() == false
    */
   void detach() {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    auto& continuations = state_->continuations();
-    continuations.push([captured_state = std::move(state_)]() {});
+    auto state_ref = state_;
+    state_ref->push_continuation([captured_state = std::move(state_)]() { });
   }
 
   // implementation detail
@@ -187,7 +187,7 @@ public:
   bool await_ready() const noexcept {return is_ready();}
   T await_resume() {return get();}
   void await_suspend(std::experimental::coroutine_handle<> handle) {
-    state_->continuations().push(std::move(handle));
+    state_->push_continuation(std::move(handle));
   }
 #endif
 

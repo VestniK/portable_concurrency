@@ -12,69 +12,6 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-class continuations_stack::waiter final {
-public:
-  waiter() = default;
-
-  void operator() () {
-    std::lock_guard<std::mutex>{mutex_}, notified_ = true;
-    cv_.notify_one();
-  }
-
-  void wait() {
-    std::unique_lock<std::mutex> lock{mutex_};
-    cv_.wait(lock, [this]() {return notified_;});
-  }
-
-  bool wait_for(std::chrono::nanoseconds timeout) {
-    std::unique_lock<std::mutex> lock{mutex_};
-    return cv_.wait_for(lock, timeout, [this] {return notified_;});
-  }
-
-private:
-  std::mutex mutex_;
-  std::condition_variable cv_;
-  bool notified_ = false;
-};
-
-continuations_stack::continuations_stack() = default;
-continuations_stack::~continuations_stack() = default;
-
-void continuations_stack::push(value_type cnt) {
-  if (!stack_.push(cnt))
-    cnt();
-}
-
-void continuations_stack::execute() {
-  for (auto& cnt: stack_.consume())
-    cnt();
-}
-
-bool continuations_stack::executed() const {
-  return stack_.is_consumed();
-}
-
-void continuations_stack::init_waiter() {
-  std::call_once(waiter_init_, [this] {
-    waiter_ = std::make_unique<waiter>();
-    push(std::ref(*waiter_));
-  });
-}
-
-void continuations_stack::wait() {
-  if (executed())
-    return;
-  init_waiter();
-  waiter_->wait();
-}
-
-bool continuations_stack::wait_for(std::chrono::nanoseconds timeout) {
-  if (executed())
-    return true;
-  init_waiter();
-  return waiter_->wait_for(timeout);
-}
-
 #if defined(__GNUC__ ) && __GNUC__ < 5
 
 // https://stackoverflow.com/a/37679065/128774 with fix of integer overflow

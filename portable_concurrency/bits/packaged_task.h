@@ -36,12 +36,12 @@ struct task_state final: packaged_task_state<R, A...> {
   }
 
   void abandon() override {
-    if (!state.continuations().executed())
+    if (!state.continuations_executed())
       state.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
   };
 
   std::decay_t<F> func;
-  shared_state<R> state;
+  shared_state<R, std::allocator<void>> state;
 };
 
 } // namespace detail

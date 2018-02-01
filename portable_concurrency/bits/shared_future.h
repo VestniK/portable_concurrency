@@ -43,14 +43,14 @@ public:
   void wait() const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return state_->continuations().wait();
+    return state_->wait();
   }
 
   template<typename Rep, typename Period>
   std::future_status wait_for(const std::chrono::duration<Rep, Period>& rel_time) const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return state_->continuations().wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time)) ?
+    return state_->wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time)) ?
       std::future_status::ready:
       std::future_status::timeout
     ;
@@ -73,7 +73,7 @@ public:
   bool is_ready() const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    return state_->continuations().executed();
+    return state_->continuations_executed();
   }
 
   template<typename F>
@@ -125,8 +125,8 @@ public:
   void detach() {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
-    auto& continuations = state_->continuations();
-    continuations.push([captured_state = std::move(state_)]() {});
+    auto stateref = state_;
+    stateref->push_continuation([captured_state = std::move(state_)]() {});
   }
 
   // Implementation detail
