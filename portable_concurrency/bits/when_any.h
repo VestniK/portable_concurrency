@@ -41,7 +41,6 @@ public:
     continuations_.execute();
   }
 
-  // TODO: overload with allocator
   static std::shared_ptr<future_state<when_any_result<Sequence>>> make(Sequence&& seq) {
 #if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 3900
     // looks like std::make_shared is affected by https://bugs.llvm.org/show_bug.cgi?id=22806

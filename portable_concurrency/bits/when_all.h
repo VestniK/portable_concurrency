@@ -28,7 +28,6 @@ public:
     operations_remains_(sequence_traits<Sequence>::size(futures_) + 1)
   {}
 
-  // TODO overload with allocator
   static std::shared_ptr<future_state<Sequence>> make(Sequence&& futures) {
 #if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 3900
     // looks like std::make_shared is affected by https://bugs.llvm.org/show_bug.cgi?id=22806

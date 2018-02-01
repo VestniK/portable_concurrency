@@ -187,7 +187,7 @@ public:
   bool await_ready() const noexcept {return is_ready();}
   T await_resume() {return get();}
   void await_suspend(std::experimental::coroutine_handle<> handle) {
-    state_->continuations().push(std::move(handle));
+    state_->push_continuation(std::move(handle));
   }
 #endif
 
