@@ -10,6 +10,7 @@ set(PUBLIC_HEADERS
 set(INSTALL_HEADERS
   bits/alias_namespace.h
   bits/align.h
+  bits/allocate_unique.h
   bits/async.h
   bits/concurrency_type_traits.h
   bits/either.h
