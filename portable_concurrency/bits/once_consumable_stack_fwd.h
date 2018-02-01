@@ -10,13 +10,15 @@ namespace detail {
 template<typename T>
 struct forward_list_node;
 
-template<typename T>
+template<typename T, typename Alloc>
 struct forward_list_deleter {
+  Alloc allocator;
+  explicit forward_list_deleter(const Alloc& alloc) : allocator(alloc) { }
   void operator() (forward_list_node<T>* head) noexcept;
 };
 
-template<typename T>
-using forward_list = std::unique_ptr<forward_list_node<T>, forward_list_deleter<T>>;
+template<typename T, typename Alloc>
+using forward_list = std::unique_ptr<forward_list_node<T>, forward_list_deleter<T, Alloc>>;
 
 /**
  * @internal
@@ -66,7 +68,7 @@ public:
    * @note Must be called from a single thread. Must not be called twice on a same
    * queue.
    */
-  forward_list<T> consume() noexcept;
+  forward_list<T, Alloc> consume() noexcept;
 
   /**
    * Get the allocator associated with the stack
