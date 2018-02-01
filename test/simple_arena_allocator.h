@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <portable_concurrency/bits/align.h>
 
 template<typename T, typename Arena>
