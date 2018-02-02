@@ -10,10 +10,15 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
+// R(A...) is incomplete type so it is illegal to use sizeof(F)/alignof(F) for decayed function refference
+// turn it into function pointer which is implecitly constructable from function refference
+template<typename F>
+using is_storable_helper = std::conditional_t<std::is_function<F>::value, F*, F>;
+
 template<typename F>
 using is_storable_t = std::integral_constant<bool,
-  alignof(F) <= small_buffer_align &&
-  sizeof(F) <= small_buffer_size &&
+  alignof(is_storable_helper<F>) <= small_buffer_align &&
+  sizeof(is_storable_helper<F>) <= small_buffer_size &&
   std::is_nothrow_move_constructible<F>::value
 >;
 
@@ -29,7 +34,7 @@ struct callable_vtbl {
 
 template<typename F, typename R, typename... A>
 const callable_vtbl<R, A...>& get_callable_vtbl() {
-  static_assert (is_storable_t<F>::value, "Can't embed object into small buffer");
+  static_assert(is_storable_t<F>::value, "Can't embed object into small buffer");
   static const callable_vtbl<R, A...> res = {
     [](small_buffer& buf) {reinterpret_cast<F&>(buf).~F();},
     [](small_buffer& src, small_buffer& dst) {new(&dst) F{std::move(reinterpret_cast<F&>(src))};},
@@ -63,7 +68,7 @@ small_unique_function<R(A...)>::small_unique_function(std::nullptr_t) noexcept {
 template<typename R, typename... A>
 template<typename F>
 small_unique_function<R(A...)>::small_unique_function(F&& f) {
-  static_assert(detail::is_storable_t<F>::value, "Can't embed object into small_unique_function");
+  static_assert(is_storable_t<std::decay_t<F>>::value, "Can't embed object into small_unique_function");
   if (detail::is_null(f))
     return;
   new(&buffer_) std::decay_t<F>{std::forward<F>(f)};
