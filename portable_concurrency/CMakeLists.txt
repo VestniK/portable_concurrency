@@ -22,12 +22,14 @@ set(INSTALL_HEADERS
   bits/invoke.h
   bits/latch.h
   bits/make_future.h
-  bits/once_consumable_stack_fwd.h
   bits/once_consumable_stack.h
+  bits/once_consumable_stack.hpp
   bits/packaged_task.h
   bits/promise.h
   bits/shared_future.h
   bits/shared_state.h
+  bits/small_unique_function.h
+  bits/small_unique_function.hpp
   bits/then.h
   bits/unique_function.h
   bits/unique_function.hpp

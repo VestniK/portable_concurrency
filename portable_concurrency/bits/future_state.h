@@ -1,16 +1,16 @@
 #pragma once
 
 #include <chrono>
+#include <condition_variable>
 #include <mutex>
 #include <type_traits>
 
 #include "fwd.h"
 
 #include "unique_function.hpp"
-#include "once_consumable_stack_fwd.h"
-#include "unique_function.h"
 #include "allocate_unique.h"
-#include "once_consumable_stack.h"
+#include "once_consumable_stack.hpp"
+#include "small_unique_function.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -18,9 +18,9 @@ namespace detail {
 
 template<typename Alloc>
 class continuations_stack {
-  using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<forward_list_node<unique_function<void()>>>;
+  using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<forward_list_node<small_unique_function<void()>>>;
 public:
-  using value_type = unique_function<void()>;
+  using value_type = small_unique_function<void()>;
 
   continuations_stack(const Alloc& allocator = Alloc()) :
       stack_(allocator),
@@ -28,7 +28,7 @@ public:
   { }
   ~continuations_stack() = default;
 
-  void push(value_type cnt);
+  void push(value_type&& cnt);
   void execute();
   bool executed() const;
   void wait();
@@ -72,7 +72,7 @@ private:
 };
 
 template<typename Alloc>
-void continuations_stack<Alloc>::push(value_type cnt) {
+void continuations_stack<Alloc>::push(value_type&& cnt) {
   if (!stack_.push(cnt))
     cnt();
 }
@@ -127,7 +127,7 @@ using state_storage_t = std::conditional_t<std::is_void<T>::value,
 template<typename T>
 class future_state {
 public:
-  using continuation = unique_function<void()>;
+  using continuation = small_unique_function<void()>;
 
   virtual ~future_state() = default;
 

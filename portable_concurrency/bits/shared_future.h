@@ -78,7 +78,7 @@ public:
 
   template<typename F>
   detail::cnt_future_t<F, shared_future<T>>
-  then(F&& f) {
+  then(F&& f) const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
     return detail::make_then_state<detail::cnt_tag::shared_then, T, F>(
@@ -87,7 +87,7 @@ public:
   }
 
   template<typename E, typename F>
-  auto then(E&& exec, F&& f) -> std::enable_if_t<
+  auto then(E&& exec, F&& f) const -> std::enable_if_t<
     is_executor<std::decay_t<E>>::value,
     detail::cnt_future_t<F, shared_future<T>>
   > {
@@ -99,14 +99,14 @@ public:
   }
 
   template<typename F>
-  detail::cnt_future_t<F, get_result_type> next(F&& f) {
+  detail::cnt_future_t<F, get_result_type> next(F&& f) const {
     if (!state_)
       throw std::future_error(std::future_errc::no_state);
     return detail::make_then_state<detail::cnt_tag::shared_next, T, F>(state_, std::forward<F>(f));
   }
 
   template<typename E, typename F>
-  auto next(E&& exec, F&& f) -> std::enable_if_t<
+  auto next(E&& exec, F&& f) const -> std::enable_if_t<
     is_executor<std::decay_t<E>>::value,
     detail::cnt_future_t<F, get_result_type>
   > {
@@ -138,9 +138,9 @@ public:
   // Corouttines TS support
   using promise_type = promise<T>;
   bool await_ready() const noexcept {return is_ready();}
-  decltype(auto) await_resume() {return get();}
-  void await_suspend(std::experimental::coroutine_handle<> handle) {
-    state_->continuations().push(std::move(handle));
+  decltype(auto) await_resume() const {return get();}
+  void await_suspend(std::experimental::coroutine_handle<> handle) const {
+    state_->push_continuation(std::move(handle));
   }
 #endif
 
