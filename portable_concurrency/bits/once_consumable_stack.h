@@ -37,10 +37,11 @@ void forward_list_deleter<T, Alloc>::operator() (forward_list_node<T>* head) noe
   }
 }
 
-template<typename T, typename Alloc>
+template<typename T>
 class forward_list_iterator {
 public:
   forward_list_iterator() noexcept = default;
+  template<typename Alloc>
   forward_list_iterator(forward_list<T, Alloc>& list) noexcept: node_(list.get()) {}
 
   forward_list_iterator operator++ () noexcept {
@@ -67,12 +68,12 @@ private:
 };
 
 template<typename T, typename Alloc>
-forward_list_iterator<T, Alloc> begin(forward_list<T, Alloc>& list) noexcept {
+forward_list_iterator<T> begin(forward_list<T, Alloc>& list) noexcept {
   return {list};
 }
 
 template<typename T, typename Alloc>
-forward_list_iterator<T, Alloc> end(forward_list<T, Alloc>&) noexcept {
+forward_list_iterator<T> end(forward_list<T, Alloc>&) noexcept {
   return {};
 }
 
