@@ -6,7 +6,6 @@
 #include <type_traits>
 
 #include "fwd.h"
-
 #include "either.h"
 #include "future_state.h"
 

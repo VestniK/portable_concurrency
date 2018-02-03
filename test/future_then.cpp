@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <portable_concurrency/future>
-
+#include "simple_arena_allocator.h"
 #include "test_tools.h"
 #include "test_helpers.h"
 
@@ -20,6 +20,11 @@ struct FutureThen: future_test {
   pc::promise<int> promise;
   pc::future<int> future = promise.get_future();
   std::string stringified_value = "42";
+
+  static_arena<1024> arena;
+  arena_allocator<std::string, static_arena<1024>> allocator{arena};
+  pc::promise<std::string> alloc_promise{std::allocator_arg, allocator};
+  pc::future<std::string> alloc_future = alloc_promise.get_future();
 };
 
 TEST_F(FutureThen, src_future_invalidated) {
@@ -52,6 +57,12 @@ TEST_F(FutureThen, returned_future_is_ready_for_ready_source_future) {
 TEST_F(FutureThen, returned_future_becomes_ready_when_source_becomes_ready) {
   auto cnt_future = future.then([](pc::future<int>) {});
   set_promise_value(promise);
+  EXPECT_TRUE(cnt_future.is_ready());
+}
+
+TEST_F(FutureThen, returned_future_becomes_ready_when_source_becomes_ready_with_allocator) {
+  auto cnt_future = alloc_future.then([](pc::future<std::string>) {});
+  set_promise_value(alloc_promise);
   EXPECT_TRUE(cnt_future.is_ready());
 }
 

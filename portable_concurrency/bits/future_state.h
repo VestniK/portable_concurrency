@@ -7,6 +7,7 @@
 
 #include "fwd.h"
 
+#include "unique_function.hpp"
 #include "allocate_unique.h"
 #include "once_consumable_stack.hpp"
 #include "small_unique_function.h"
