@@ -76,7 +76,6 @@ public:
    * Get the allocator associated with the stack
    */
   Alloc get_allocator() const;
-
 private:
   // Return address of some valid object which can not alias with forward_list_node<T>
   // instances. Can be used as marker in pointer compariaions but must never be
