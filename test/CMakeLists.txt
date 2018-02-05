@@ -1,39 +1,42 @@
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
-set(SRC
+set(API_TESTS
   async.cpp
   cancelation.cpp
-  either.cpp
   future.cpp
   future_next.cpp
   future_then.cpp
-  once_consumable_stack.cpp
+  future_then_unwrap.cpp
   packaged_task.cpp
   promise.cpp
   shared_future.cpp
   shared_future_next.cpp
   shared_future_then.cpp
   shared_future_then_unwrap.cpp
-  test_tools.cpp
   unique_function.cpp
-  future_then_unwrap.cpp
   when_all_tuple.cpp
   when_all_vector.cpp
   when_any_tuple.cpp
   when_any_vector.cpp
 )
 
-set(HEADERS
+set(DETAILS_TESTS
+  either.cpp
+  once_consumable_stack.cpp
+)
+
+set(TEST_TOOLS
   closable_queue.h
   closable_queue.hpp
   task.h
   test_helpers.h
   test_tools.h
+  test_tools.cpp
   simple_arena_allocator.h
 )
 
-add_executable(unit_tests ${SRC} ${HEADERS})
+add_executable(unit_tests ${API_TESTS} ${DETAILS_TESTS} ${TEST_TOOLS})
 target_link_libraries(unit_tests portable_concurrency GTest::GTest GTest::Main)
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   # Useless warning on correct code which marks the problem which can only happen
