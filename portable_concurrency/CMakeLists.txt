@@ -5,6 +5,7 @@ set(PUBLIC_HEADERS
   functional
   functional_fwd
   future
+  future_fwd
   latch
 )
 set(INSTALL_HEADERS
