@@ -26,6 +26,7 @@ set(SRC
 
 set(HEADERS
   closable_queue.h
+  closable_queue.hpp
   task.h
   test_helpers.h
   test_tools.h

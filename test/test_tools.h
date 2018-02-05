@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include <portable_concurrency/functional>
+#include <portable_concurrency/functional_fwd>
 #include <portable_concurrency/future>
 
 #include "closable_queue.h"
@@ -25,6 +25,8 @@
     ADD_FAILURE() << "Unexpected unknown exception type"; \
   }
 
+extern template class closable_queue<pc::unique_function<void()>>;
+
 class future_tests_env: public ::testing::Environment {
 public:
   void SetUp() override;
@@ -33,17 +35,14 @@ public:
 
   template<typename F, typename... A>
   void run_async(F&& f, A&&... a) {
-    queue_.push(make_task(std::forward<F>(f), std::forward<A>(a)...));
+    queue_.push(task<std::decay_t<F>, std::decay_t<A>...>{
+      std::forward<F>(f),
+      std::forward_as_tuple(std::forward<A>(a)...)
+    });
   }
 
   size_t threads_count() const {return workers_.size();}
-
-  bool uses_thread(std::thread::id id) const {
-    return std::find_if(
-      workers_.begin(), workers_.end(), [id](const std::thread& t) {return t.get_id() == id;}
-    ) != workers_.end();
-  }
-
+  bool uses_thread(std::thread::id id) const;
   void wait_current_tasks();
 
 private:
@@ -64,7 +63,7 @@ extern
 future_tests_env* g_future_tests_env;
 
 struct future_test: ::testing::Test {
-  ~future_test() {g_future_tests_env->wait_current_tasks();}
+  ~future_test();
 };
 
 struct null_executor_t {};
@@ -86,15 +85,8 @@ std::ostream& operator<< (std::ostream& out, const printable<T>& printable) {
   return out << printable.value;
 }
 
-inline
-std::ostream& operator<< (std::ostream& out, const printable<std::unique_ptr<int>>& printable) {
-  return out << *(printable.value);
-}
-
-inline
-std::ostream& operator<< (std::ostream& out, const printable<future_tests_env&>& printable) {
-  return out << "future_tests_env instance: 0x" << std::hex << reinterpret_cast<std::uintptr_t>(&printable.value);
-}
+std::ostream& operator<< (std::ostream& out, const printable<std::unique_ptr<int>>& printable);
+std::ostream& operator<< (std::ostream& out, const printable<future_tests_env&>& printable);
 
 template<typename T>
 void expect_future_exception(pc::future<T>& future, const std::string& what) {
@@ -124,32 +116,7 @@ void expect_future_exception(const pc::shared_future<T>& future, const std::stri
   }
 }
 
-inline
-void expect_future_exception(pc::future<void>& future, const std::string& what) {
-  try {
-    future.get();
-    ADD_FAILURE() << "void value was returned instead of exception";
-  } catch(const std::runtime_error& err) {
-    EXPECT_EQ(what, err.what());
-  } catch(const std::exception& err) {
-    ADD_FAILURE() << "Unexpected exception: " << err.what();
-  } catch(...) {
-    ADD_FAILURE() << "Unexpected unknown exception type";
-  }
-}
-
-inline
-void expect_future_exception(const pc::shared_future<void>& future, const std::string& what) {
-  try {
-    future.get();
-    ADD_FAILURE() << "void value was returned instead of exception";
-  } catch(const std::runtime_error& err) {
-    EXPECT_EQ(what, err.what());
-  } catch(const std::exception& err) {
-    ADD_FAILURE() << "Unexpected exception: " << err.what();
-  } catch(...) {
-    ADD_FAILURE() << "Unexpected unknown exception type";
-  }
-}
+void expect_future_exception(pc::future<void>& future, const std::string& what);
+void expect_future_exception(const pc::shared_future<void>& future, const std::string& what);
 
 #define EXPECT_RUNTIME_ERROR(future, what) expect_future_exception(future, what)
