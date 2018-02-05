@@ -35,13 +35,11 @@ public:
 
   R operator() (A... args);
 
-  explicit operator bool () const noexcept {
-    return vtbl_ != nullptr;
-  }
+  explicit operator bool () const noexcept {return vtbl_ != nullptr;}
 
 private:
-  detail::small_buffer buffer_;
-  const detail::callable_vtbl<R, A...>* vtbl_ = nullptr;
+  small_buffer buffer_;
+  const callable_vtbl<R, A...>* vtbl_ = nullptr;
 };
 
 extern template class small_unique_function<void()>;
