@@ -8,22 +8,19 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
+template<template<typename...> class T, typename U>
+struct is_instantiation_of: std::false_type {};
+template<template<typename...> class T, typename... U>
+struct is_instantiation_of<T, T<U...>>: std::true_type {};
+
 // is_future
 
-template<typename F>
-struct is_unique_future: std::false_type {};
-
 template<typename T>
-struct is_unique_future<future<T>>: std::true_type {};
-
-template<typename F>
-struct is_shared_future: std::false_type {};
-
+using is_unique_future = std::integral_constant<bool, is_instantiation_of<future, T>::value>;
 template<typename T>
-struct is_shared_future<shared_future<T>>: std::true_type {};
-
-template<typename F>
-using is_future = std::integral_constant<bool, is_unique_future<F>::value || is_shared_future<F>::value>;
+using is_shared_future = std::integral_constant<bool, is_instantiation_of<shared_future, T>::value>;
+template<typename T>
+using is_future = std::integral_constant<bool, is_unique_future<T>::value || is_shared_future<T>::value>;
 
 // are_futures
 
