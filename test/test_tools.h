@@ -35,10 +35,7 @@ public:
 
   template<typename F, typename... A>
   void run_async(F&& f, A&&... a) {
-    queue_.push(task<std::decay_t<F>, std::decay_t<A>...>{
-      std::forward<F>(f),
-      std::forward_as_tuple(std::forward<A>(a)...)
-    });
+    queue_.push(make_task(std::forward<F>(f), std::forward<A>(a)...));
   }
 
   size_t threads_count() const {return workers_.size();}
