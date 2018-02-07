@@ -24,7 +24,7 @@ public:
 
   continuations_stack(const Alloc& allocator = Alloc()) :
       stack_(allocator),
-      waiter_(nullptr, unique_allocator_free<waiter_allocator>(allocator))
+      waiter_(nullptr, allocator_deleter<waiter_allocator>(allocator))
   { }
   ~continuations_stack() = default;
 
@@ -42,7 +42,7 @@ private:
 
   once_consumable_stack<value_type, allocator_type> stack_;
   std::once_flag waiter_init_;
-  std::unique_ptr<waiter, unique_allocator_free<waiter_allocator>> waiter_;
+  std::unique_ptr<waiter, allocator_deleter<waiter_allocator>> waiter_;
 };
 
 template<typename Alloc>
@@ -140,7 +140,7 @@ public:
 
   // throws stored exception if there is no value. UB if called before continuations are executed.
   virtual std::add_lvalue_reference_t<state_storage_t<T>> value_ref() = 0;
-  // returns nullptr if there is no error.  UB if called before continuations are executed.
+  // returns nullptr if there is no error. UB if called before continuations are executed.
   virtual std::exception_ptr exception() = 0;
 };
 
