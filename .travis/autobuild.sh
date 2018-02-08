@@ -29,6 +29,6 @@ cmake -G Ninja ${SRCDIR} \
   -DCONAN_LIBCXX=${LIBCXX} \
   -DCONAN_COMPILER=$(conan profile get settings.compiler default) \
   -DCONAN_COMPILER_VERSION=$(conan profile get settings.compiler.version default)
-ninja
+time ninja
 
 ./bin/unit_tests
