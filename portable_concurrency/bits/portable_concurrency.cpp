@@ -5,6 +5,7 @@
 #include "make_future.h"
 #include "once_consumable_stack.hpp"
 #include "promise.h"
+#include "shared_future.hpp"
 #include "shared_state.h"
 #include "small_unique_function.hpp"
 #include "unique_function.hpp"
@@ -87,6 +88,14 @@ void future<void>::get() {
   wait();
   auto state = std::move(state_);
   state->value_ref();
+}
+
+template<>
+typename shared_future<void>::get_result_type shared_future<void>::get() const {
+  if (!state_)
+    throw std::future_error(std::future_errc::no_state);
+  wait();
+  state_->value_ref();
 }
 
 future<void> make_ready_future() {

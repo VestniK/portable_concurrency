@@ -144,12 +144,6 @@ public:
   virtual std::exception_ptr exception() = 0;
 };
 
-template<typename T>
-std::shared_ptr<future_state<T>>& state_of(future<T>&);
-
-template<typename T>
-std::shared_ptr<future_state<T>>& state_of(shared_future<T>&);
-
 } // namespace detail
 } // inline namespace cxx14_v1
 } // namespace portable_concurrency

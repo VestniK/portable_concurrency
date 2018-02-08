@@ -29,6 +29,7 @@ set(INSTALL_HEADERS
   bits/packaged_task.h
   bits/promise.h
   bits/shared_future.h
+  bits/shared_future.hpp
   bits/shared_state.h
   bits/small_unique_function.h
   bits/small_unique_function.hpp

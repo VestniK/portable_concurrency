@@ -16,14 +16,6 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
-namespace detail {
-template<typename T>
-class future_state;
-
-template<typename T>
-std::shared_ptr<future_state<T>>& state_of(future<T>&);
-} // namespace detail
-
 /**
  * @ingroup future_hdr
  * @brief The class template future provides a mechanism to access the result of asynchronous operations.
