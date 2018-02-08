@@ -16,37 +16,7 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-template<typename Alloc>
-class continuations_stack {
-  using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<forward_list_node<small_unique_function<void()>>>;
-public:
-  using value_type = small_unique_function<void()>;
-
-  continuations_stack(const Alloc& allocator = Alloc()) :
-      stack_(allocator),
-      waiter_(nullptr, allocator_deleter<waiter_allocator>(allocator))
-  { }
-  ~continuations_stack() = default;
-
-  void push(value_type&& cnt);
-  void execute();
-  bool executed() const;
-  void wait();
-  bool wait_for(std::chrono::nanoseconds timeout);
-
-private:
-  class waiter;
-  void init_waiter();
-
-  using waiter_allocator = typename std::allocator_traits<Alloc>::template rebind_alloc<waiter>;
-
-  once_consumable_stack<value_type, allocator_type> stack_;
-  std::once_flag waiter_init_;
-  std::unique_ptr<waiter, allocator_deleter<waiter_allocator>> waiter_;
-};
-
-template<typename Alloc>
-class continuations_stack<Alloc>::waiter final {
+class waiter final {
 public:
   waiter() = default;
 
@@ -72,8 +42,39 @@ private:
 };
 
 template<typename Alloc>
+using waiter_allocator = typename std::allocator_traits<Alloc>::template rebind_alloc<waiter>;
+template<typename Alloc>
+using waiter_deleter = allocator_deleter<typename std::allocator_traits<Alloc>::template rebind_alloc<waiter>>;
+
+template<typename Alloc>
+class continuations_stack {
+public:
+  using value_type = small_unique_function<void()>;
+
+  continuations_stack(const Alloc& allocator = Alloc{}):
+    waiter_(nullptr, waiter_deleter<Alloc>(allocator)),
+    alloc_(allocator)
+  {}
+  ~continuations_stack() = default;
+
+  void push(value_type&& cnt);
+  void execute();
+  bool executed() const;
+  void wait();
+  bool wait_for(std::chrono::nanoseconds timeout);
+
+private:
+  void init_waiter();
+
+  once_consumable_stack<value_type> stack_;
+  std::once_flag waiter_init_;
+  std::unique_ptr<waiter, waiter_deleter<Alloc>> waiter_;
+  Alloc alloc_;
+};
+
+template<typename Alloc>
 void continuations_stack<Alloc>::push(value_type&& cnt) {
-  if (!stack_.push(cnt))
+  if (!stack_.push(cnt, alloc_))
     cnt();
 }
 
@@ -91,7 +92,7 @@ bool continuations_stack<Alloc>::executed() const {
 template<typename Alloc>
 void continuations_stack<Alloc>::init_waiter() {
   std::call_once(waiter_init_, [this] {
-    auto other = allocate_unique<waiter>(waiter_allocator(stack_.get_allocator()));
+    auto other = allocate_unique<waiter>(waiter_allocator<Alloc>(alloc_));
     waiter_.reset(other.release());
     push(std::ref(*waiter_));
   });
