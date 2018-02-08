@@ -10,7 +10,7 @@
 
 #include "bits/alias_namespace.h"
 #include "bits/async.h"
-#include "bits/future.h"
+#include "bits/future.hpp"
 #include "bits/packaged_task.h"
 #include "bits/promise.h"
 #include "bits/shared_future.h"

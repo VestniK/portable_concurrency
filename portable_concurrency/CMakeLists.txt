@@ -17,6 +17,7 @@ set(INSTALL_HEADERS
   bits/either.h
   bits/execution.h
   bits/future.h
+  bits/future.hpp
   bits/future_sequence.h
   bits/future_state.h
   bits/fwd.h

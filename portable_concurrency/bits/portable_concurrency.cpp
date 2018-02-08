@@ -1,4 +1,5 @@
 #include "align.h"
+#include "future.hpp"
 #include "future_state.h"
 #include "latch.h"
 #include "make_future.h"
@@ -77,6 +78,15 @@ void latch::wait() const {
   cv_.wait(lock, [this] {return counter_ == 0;});
   if (--waiters_ == 0)
     cv_.notify_one();
+}
+
+template<>
+void future<void>::get() {
+  if (!state_)
+    throw std::future_error(std::future_errc::no_state);
+  wait();
+  auto state = std::move(state_);
+  state->value_ref();
 }
 
 future<void> make_ready_future() {
