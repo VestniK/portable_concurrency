@@ -11,11 +11,11 @@ struct allocator_deleter: Alloc {
   Alloc& get_allocator() {return *this;}
 
   explicit allocator_deleter(Alloc&& alloc) :
-      Alloc(std::move(alloc))
+    Alloc(std::move(alloc))
   { }
 
   explicit allocator_deleter(const Alloc& alloc) :
-      Alloc(alloc)
+    Alloc(alloc)
   { }
 
   template<typename T>
@@ -26,7 +26,7 @@ struct allocator_deleter: Alloc {
 };
 
 template<typename T, typename Alloc, typename... Args>
-inline std::unique_ptr<T, allocator_deleter<Alloc>> allocate_unique(Alloc allocator, Args&&... args) {
+std::unique_ptr<T, allocator_deleter<Alloc>> allocate_unique(Alloc allocator, Args&&... args) {
   static_assert(
     std::is_convertible<typename std::allocator_traits<Alloc>::pointer, T*>::value,
     "Can't convert pointer from allocator to the item type"

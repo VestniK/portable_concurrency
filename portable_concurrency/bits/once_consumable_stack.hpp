@@ -15,9 +15,8 @@ namespace detail {
 template<typename T>
 struct forward_list_node {
   // make_unique can't use universal initialization so some garbage code requred :(
-  template<typename U>
-  forward_list_node(U&& val, forward_list_node* next = nullptr):
-    val(std::forward<U>(val)),
+  forward_list_node(T&& val, forward_list_node* next = nullptr):
+    val(std::move(val)),
     next(next)
   {}
 
@@ -79,8 +78,8 @@ forward_list_iterator<T> end(forward_list<T, Alloc>&) noexcept {
 
 template<typename T, typename Alloc>
 once_consumable_stack<T, Alloc>::once_consumable_stack(const Alloc& allocator) noexcept :
-    allocator_(allocator)
-{ }
+  allocator_(allocator)
+{}
 
 template<typename T, typename Alloc>
 once_consumable_stack<T, Alloc>::~once_consumable_stack() {

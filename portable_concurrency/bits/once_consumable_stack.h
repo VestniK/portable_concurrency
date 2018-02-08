@@ -13,9 +13,9 @@ struct forward_list_node;
 template<typename T, typename Alloc>
 struct forward_list_deleter {
   Alloc allocator_;
-  forward_list_deleter(const Alloc& allocator) :
-      allocator_(allocator)
-  { }
+  forward_list_deleter(const Alloc& allocator):
+    allocator_(allocator)
+  {}
   void operator() (forward_list_node<T>* head) noexcept;
 };
 
@@ -37,7 +37,6 @@ using forward_list = std::unique_ptr<forward_list_node<T>, forward_list_deleter<
  */
 template<typename T, typename Alloc = std::allocator<forward_list_node<T>>>
 class once_consumable_stack {
-    Alloc allocator_;
 public:
   once_consumable_stack(const Alloc& allocator = Alloc()) noexcept;
   ~once_consumable_stack();
@@ -84,6 +83,7 @@ private:
 
 private:
   std::atomic<forward_list_node<T>*> head_{nullptr};
+  Alloc allocator_;
 };
 
 } // namespace detail
