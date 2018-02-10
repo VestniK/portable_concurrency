@@ -75,19 +75,24 @@ once_consumable_stack<T>::~once_consumable_stack() {
 }
 
 template<typename T>
-bool once_consumable_stack<T>::push(forward_list<T>& head) noexcept {
-  assert(!head->next);
+bool once_consumable_stack<T>::push(T& val) {
+  return push(val, std::allocator<T>{});
+}
+
+template<typename T>
+bool once_consumable_stack<T>::push(forward_list<T>& node) noexcept {
+  assert(!node->next);
   auto* curr_head = head_.load(std::memory_order_acquire);
   if (curr_head == consumed_marker())
     return false;
-  head->next = curr_head;
-  while (!head_.compare_exchange_strong(head->next, head.get(), std::memory_order_acq_rel)) {
-    if (head->next == consumed_marker()) {
-      head->next = nullptr;
+  node->next = curr_head;
+  while (!head_.compare_exchange_strong(node->next, node.get(), std::memory_order_acq_rel)) {
+    if (node->next == consumed_marker()) {
+      node->next = nullptr;
       return false;
     }
   }
-  head.release();
+  node.release();
   return true;
 }
 

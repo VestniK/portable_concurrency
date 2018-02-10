@@ -88,14 +88,14 @@ public:
    * @note This function assumes that moving the value from an object and then moving
    * it back remains an object in initial state.
    */
-  bool push(T& val) {return push(val, std::allocator<T>{});}
+  bool push(T& val);
 
   template<typename Alloc>
   bool push(T& val, const Alloc& alloc) {
-    forward_list<T> head = allocate_list_node(std::move(val), alloc);
-    if (push(head))
+    forward_list<T> node = allocate_list_node(std::move(val), alloc);
+    if (push(node))
       return true;
-    val = std::move(head->val);
+    val = std::move(node->val);
     return  false;
   }
 
@@ -122,7 +122,7 @@ private:
   // dereferenced.
   forward_list_node<T>* consumed_marker() const noexcept;
 
-  bool push(forward_list<T>& head) noexcept;
+  bool push(forward_list<T>& node) noexcept;
 
 private:
   std::atomic<forward_list_node<T>*> head_{nullptr};
