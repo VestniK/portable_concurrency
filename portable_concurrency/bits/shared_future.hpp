@@ -19,7 +19,7 @@ template<typename T>
 void shared_future<T>::wait() const {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
-  return state_->wait();
+  return state_->continuations().wait();
 }
 
 template<typename T>
@@ -27,7 +27,7 @@ template<typename Rep, typename Period>
 future_status shared_future<T>::wait_for(const std::chrono::duration<Rep, Period>& rel_time) const {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
-  return state_->wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time)) ?
+  return state_->continuations().wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time)) ?
     future_status::ready:
     future_status::timeout
   ;
@@ -54,7 +54,7 @@ template<typename T>
 bool shared_future<T>::is_ready() const {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
-  return state_->continuations_executed();
+  return state_->continuations().executed();
 }
 
 template<typename T>

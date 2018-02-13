@@ -27,7 +27,6 @@ namespace detail {
 template<typename Sequence>
 class when_any_state final: public future_state<when_any_result<Sequence>>
 {
-  using continuation = typename future_state<when_any_state<Sequence>>::continuation;
 public:
   when_any_state(Sequence&& futures):
     result_{static_cast<std::size_t>(-1), std::move(futures)}
@@ -72,23 +71,14 @@ public:
   void push_continuation(continuation&& cnt) final {
     continuations_.push(std::move(cnt));
   }
-  void execute_continuations() final {
-    continuations_.execute();
-  }
-  bool continuations_executed() const final {
-    return continuations_.executed();
-  }
-  void wait() final {
-    continuations_.wait();
-  }
-  bool wait_for(std::chrono::nanoseconds timeout) final {
-    return continuations_.wait_for(timeout);
+  continuations_stack& continuations() final {
+    return continuations_;
   }
 
 private:
   when_any_result<Sequence> result_;
   std::atomic_flag ready_flag_ = ATOMIC_FLAG_INIT;
-  continuations_stack<std::allocator<continuation>> continuations_;
+  continuations_stack continuations_;
 };
 
 } // namespace detail

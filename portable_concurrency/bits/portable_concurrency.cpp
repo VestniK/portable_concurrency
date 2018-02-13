@@ -32,6 +32,50 @@ void* align(std::size_t alignment, std::size_t size, void*& ptr, std::size_t& sp
 #endif
 
 template class small_unique_function<void()>;
+template class once_consumable_stack<continuation>;
+
+waiter::waiter() = default;
+
+void waiter::operator() () {
+  std::lock_guard<std::mutex>{mutex_}, notified_ = true;
+  cv_.notify_one();
+}
+
+void waiter::wait() const {
+  std::unique_lock<std::mutex> lock{mutex_};
+  cv_.wait(lock, [this] {return notified_;});
+}
+
+bool waiter::wait_for(std::chrono::nanoseconds timeout) const {
+  std::unique_lock<std::mutex> lock{mutex_};
+  return cv_.wait_for(lock, timeout, [this] {return notified_;});
+}
+
+void continuations_stack::push(continuation&& cnt) {
+  if (!stack_.push(cnt))
+    cnt();
+}
+
+continuations_stack::continuations_stack() {
+  push(std::ref(waiter_));
+}
+
+void continuations_stack::execute() {
+  for (auto& cnt: stack_.consume())
+    cnt();
+}
+
+bool continuations_stack::executed() const {
+  return stack_.is_consumed();
+}
+
+void continuations_stack::wait() const {
+  if (!stack_.is_consumed())
+    waiter_.wait();
+}
+bool continuations_stack::wait_for(std::chrono::nanoseconds timeout) const {
+  return stack_.is_consumed() || waiter_.wait_for(timeout);
+}
 
 } // namespace detail
 

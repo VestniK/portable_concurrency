@@ -19,16 +19,16 @@ template<typename T>
 struct promise_common {
   either<std::shared_ptr<basic_shared_state<T>>, std::weak_ptr<basic_shared_state<T>>> state_;
 
-  promise_common() :
-      state_{ first_t{}, std::make_shared<shared_state<T, std::allocator<forward_list_node<typename future_state<T>::continuation>>>>() }
+  promise_common():
+    state_{first_t{}, std::make_shared<shared_state<T, std::allocator<continuation>>>()}
   { }
   template<typename Alloc>
-  explicit promise_common(const Alloc& allocator) :
-      state_{ first_t{}, std::allocate_shared<shared_state<T, Alloc>>(allocator, allocator) }
+  explicit promise_common(const Alloc& allocator):
+    state_{first_t{}, std::allocate_shared<shared_state<T, Alloc>>(allocator, allocator)}
   { }
   ~promise_common() {
     auto state = get_state(false);
-    if (state && !state->continuations_executed())
+    if (state && !state->continuations().executed())
       state->set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
   }
 

@@ -21,7 +21,6 @@ namespace detail {
 template<typename Sequence>
 class when_all_state final: public future_state<Sequence>
 {
-  using continuation = typename future_state<Sequence>::continuation;
 public:
   when_all_state(Sequence&& futures):
     futures_(std::move(futures)),
@@ -63,23 +62,14 @@ public:
   void push_continuation(continuation&& cnt) final {
     continuations_.push(std::move(cnt));
   }
-  void execute_continuations() final {
-    continuations_.execute();
-  }
-  bool continuations_executed() const final {
-    return continuations_.executed();
-  }
-  void wait() final {
-    continuations_.wait();
-  }
-  bool wait_for(std::chrono::nanoseconds timeout) final {
-    return continuations_.wait_for(timeout);
+  continuations_stack& continuations() final {
+    return continuations_;
   }
 
 private:
   Sequence futures_;
   std::atomic<size_t> operations_remains_;
-  continuations_stack<std::allocator<continuation>> continuations_;
+  continuations_stack continuations_;
 };
 
 } // namespace detail
