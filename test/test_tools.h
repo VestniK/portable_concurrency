@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include <portable_concurrency/functional_fwd>
+#include <portable_concurrency/functional>
 #include <portable_concurrency/future>
 
 #include "closable_queue.h"

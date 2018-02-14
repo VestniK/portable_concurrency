@@ -13,6 +13,7 @@ set(INSTALL_HEADERS
   bits/align.h
   bits/async.h
   bits/concurrency_type_traits.h
+  bits/continuations_stack.h
   bits/either.h
   bits/execution.h
   bits/future.h
@@ -24,7 +25,6 @@ set(INSTALL_HEADERS
   bits/latch.h
   bits/make_future.h
   bits/once_consumable_stack.h
-  bits/once_consumable_stack.hpp
   bits/packaged_task.h
   bits/promise.h
   bits/shared_future.h
@@ -43,6 +43,8 @@ set(INSTALL_HEADERS
 set(HEADERS
   ${PUBLIC_HEADERS}
   ${INSTALL_HEADERS}
+
+  bits/once_consumable_stack.hpp
 )
 
 set(SRC
