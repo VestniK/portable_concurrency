@@ -32,6 +32,7 @@ void* align(std::size_t alignment, std::size_t size, void*& ptr, std::size_t& sp
 #endif
 
 template class small_unique_function<void()>;
+template struct forward_list_deleter<continuation>;
 template class once_consumable_stack<continuation>;
 
 waiter::waiter() = default;

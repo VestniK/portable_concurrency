@@ -16,6 +16,7 @@ inline namespace cxx14_v1 {
 namespace detail {
 
 using continuation = small_unique_function<void()>;
+extern template struct forward_list_deleter<continuation>;
 extern template class once_consumable_stack<continuation>;
 
 class waiter final {
