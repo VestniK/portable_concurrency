@@ -27,7 +27,9 @@ template<typename T>
 void future<T>::wait() const {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
-  state_->continuations().wait();
+  auto& continuations = state_->continuations();
+  if (!continuations.executed())
+    continuations.get_waiter().wait();
 }
 
 template<typename T>
@@ -35,7 +37,10 @@ template<typename Rep, typename Period>
 future_status future<T>::wait_for(const std::chrono::duration<Rep, Period>& rel_time) const {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
-  return state_->continuations().wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time)) ?
+  auto& continuations = state_->continuations();
+  if (continuations.executed())
+    return future_status::ready;
+  return continuations.get_waiter().wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time)) ?
     future_status::ready:
     future_status::timeout
   ;

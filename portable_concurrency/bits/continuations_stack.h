@@ -31,11 +31,7 @@ private:
 class continuations_stack {
 public:
   continuations_stack();
-
-  template<typename Alloc>
-  continuations_stack(const Alloc& alloc) {push(std::ref(waiter_), alloc);}
-
-  ~continuations_stack() = default;
+  ~continuations_stack();
 
   void push(continuation&& cnt);
   template<typename Alloc>
@@ -46,8 +42,7 @@ public:
 
   void execute();
   bool executed() const;
-  void wait() const;
-  bool wait_for(std::chrono::nanoseconds timeout) const;
+  const waiter& get_waiter() const;
 
 private:
   once_consumable_stack<continuation> stack_;

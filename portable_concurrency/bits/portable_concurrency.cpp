@@ -57,12 +57,13 @@ void continuations_stack::push(continuation&& cnt) {
     cnt();
 }
 
-continuations_stack::continuations_stack() {
-  push(std::ref(waiter_));
-}
+continuations_stack::continuations_stack() = default;
+continuations_stack::~continuations_stack() = default;
 
 void continuations_stack::execute() {
-  for (auto& cnt: stack_.consume())
+  auto continuations = stack_.consume();
+  waiter_();
+  for (auto& cnt: continuations)
     cnt();
 }
 
@@ -70,12 +71,8 @@ bool continuations_stack::executed() const {
   return stack_.is_consumed();
 }
 
-void continuations_stack::wait() const {
-  if (!stack_.is_consumed())
-    waiter_.wait();
-}
-bool continuations_stack::wait_for(std::chrono::nanoseconds timeout) const {
-  return stack_.is_consumed() || waiter_.wait_for(timeout);
+const waiter& continuations_stack::get_waiter() const {
+  return waiter_;
 }
 
 } // namespace detail
