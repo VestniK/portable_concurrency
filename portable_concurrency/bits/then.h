@@ -189,9 +189,6 @@ public:
     continuations_.execute();
   }
 
-  void push_continuation(continuation&& cnt) final {
-    continuations_.push(std::move(cnt));
-  }
   continuations_stack& continuations() final {
     return continuations_;
   }
@@ -208,7 +205,7 @@ private:
       continuations_.execute();
       return;
     }
-    state_of(res_future)->push_continuation([wstate = weak(std::shared_ptr<cnt_state>{self_sp, this})] {
+    state_of(res_future)->continuations().push([wstate = weak(std::shared_ptr<cnt_state>{self_sp, this})] {
       if (auto state = wstate.lock()) {
         state->continuations_.execute();
       }
@@ -258,7 +255,7 @@ auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
 
   auto parent_ref = parent;
   auto data = std::make_shared<cnt_data_t>(std::forward<F>(f), std::move(parent));
-  parent_ref->push_continuation(cnt_action{data});
+  parent_ref->continuations().push(cnt_action{data});
   return std::shared_ptr<future_state<res_t>>{std::move(data)};
 }
 
@@ -276,10 +273,9 @@ auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
     {}
   };
 
-  // TODO use the parent allocator
   auto parent_ref = parent;
   auto data = std::make_shared<executor_bind>(std::forward<E>(exec), std::forward<F>(f), std::move(parent));
-  parent_ref->push_continuation([wdata = weak(data)]() mutable {
+  parent_ref->continuations().push([wdata = weak(data)]() mutable {
     if (auto data = wdata.lock())
       post(std::move(data->exec), cnt_action{std::shared_ptr<cnt_data_t>{data, &data->data}});
   });

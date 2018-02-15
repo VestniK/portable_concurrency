@@ -41,7 +41,7 @@ struct task_state final: packaged_task_state<R, A...> {
   };
 
   std::decay_t<F> func;
-  shared_state<R, std::allocator<void>> state;
+  shared_state<R> state;
 };
 
 } // namespace detail

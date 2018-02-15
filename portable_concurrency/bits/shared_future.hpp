@@ -106,7 +106,7 @@ void shared_future<T>::detach() {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
   auto stateref = state_;
-  stateref->push_continuation([captured_state = std::move(state_)]() {});
+  stateref->push([captured_state = std::move(state_)] {});
 }
 
 template<typename T>

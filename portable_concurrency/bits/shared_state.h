@@ -13,14 +13,13 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-
 template<typename T>
-class basic_shared_state : public future_state<T> {
+class shared_state: public future_state<T> {
 public:
-  basic_shared_state() = default;
+  shared_state() = default;
 
-  basic_shared_state(const basic_shared_state&) = delete;
-  basic_shared_state(basic_shared_state&&) = delete;
+  shared_state(const shared_state&) = delete;
+  shared_state(shared_state&&) = delete;
 
   template<typename... U>
   void emplace(U&&... u) {
@@ -61,19 +60,16 @@ private:
 };
 
 template<typename T, typename Alloc>
-class shared_state final : public basic_shared_state<T> {
+class allocated_state final: private Alloc, public shared_state<T> {
 public:
-  shared_state() = default;
-  explicit shared_state(const Alloc& allocator):
-    alloc_(allocator)
-  {}
+  allocated_state(const Alloc& allocator): Alloc(allocator) {}
 
-  void push_continuation(continuation&& cnt) final {
-    this->continuations().push(std::move(cnt), alloc_);
+  void push(continuation&& cnt) final {
+    static_cast<shared_state<T>*>(this)->continuations().push(std::move(cnt), get_allocator());
   }
 
 private:
-  Alloc alloc_;
+  Alloc& get_allocator() {return *this;}
 };
 
 } // namespace detail

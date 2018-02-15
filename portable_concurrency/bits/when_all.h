@@ -37,7 +37,7 @@ public:
     auto state = std::make_shared<when_all_state<Sequence>>(std::move(futures));
 #endif
     sequence_traits<Sequence>::for_each(state->futures_, [state](auto& f) {
-      state_of(f)->push_continuation([state]{state->notify();});
+      state_of(f)->continuations().push([state]{state->notify();});
     });
     state->notify();
     return state;
@@ -59,9 +59,6 @@ public:
     return nullptr;
   }
 
-  void push_continuation(continuation&& cnt) final {
-    continuations_.push(std::move(cnt));
-  }
   continuations_stack& continuations() final {
     return continuations_;
   }

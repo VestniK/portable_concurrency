@@ -27,8 +27,9 @@ class future_state {
 public:
   virtual ~future_state() = default;
 
-  virtual void push_continuation(continuation&& cnt) = 0;
   virtual continuations_stack& continuations() = 0;
+  // Eqivalent to this->continuations().push(cnt, __allocator_type_erased_by(this))
+  virtual void push(continuation&& cnt) {this->continuations().push(std::move(cnt));}
 
   // throws stored exception if there is no value. UB if called before continuations are executed.
   virtual std::add_lvalue_reference_t<state_storage_t<T>> value_ref() = 0;

@@ -52,7 +52,7 @@ public:
     sequence_traits<Sequence>::for_each(
       state->result_.futures,
       [state, idx = std::size_t(0)](auto& f) mutable {
-        state_of(f)->push_continuation([state, pos = idx++] {state->notify(pos);});
+        state_of(f)->continuations().push([state, pos = idx++] {state->notify(pos);});
       }
     );
     return state;
@@ -68,9 +68,6 @@ public:
     return nullptr;
   }
 
-  void push_continuation(continuation&& cnt) final {
-    continuations_.push(std::move(cnt));
-  }
   continuations_stack& continuations() final {
     return continuations_;
   }
