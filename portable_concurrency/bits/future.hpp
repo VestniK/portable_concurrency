@@ -65,11 +65,7 @@ bool future<T>::is_ready() const {
 template<typename T>
 template<typename F>
 detail::cnt_future_t<F, future<T>> future<T>::then(F&& f) {
-  if (!state_)
-    throw std::future_error(std::future_errc::no_state);
-  return detail::make_then_state<detail::cnt_tag::then, T, F>(
-    std::move(state_), std::forward<F>(f)
-  );
+  return then(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template<typename T>
@@ -88,9 +84,7 @@ auto future<T>::then(E&& exec, F&& f) -> std::enable_if_t<
 template<typename T>
 template<typename F>
 detail::cnt_future_t<F, T> future<T>::next(F&& f) {
-  if (!state_)
-    throw std::future_error(std::future_errc::no_state);
-  return detail::make_then_state<detail::cnt_tag::next, T, F>(std::move(state_), std::forward<F>(f));
+  return next(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template<typename T>

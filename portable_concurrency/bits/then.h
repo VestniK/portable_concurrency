@@ -3,10 +3,24 @@
 #include "fwd.h"
 
 #include "concurrency_type_traits.h"
+#include "execution.h"
 #include "shared_state.h"
 #include "utils.h"
 
 namespace portable_concurrency {
+inline namespace cxx14_v1 {
+namespace detail {
+
+struct inplace_executor {};
+template<typename F>
+void post(inplace_executor, F&& f) {portable_concurrency::detail::invoke(std::forward<F>(f));}
+
+} // namespace detail
+} // inline namespace cxx14_v1
+
+template<>
+struct is_executor<detail::inplace_executor>: std::true_type {};
+
 inline namespace cxx14_v1 {
 namespace detail {
 
@@ -247,17 +261,6 @@ struct cnt_action {
       data->abandon();
   }
 };
-
-template<cnt_tag Tag, typename T, typename F>
-auto make_then_state(std::shared_ptr<future_state<T>> parent, F&& f) {
-  using cnt_data_t = cnt_state<Tag, T, std::decay_t<F>>;
-  using res_t = typename cnt_data_t::res_t;
-
-  auto parent_ref = parent;
-  auto data = std::make_shared<cnt_data_t>(std::forward<F>(f), std::move(parent));
-  parent_ref->continuations().push(cnt_action{data});
-  return std::shared_ptr<future_state<res_t>>{std::move(data)};
-}
 
 template<cnt_tag Tag, typename T, typename E, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {

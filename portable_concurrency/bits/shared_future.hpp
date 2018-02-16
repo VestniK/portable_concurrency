@@ -65,11 +65,7 @@ bool shared_future<T>::is_ready() const {
 template<typename T>
 template<typename F>
 detail::cnt_future_t<F, shared_future<T>> shared_future<T>::then(F&& f) const {
-  if (!state_)
-    throw std::future_error(std::future_errc::no_state);
-  return detail::make_then_state<detail::cnt_tag::shared_then, T, F>(
-    state_, std::forward<F>(f)
-  );
+  return then(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template<typename T>
@@ -88,9 +84,7 @@ auto shared_future<T>::then(E&& exec, F&& f) const -> std::enable_if_t<
 template<typename T>
 template<typename F>
 detail::cnt_future_t<F, typename shared_future<T>::get_result_type> shared_future<T>::next(F&& f) const {
-  if (!state_)
-    throw std::future_error(std::future_errc::no_state);
-  return detail::make_then_state<detail::cnt_tag::shared_next, T, F>(state_, std::forward<F>(f));
+  return next(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template<typename T>
