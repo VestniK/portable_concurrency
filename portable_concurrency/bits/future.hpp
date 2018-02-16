@@ -2,6 +2,7 @@
 
 #include <future>
 
+#include "execution.h"
 #include "future.h"
 #include "future_state.h"
 #include "then.h"
@@ -70,10 +71,8 @@ detail::cnt_future_t<F, future<T>> future<T>::then(F&& f) {
 
 template<typename T>
 template<typename E, typename F>
-auto future<T>::then(E&& exec, F&& f) -> std::enable_if_t<
-  is_executor<std::decay_t<E>>::value,
-  detail::cnt_future_t<F, future<T>>
-> {
+detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
+  static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
   return detail::make_then_state<detail::cnt_tag::then, T, E, F>(
@@ -89,10 +88,8 @@ detail::cnt_future_t<F, T> future<T>::next(F&& f) {
 
 template<typename T>
 template<typename E, typename F>
-auto future<T>::next(E&& exec, F&& f) -> std::enable_if_t<
-  is_executor<std::decay_t<E>>::value,
-  detail::cnt_future_t<F, T>
-> {
+detail::cnt_future_t<F, T> future<T>::next(E&& exec, F&& f) {
+  static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
   return detail::make_then_state<detail::cnt_tag::next, T, E, F>(

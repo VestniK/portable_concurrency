@@ -2,6 +2,7 @@
 
 #include <future>
 
+#include "execution.h"
 #include "future.h"
 #include "future_state.h"
 #include "shared_future.h"
@@ -12,7 +13,7 @@ inline namespace cxx14_v1 {
 
 template<typename T>
 shared_future<T>::shared_future(future<T>&& rhs) noexcept:
-    state_(std::move(rhs.state_))
+  state_(std::move(rhs.state_))
 {}
 
 template<typename T>
@@ -70,10 +71,8 @@ detail::cnt_future_t<F, shared_future<T>> shared_future<T>::then(F&& f) const {
 
 template<typename T>
 template<typename E, typename F>
-auto shared_future<T>::then(E&& exec, F&& f) const -> std::enable_if_t<
-  is_executor<std::decay_t<E>>::value,
-  detail::cnt_future_t<F, shared_future<T>>
-> {
+detail::cnt_future_t<F, shared_future<T>> shared_future<T>::then(E&& exec, F&& f) const {
+  static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
   return detail::make_then_state<detail::cnt_tag::shared_then, T, E, F>(
@@ -89,10 +88,8 @@ detail::cnt_future_t<F, typename shared_future<T>::get_result_type> shared_futur
 
 template<typename T>
 template<typename E, typename F>
-auto shared_future<T>::next(E&& exec, F&& f) const -> std::enable_if_t<
-  is_executor<std::decay_t<E>>::value,
-  detail::cnt_future_t<F, get_result_type>
-> {
+detail::cnt_future_t<F, typename shared_future<T>::get_result_type> shared_future<T>::next(E&& exec, F&& f) const {
+  static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
   return detail::make_then_state<detail::cnt_tag::shared_next, T, E, F>(

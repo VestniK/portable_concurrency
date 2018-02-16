@@ -11,7 +11,6 @@
 #include "fwd.h"
 
 #include "concurrency_type_traits.h"
-#include "execution.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -101,19 +100,13 @@ public:
   detail::cnt_future_t<F, future<T>> then(F&& f);
 
   template<typename E, typename F>
-  auto then(E&& exec, F&& f) -> std::enable_if_t<
-    is_executor<std::decay_t<E>>::value,
-    detail::cnt_future_t<F, future<T>>
-  >;
+  detail::cnt_future_t<F, future<T>> then(E&& exec, F&& f);
 
   template<typename F>
   detail::cnt_future_t<F, T> next(F&& f);
 
   template<typename E, typename F>
-  auto next(E&& exec, F&& f) -> std::enable_if_t<
-    is_executor<std::decay_t<E>>::value,
-    detail::cnt_future_t<F, T>
-  >;
+  detail::cnt_future_t<F, T> next(E&& exec, F&& f);
 
   /**
    * Prevents cancellation of the operations of this future value calculation on its destruction.
