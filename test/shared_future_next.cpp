@@ -14,7 +14,7 @@ namespace test {
 
 struct SharedFutureNext: future_test {
   pc::promise<int> promise;
-  pc::shared_future<int> future = promise.get_future();
+  const pc::shared_future<int> future = promise.get_future();
 };
 
 TEST_F(SharedFutureNext, src_future_remains_valid) {

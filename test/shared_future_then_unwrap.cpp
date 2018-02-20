@@ -10,7 +10,7 @@ namespace test {
 
 struct SharedFutureThenUnwrap: future_test {
   pc::promise<int> promise;
-  pc::shared_future<int> future = promise.get_future();
+  const pc::shared_future<int> future = promise.get_future();
 };
 
 TEST_F(SharedFutureThenUnwrap, future_unwrapped) {

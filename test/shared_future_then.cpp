@@ -18,7 +18,7 @@ std::string stringify(pc::shared_future<int> f) {
 
 struct SharedFutureThen: future_test {
   pc::promise<int> promise;
-  pc::shared_future<int> future = promise.get_future();
+  const pc::shared_future<int> future = promise.get_future();
   std::string stringified_value = "42";
 };
 
