@@ -40,6 +40,10 @@ public:
    * If type `F` is pointer to function, pointer to member function or specialization of the `std::refference_wrapper`
    * class template this constructor is guarantied to store passed function object in a small internal buffer and
    * perform no heap allocations or deallocations.
+   *
+   * This implemetntation additionally provides the small object optimization guaranties for the `packaged_task` class
+   * template instantiations and for any function type which is sent to a user provided executor via ADL discovered
+   * function `post`.
    */
   template<typename F>
   unique_function(F&& f);
@@ -51,8 +55,6 @@ public:
 
   /**
    * Move @a rhs into newlly created object.
-   *
-   * @post `rhs` is empty.
    */
   unique_function(unique_function&& rhs) noexcept;
 
@@ -60,8 +62,6 @@ public:
   /**
    * Destroy function object stored in this `unique_function` object (if any) and move function object from `rhs`
    * to `*this`.
-   *
-   * @post `rhs` is empty.
    */
   unique_function& operator= (unique_function&& rhs) noexcept;
 
@@ -76,8 +76,6 @@ public:
   /**
    * Calls stored function object with parameters @a args and returns result of the operation. If `this` object is empty
    * throws `std::bad_function_call`.
-   *
-   * The behaviour is undefined if called on moved from instance.
    */
   R operator() (A... args);
 
