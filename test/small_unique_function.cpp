@@ -50,7 +50,7 @@ TEST_F(small_unique_function, wrapps_refference_wrapper) {
 }
 
 TEST_F(small_unique_function, wrapps_packaged_task) {
-  pc::packaged_task<size_t(const std::string&)> task{&std::string::size};
+  pc::packaged_task<size_t(const std::string&)> task{[](const std::string& str) {return  str.size();}};
   auto future = task.get_future();
 
   pc::detail::small_unique_function<void(const std::string&)> foo = std::move(task);
