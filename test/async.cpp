@@ -49,8 +49,8 @@ TEST_F(Async, unwraps_shared_future) {
 }
 
 TEST_F(Async, captures_parameters) {
-  pc::future<size_t> future = pc::async(g_future_tests_env, std::hash<std::string>{}, "qwe"s);
-  EXPECT_EQ(future.get(), std::hash<std::string>{}("qwe"s));
+  pc::future<size_t> future = pc::async(g_future_tests_env, std::hash<std::string>{}, "qwe");
+  EXPECT_EQ(future.get(), std::hash<std::string>{}("qwe"));
 }
 
 } // namespace test
