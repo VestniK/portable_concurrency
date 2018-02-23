@@ -146,7 +146,7 @@ struct cnt_closure {
 class continuation_state {
 public:
   virtual ~continuation_state() = default;
-  virtual void run(std::shared_ptr<void> self_sp) = 0;
+  virtual void run(std::shared_ptr<continuation_state> self_sp) = 0;
   virtual void abandon() = 0;
 };
 
@@ -215,7 +215,7 @@ public:
     post(exec, cnt_action{self_sp});
   }
 
-  void run(std::shared_ptr<void> self_sp) override try {
+  void run(std::shared_ptr<continuation_state> self_sp) override try {
 #if defined(_MSC_VER)
 #pragma warning(push)
 // conditional expression is constant
@@ -247,18 +247,18 @@ public:
   }
 
 private:
-  auto unwrap(std::shared_ptr<void>, std::false_type) {
+  auto unwrap(std::shared_ptr<continuation_state>, std::false_type) {
     continuations_.execute();
   }
 
-  auto unwrap(std::shared_ptr<void> self_sp, std::true_type) {
+  auto unwrap(std::shared_ptr<continuation_state> self_sp, std::true_type) {
     auto& res_future = storage_.get(second_t{});
     if (!res_future.valid()) {
       exception_ = std::make_exception_ptr(std::future_error{std::future_errc::broken_promise});
       continuations_.execute();
       return;
     }
-    state_of(res_future)->continuations().push([wstate = weak(std::shared_ptr<cnt_state>{self_sp, this})] {
+    state_of(res_future)->continuations().push([wstate = weak(std::static_pointer_cast<cnt_state>(self_sp))] {
       if (auto state = wstate.lock()) {
         state->continuations_.execute();
       }
