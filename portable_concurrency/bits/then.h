@@ -132,10 +132,13 @@ auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>> paren
 
 // continuation state
 
-template<typename F, typename T>
+template<typename E, typename F, typename T>
 struct cnt_closure {
-  cnt_closure(F&& func, std::shared_ptr<future_state<T>> parent): func(std::move(func)), parent(std::move(parent)) {}
+  cnt_closure(const E& exec, F&& func, std::shared_ptr<future_state<T>> parent):
+    exec(exec), func(std::move(func)), parent(std::move(parent))
+  {}
 
+  E exec;
   F func;
   std::shared_ptr<future_state<T>> parent;
 };
@@ -147,7 +150,37 @@ public:
   virtual void abandon() = 0;
 };
 
-template<cnt_tag Tag, typename T, typename F>
+struct cnt_action {
+  std::weak_ptr<continuation_state> wdata;
+
+  cnt_action(const cnt_action&) = delete;
+
+#if defined(__GNUC__) && __GNUC__ < 5
+  cnt_action(std::weak_ptr<continuation_state> wdata): wdata(std::move(wdata)) {}
+  cnt_action(cnt_action&& rhs) noexcept: wdata(std::move(rhs.wdata)) {rhs.wdata.reset();}
+  cnt_action& operator=(cnt_action&& rhs) noexcept {
+    wdata = std::move(rhs.wdata);
+    rhs.wdata.reset();
+    return *this;
+  }
+#else
+  cnt_action(cnt_action&&) noexcept = default;
+  cnt_action& operator=(cnt_action&&) noexcept = default;
+#endif
+
+  void operator() () {
+    if (auto data = wdata.lock())
+      data->run(data);
+    wdata.reset();
+  }
+
+  ~cnt_action() {
+    if (auto data = wdata.lock())
+      data->abandon();
+  }
+};
+
+template<cnt_tag Tag, typename T, typename E, typename F>
 class cnt_state final:
   public future_state<remove_future_t<cnt_result_t<F, cnt_arg_t<Tag, T>>>>,
   public continuation_state
@@ -157,8 +190,8 @@ public:
   using res_t = remove_future_t<cnt_res>;
   using stored_cnt_res = std::conditional_t<std::is_void<cnt_res>::value, void_val, cnt_res>;
 
-  cnt_state(F func, std::shared_ptr<future_state<T>> parent):
-    storage_(first_t{}, std::move(func), std::move(parent))
+  cnt_state(const E& exec, F func, std::shared_ptr<future_state<T>>&& parent):
+    storage_(first_t{}, exec, std::move(func), std::move(parent))
   {}
 
   std::add_lvalue_reference_t<state_storage_t<res_t>> value_ref() override {
@@ -174,6 +207,12 @@ public:
       return;
     exception_ = std::make_exception_ptr(std::future_error{std::future_errc::broken_promise});
     continuations_.execute();
+  }
+
+  void schedule(const std::shared_ptr<cnt_state>& self_sp) {
+    assert(self_sp.get() == this);
+    E exec = storage_.get(first_t{}).exec;
+    post(exec, cnt_action{self_sp});
   }
 
   void run(std::shared_ptr<void> self_sp) override try {
@@ -227,62 +266,23 @@ private:
   }
 
 private:
-  either<cnt_closure<F, T>, stored_cnt_res> storage_;
+  either<cnt_closure<E, F, T>, stored_cnt_res> storage_;
   std::exception_ptr exception_ = nullptr;
   continuations_stack continuations_;
 };
 
-struct cnt_action {
-  std::weak_ptr<continuation_state> wdata;
-
-  cnt_action(const cnt_action&) = delete;
-
-#if defined(__GNUC__) && __GNUC__ < 5
-  cnt_action(std::weak_ptr<continuation_state> wdata): wdata(std::move(wdata)) {}
-  cnt_action(cnt_action&& rhs) noexcept: wdata(std::move(rhs.wdata)) {rhs.wdata.reset();}
-  cnt_action& operator=(cnt_action&& rhs) noexcept {
-    wdata = std::move(rhs.wdata);
-    rhs.wdata.reset();
-    return *this;
-  }
-#else
-  cnt_action(cnt_action&&) noexcept = default;
-  cnt_action& operator=(cnt_action&&) noexcept = default;
-#endif
-
-  void operator() () {
-    if (auto data = wdata.lock())
-      data->run(data);
-    wdata.reset();
-  }
-
-  ~cnt_action() {
-    if (auto data = wdata.lock())
-      data->abandon();
-  }
-};
-
 template<cnt_tag Tag, typename T, typename E, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
-  using cnt_data_t = cnt_state<Tag, T, std::decay_t<F>>;
+  using cnt_data_t = cnt_state<Tag, T, std::decay_t<E>, std::decay_t<F>>;
   using res_t = typename cnt_data_t::res_t;
-  struct executor_bind {
-    std::decay_t<E> exec;
-    cnt_data_t data;
 
-    executor_bind(E&& e, F&& f, std::shared_ptr<future_state<T>> parent):
-      exec(std::forward<E>(e)),
-      data(std::forward<F>(f), std::move(parent))
-    {}
-  };
-
-  auto parent_ref = parent;
-  auto data = std::make_shared<executor_bind>(std::forward<E>(exec), std::forward<F>(f), std::move(parent));
-  parent_ref->continuations().push([wdata = weak(data)]() mutable {
+  auto& continuations = parent->continuations();
+  auto data = std::make_shared<cnt_data_t>(std::forward<E>(exec), std::forward<F>(f), std::move(parent));
+  continuations.push([wdata = weak(data)] {
     if (auto data = wdata.lock())
-      post(std::move(data->exec), cnt_action{std::shared_ptr<cnt_data_t>{data, &data->data}});
+      data->schedule(data);
   });
-  return std::shared_ptr<future_state<res_t>>{data, &data->data};
+  return std::shared_ptr<future_state<res_t>>{data};
 }
 
 } // namespace detail
