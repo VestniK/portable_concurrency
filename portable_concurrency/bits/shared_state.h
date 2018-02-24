@@ -23,33 +23,33 @@ public:
 
   template<typename... U>
   void emplace(U&&... u) {
-    if (storage_.state() != either_state::empty)
+    if (!storage_.empty())
       throw std::future_error(std::future_errc::promise_already_satisfied);
-    storage_.emplace(first_t{}, std::forward<U>(u)...);
+    storage_.emplace(state_t<0>{}, std::forward<U>(u)...);
     this->continuations().execute();
   }
 
   void set_exception(std::exception_ptr error) {
-    if (storage_.state() != either_state::empty)
+    if (!storage_.empty())
       throw std::future_error(std::future_errc::promise_already_satisfied);
-    storage_.emplace(second_t{}, error);
+    storage_.emplace(state_t<1>{}, error);
     this->continuations().execute();
   }
 
   std::add_lvalue_reference_t<state_storage_t<T>> value_ref() final {
     assert(this->continuations().executed());
-    assert(storage_.state() != either_state::empty);
-    if (storage_.state() == either_state::second)
-      std::rethrow_exception(storage_.get(second_t{}));
-    return storage_.get(first_t{});
+    assert(!storage_.empty());
+    if (storage_.state() == 1u)
+      std::rethrow_exception(storage_.get(state_t<1>{}));
+    return storage_.get(state_t<0>{});
   }
 
   std::exception_ptr exception() final {
     assert(this->continuations().executed());
-    assert(storage_.state() != either_state::empty);
-    if (storage_.state() == either_state::first)
+    assert(!storage_.empty());
+    if (storage_.state() == 0u)
       return nullptr;
-    return storage_.get(second_t{});
+    return storage_.get(state_t<1>{});
   }
 
   continuations_stack& continuations() final {return continuations_;}

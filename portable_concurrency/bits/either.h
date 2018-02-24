@@ -3,31 +3,52 @@
 #include <cassert>
 #include <cstdint>
 #include <type_traits>
-
-#include "align.h"
+#include <utility>
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-enum class either_state: uint8_t {empty, first, second};
+template<typename... T>
+struct are_nothrow_move_constructible;
 
-template<either_state State>
-using either_state_t = std::integral_constant<either_state, State>;
-using first_t = either_state_t<either_state::first>;
-using second_t = either_state_t<either_state::second>;
+template<typename T>
+struct are_nothrow_move_constructible<T>: std::is_nothrow_move_constructible<T> {};
+
+template<typename H, typename... T>
+struct are_nothrow_move_constructible<H, T...>: std::integral_constant<bool,
+  std::is_nothrow_move_constructible<H>::value &&
+  are_nothrow_move_constructible<T...>::value
+> {};
+
+template<std::size_t I, typename... T>
+struct at;
+
+template<typename H, typename... T>
+struct at<0u, H, T...> {using type = H;};
+
+template<std::size_t I, typename H, typename... T>
+struct at<I, H, T...>: at<I - 1, T...> {};
+
+template<std::size_t I, typename... T>
+using at_t = typename at<I, T...>::type;
+
+template<std::size_t I>
+using state_t = std::integral_constant<std::size_t, I>;
 
 template<typename T, typename U>
 class either {
 public:
+  constexpr static std::size_t empty_state = 2u;
+
   either() noexcept = default;
   ~either() {clean();}
 
   either(const either&) = delete;
   either& operator= (const either&) = delete;
 
-  template<either_state State, typename... A>
-  either(std::integral_constant<either_state, State> tag, A&&... a) {
+  template<std::size_t I, typename... A>
+  either(state_t<I> tag, A&&... a) {
     emplace(tag, std::forward<A>(a)...);
   }
 
@@ -35,16 +56,12 @@ public:
 #if defined(__GNUC__) && __GNUC__ < 5
     noexcept
 #else
-    noexcept(
-      std::is_nothrow_move_constructible<T>::value &&
-      std::is_nothrow_move_constructible<U>::value
-    )
+    noexcept(are_nothrow_move_constructible<T, U>::value)
 #endif
   {
     switch (rhs.state_) {
-    case either_state::empty: return;
-    case either_state::first: emplace(first_t{}, std::move(rhs.get(first_t{}))); break;
-    case either_state::second: emplace(second_t{}, std::move(rhs.get(second_t{}))); break;
+    case 0u: emplace(state_t<0>{}, std::move(rhs.get(state_t<0>{}))); break;
+    case 1u: emplace(state_t<1>{}, std::move(rhs.get(state_t<1>{}))); break;
     }
     rhs.clean();
   }
@@ -52,72 +69,48 @@ public:
 #if defined(__GNUC__) && __GNUC__ < 5
     noexcept
 #else
-    noexcept(
-      std::is_nothrow_move_constructible<T>::value &&
-      std::is_nothrow_move_constructible<U>::value
-    )
+    noexcept(are_nothrow_move_constructible<T, U>::value)
 #endif
   {
     clean();
     switch (rhs.state_) {
-    case either_state::empty: return *this;
-    case either_state::first: emplace(first_t{}, std::move(rhs.get(first_t{}))); break;
-    case either_state::second: emplace(second_t{}, std::move(rhs.get(second_t{}))); break;
+    case 0u: emplace(state_t<0>{}, std::move(rhs.get(state_t<0>{}))); break;
+    case 1u: emplace(state_t<1>{}, std::move(rhs.get(state_t<1>{}))); break;
     }
     rhs.clean();
     return *this;
   }
 
-  template<typename... A>
-  void emplace(first_t tag, A&&... a) {
+  template<std::size_t I, typename... A>
+  void emplace(state_t<I>, A&&... a) {
+    static_assert(I < empty_state, "Can't emplace construct empty state");
     clean();
-    new(storage(tag)) T(std::forward<A>(a)...);
-    state_ = first_t::value;
+    new(&storage_) at_t<I, T, U>(std::forward<A>(a)...);
+    state_ = I;
   }
 
-  template<typename... A>
-  void emplace(second_t tag, A&&... a) {
-    clean();
-    new(storage(tag)) U(std::forward<A>(a)...);
-    state_ = second_t::value;
+  std::size_t state() const noexcept {return state_;}
+
+  bool empty() const noexcept {return state_ == empty_state;}
+
+  template<std::size_t I>
+  auto& get(state_t<I>) noexcept {
+    assert(state_ == I);
+    return reinterpret_cast<at_t<I, T, U>&>(storage_);
   }
 
-  either_state state() const noexcept {return state_;}
-
-  template<either_state State>
-  auto& get(either_state_t<State> tag) noexcept {
-    assert(state_ == State);
-    return *storage(tag);
-  }
-
-  template<either_state State>
-  const auto& get(either_state_t<State> tag) const noexcept {
-    // `storage` is not const because it uses `std::align` on internal storage and this function has no overload for
-    // `const void*`. Using `const_cast` inside the `storage` function requires more unnecessary code duplication so
-    // it's used here.
-    return const_cast<either*>(this)->get(tag);
+  template<std::size_t I>
+  const auto& get(state_t<I>) const noexcept {
+    assert(state_ == I);
+    return reinterpret_cast<const at_t<I, T, U>&>(storage_);
   }
 
   void clean() noexcept {
     switch (state_) {
-    case either_state::empty: return;
-    case either_state::first: storage(first_t{})->~T(); break;
-    case either_state::second: storage(second_t{})->~U(); break;
+    case 0u: get(state_t<0>{}).~T(); break;
+    case 1u: get(state_t<1>{}).~U(); break;
     }
-    state_ = either_state::empty;
-  }
-
-private:
-  T* storage(first_t) noexcept {
-    void* storage = &storage_;
-    size_t sz = sizeof(storage_);
-    return reinterpret_cast<T*>(detail::align(alignof(T), sizeof(T), storage, sz));
-  }
-
-  U* storage(second_t) noexcept {
-    void* storage = &storage_;
-    size_t sz = sizeof(storage_);
-    return reinterpret_cast<U*>(detail::align(alignof(U), sizeof(U), storage, sz));
+    state_ = empty_state;
   }
 
 private:
@@ -129,7 +122,7 @@ private:
 #else
   std::aligned_union_t<1, T, U> storage_;
 #endif
-  either_state state_ = either_state::empty;
+  std::size_t state_ = empty_state;
 };
 
 } // namespace detail

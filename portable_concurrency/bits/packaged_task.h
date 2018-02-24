@@ -57,7 +57,7 @@ public:
 
   template<typename F>
   explicit packaged_task(F&& f)
-    : state_{detail::first_t{}, std::make_shared<detail::task_state<F, R, A...>>(std::forward<F>(f))}
+    : state_{detail::state_t<0>{}, std::make_shared<detail::task_state<F, R, A...>>(std::forward<F>(f))}
   {}
 
   packaged_task(const packaged_task&) = delete;
@@ -67,7 +67,7 @@ public:
   packaged_task& operator= (packaged_task&&) noexcept = default;
 
   bool valid() const noexcept {
-    return state_.state() !=  detail::either_state::empty;
+    return !state_.empty();
   }
 
   void swap(packaged_task& other) noexcept {
@@ -77,15 +77,10 @@ public:
   }
 
   future<R> get_future() {
-    switch (state_.state())
-    {
-    case detail::either_state::empty: throw std::future_error(std::future_errc::no_state);
-    case detail::either_state::second: throw std::future_error(std::future_errc::future_already_retrieved);
-    case detail::either_state::first: break;
-    }
-
-    auto state = state_.get(detail::first_t{});
-    state_.emplace(detail::second_t{}, state);
+    if (state_.state() == 1u)
+      throw std::future_error(std::future_errc::future_already_retrieved);
+    auto state = get_state();
+    state_.emplace(detail::state_t<1>{}, state);
     return {std::shared_ptr<detail::future_state<R>>{state, state->get_future_state()}};
   }
 
@@ -98,9 +93,8 @@ private:
   std::shared_ptr<detail::packaged_task_state<R, A...>> get_state(bool throw_no_state = true) {
     switch (state_.state())
     {
-    case detail::either_state::first: return state_.get(detail::first_t{});
-    case detail::either_state::second: return state_.get(detail::second_t{}).lock();
-    case detail::either_state::empty: break;
+    case 0u: return state_.get(detail::state_t<0>{});
+    case 1u: return state_.get(detail::state_t<1>{}).lock();
     }
     if (throw_no_state)
       throw std::future_error(std::future_errc::no_state);

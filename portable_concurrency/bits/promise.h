@@ -20,11 +20,11 @@ struct promise_common {
   either<std::shared_ptr<shared_state<T>>, std::weak_ptr<shared_state<T>>> state_;
 
   promise_common():
-    state_{first_t{}, std::make_shared<shared_state<T>>()}
+    state_{state_t<0>{}, std::make_shared<shared_state<T>>()}
   {}
   template<typename Alloc>
   explicit promise_common(const Alloc& allocator):
-    state_{first_t{}, std::allocate_shared<allocated_state<T, Alloc>>(allocator, allocator)}
+    state_{state_t<0>{}, std::allocate_shared<allocated_state<T, Alloc>>(allocator, allocator)}
   {}
   ~promise_common() {
     auto state = get_state(false);
@@ -36,10 +36,10 @@ struct promise_common {
   promise_common& operator= (promise_common&&) noexcept = default;
 
   future<T> get_future() {
-    if (state_.state() == either_state::second)
+    if (state_.state() == 1u)
       throw std::future_error(std::future_errc::future_already_retrieved);
     auto state = get_state();
-    state_.emplace(second_t{}, state);
+    state_.emplace(state_t<1>{}, state);
     return {state};
   }
 
@@ -52,9 +52,8 @@ struct promise_common {
   std::shared_ptr<shared_state<T>> get_state(bool throw_no_state = true) {
     switch (state_.state())
     {
-    case either_state::first: return state_.get(first_t{});
-    case either_state::second: return state_.get(second_t{}).lock();
-    case either_state::empty: break;
+    case 0u: return state_.get(state_t<0>{});
+    case 1u: return state_.get(state_t<1>{}).lock();
     }
     if (throw_no_state)
       throw std::future_error(std::future_errc::no_state);
@@ -63,11 +62,10 @@ struct promise_common {
 
   bool is_awaiten() const {
     switch (state_.state()) {
-    case either_state::first: break;
-    case either_state::second: return !state_.get(second_t{}).expired();
-    case either_state::empty: throw std::future_error(std::future_errc::no_state);
+    case 0u: return true;
+    case 1u: return !state_.get(state_t<1>{}).expired();
     }
-    return true;
+    throw std::future_error(std::future_errc::no_state);
   }
 };
 

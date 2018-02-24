@@ -93,7 +93,7 @@ auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>>) -> s
   >::value
 > {
   storage.emplace(
-    second_t{},
+    state_t<1>{},
     portable_concurrency::detail::invoke(std::forward<F>(func))
   );
 }
@@ -105,7 +105,7 @@ auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>>) -> s
   >::value
 > {
   portable_concurrency::detail::invoke(std::forward<F>(func));
-  storage.emplace(second_t{});
+  storage.emplace(state_t<1>{});
 }
 
 template<cnt_tag Tag, typename S, typename F, typename T>
@@ -115,7 +115,7 @@ auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>> paren
   >::value
 > {
   storage.emplace(
-    second_t{},
+    state_t<1>{},
     portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent))
   );
 }
@@ -127,7 +127,7 @@ auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>> paren
   >::value
 > {
   portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent));
-  storage.emplace(second_t{});
+  storage.emplace(state_t<1>{});
 }
 
 // continuation state
@@ -191,13 +191,13 @@ public:
   using stored_cnt_res = std::conditional_t<std::is_void<cnt_res>::value, void_val, cnt_res>;
 
   cnt_state(const E& exec, F func, std::shared_ptr<future_state<T>>&& parent):
-    storage_(first_t{}, exec, std::move(func), std::move(parent))
+    storage_(state_t<0>{}, exec, std::move(func), std::move(parent))
   {}
 
   std::add_lvalue_reference_t<state_storage_t<res_t>> value_ref() override {
     if (exception_)
       std::rethrow_exception(exception_);
-    return unwrapped_ref(storage_.get(second_t{}));
+    return unwrapped_ref(storage_.get(state_t<1>{}));
   }
 
   std::exception_ptr exception() override {return exception_;}
@@ -211,7 +211,7 @@ public:
 
   void schedule(const std::shared_ptr<cnt_state>& self_sp) {
     assert(self_sp.get() == this);
-    E exec = storage_.get(first_t{}).exec;
+    E exec = storage_.get(state_t<0>{}).exec;
     post(exec, cnt_action{self_sp});
   }
 
@@ -221,7 +221,7 @@ public:
 // conditional expression is constant
 #pragma warning(disable: 4127)
 #endif
-    auto& action = storage_.get(first_t{});
+    auto& action = storage_.get(state_t<0>{});
     if (Tag != cnt_tag::then && Tag != cnt_tag::shared_then) {
       if (auto error = action.parent->exception()) {
         storage_.clean();
@@ -252,7 +252,7 @@ private:
   }
 
   auto unwrap(std::shared_ptr<continuation_state> self_sp, std::true_type) {
-    auto& res_future = storage_.get(second_t{});
+    auto& res_future = storage_.get(state_t<1>{});
     if (!res_future.valid()) {
       exception_ = std::make_exception_ptr(std::future_error{std::future_errc::broken_promise});
       continuations_.execute();
