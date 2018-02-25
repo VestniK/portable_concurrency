@@ -73,6 +73,12 @@ using cnt_result_t = typename cnt_result<Func, Arg>::type;
 template<typename Func, typename Arg>
 using cnt_future_t = add_future_t<cnt_result_t<Func, Arg>>;
 
+// varaidic helper swallow
+
+struct swallow {
+  swallow(...) {}
+};
+
 } // namespace detail
 } // inline namespace cxx14_v1
 } // namespace portable_concurrency

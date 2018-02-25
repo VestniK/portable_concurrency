@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "concurrency_type_traits.h"
+
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
@@ -36,10 +38,10 @@ using at_t = typename at<I, T...>::type;
 template<std::size_t I>
 using state_t = std::integral_constant<std::size_t, I>;
 
-template<typename T, typename U>
+template<typename... T>
 class either {
 public:
-  constexpr static std::size_t empty_state = 2u;
+  constexpr static std::size_t empty_state = sizeof...(T);
 
   either() noexcept = default;
   ~either() {clean();}
@@ -56,28 +58,20 @@ public:
 #if defined(__GNUC__) && __GNUC__ < 5
     noexcept
 #else
-    noexcept(are_nothrow_move_constructible<T, U>::value)
+    noexcept(are_nothrow_move_constructible<T...>::value)
 #endif
   {
-    switch (rhs.state_) {
-    case 0u: emplace(state_t<0>{}, std::move(rhs.get(state_t<0>{}))); break;
-    case 1u: emplace(state_t<1>{}, std::move(rhs.get(state_t<1>{}))); break;
-    }
-    rhs.clean();
+    move_from(std::move(rhs), std::make_index_sequence<sizeof...(T)>{});
   }
   either& operator= (either&& rhs)
 #if defined(__GNUC__) && __GNUC__ < 5
     noexcept
 #else
-    noexcept(are_nothrow_move_constructible<T, U>::value)
+    noexcept(are_nothrow_move_constructible<T...>::value)
 #endif
   {
     clean();
-    switch (rhs.state_) {
-    case 0u: emplace(state_t<0>{}, std::move(rhs.get(state_t<0>{}))); break;
-    case 1u: emplace(state_t<1>{}, std::move(rhs.get(state_t<1>{}))); break;
-    }
-    rhs.clean();
+    move_from(std::move(rhs), std::make_index_sequence<sizeof...(T)>{});
     return *this;
   }
 
@@ -85,7 +79,7 @@ public:
   void emplace(state_t<I>, A&&... a) {
     static_assert(I < empty_state, "Can't emplace construct empty state");
     clean();
-    new(&storage_) at_t<I, T, U>(std::forward<A>(a)...);
+    new(&storage_) at_t<I, T...>(std::forward<A>(a)...);
     state_ = I;
   }
 
@@ -96,20 +90,34 @@ public:
   template<std::size_t I>
   auto& get(state_t<I>) noexcept {
     assert(state_ == I);
-    return reinterpret_cast<at_t<I, T, U>&>(storage_);
+    return reinterpret_cast<at_t<I, T...>&>(storage_);
   }
 
   template<std::size_t I>
   const auto& get(state_t<I>) const noexcept {
     assert(state_ == I);
-    return reinterpret_cast<const at_t<I, T, U>&>(storage_);
+    return reinterpret_cast<const at_t<I, T...>&>(storage_);
   }
 
   void clean() noexcept {
-    switch (state_) {
-    case 0u: get(state_t<0>{}).~T(); break;
-    case 1u: get(state_t<1>{}).~U(); break;
-    }
+    clean(std::make_index_sequence<sizeof...(T)>{});
+    state_ = empty_state;
+  }
+
+private:
+  template<std::size_t... I>
+  void move_from(either&& src, std::index_sequence<I...>) {
+    swallow{
+      (src.state_ == I ? (emplace(state_t<I>{}, std::move(src.get(state_t<I>{}))), false) : false)...
+    };
+    src.clean();
+  }
+
+  template<std::size_t... I>
+  void clean(std::index_sequence<I...>) {
+    swallow{
+      (state_ == I ? (get(state_t<I>{}).~at_t<I, T...>(), false) : false)...
+    };
     state_ = empty_state;
   }
 
@@ -120,7 +128,7 @@ private:
     (alignof(T) > alignof(U) ? alignof(T) : alignof(U))
   > storage_;
 #else
-  std::aligned_union_t<1, T, U> storage_;
+  std::aligned_union_t<1, T...> storage_;
 #endif
   std::size_t state_ = empty_state;
 };

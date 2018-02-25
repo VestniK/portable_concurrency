@@ -6,16 +6,12 @@
 
 #include "concurrency_type_traits.h"
 #include "future.h"
-#include "shared_future.h"
 #include "future_state.h"
+#include "shared_future.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
-
-struct swallow {
-  swallow(...) {}
-};
 
 template<typename Sequence>
 struct sequence_traits;
