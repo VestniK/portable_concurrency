@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <portable_concurrency/bits/config.h>
+
 #include "concurrency_type_traits.h"
 
 namespace portable_concurrency {
@@ -54,22 +56,10 @@ public:
     emplace(tag, std::forward<A>(a)...);
   }
 
-  either(either&& rhs)
-#if defined(__GNUC__) && __GNUC__ < 5
-    noexcept
-#else
-    noexcept(are_nothrow_move_constructible<T...>::value)
-#endif
-  {
+  either(either&& rhs) NOEXCEPT_IF(are_nothrow_move_constructible<T...>::value) {
     move_from(std::move(rhs), std::make_index_sequence<sizeof...(T)>{});
   }
-  either& operator= (either&& rhs)
-#if defined(__GNUC__) && __GNUC__ < 5
-    noexcept
-#else
-    noexcept(are_nothrow_move_constructible<T...>::value)
-#endif
-  {
+  either& operator= (either&& rhs) NOEXCEPT_IF(are_nothrow_move_constructible<T...>::value) {
     clean();
     move_from(std::move(rhs), std::make_index_sequence<sizeof...(T)>{});
     return *this;
@@ -122,13 +112,13 @@ private:
   }
 
 private:
-#if defined(__GNUC__) && __GNUC__ < 5
+#if defined(HAS_STD_ALIGNED_UNION)
+  std::aligned_union_t<1, T...> storage_;
+#else
   std::aligned_storage_t<
     (sizeof(T) > sizeof(U) ? sizeof(T) : sizeof(U)),
     (alignof(T) > alignof(U) ? alignof(T) : alignof(U))
   > storage_;
-#else
-  std::aligned_union_t<1, T...> storage_;
 #endif
   std::size_t state_ = empty_state;
 };

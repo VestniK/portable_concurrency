@@ -1,5 +1,29 @@
 find_package(Threads REQUIRED)
 
+file(WRITE
+  ${CMAKE_CURRENT_BINARY_DIR}/check.cpp
+  "int main() {return 0;} void foo() noexcept(true) {} void bar() noexcept(false) {}"
+)
+try_compile(
+  HAS_CONDITIONAL_NOEXCEPT
+  ${CMAKE_CURRENT_BINARY_DIR}/check
+  ${CMAKE_CURRENT_BINARY_DIR}/check.cpp
+  CXX_STANDARD 14
+)
+file(WRITE
+  ${CMAKE_CURRENT_BINARY_DIR}/check.cpp
+  "#include <type_traits>
+  int main() {return 0;}
+  std::aligned_union_t<1, short, double> var;"
+)
+try_compile(
+  HAS_STD_ALIGNED_UNION
+  ${CMAKE_CURRENT_BINARY_DIR}/check
+  ${CMAKE_CURRENT_BINARY_DIR}/check.cpp
+  CXX_STANDARD 14
+)
+configure_file(bits/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/bits/config.h @ONLY)
+
 set(PUBLIC_HEADERS
   execution
   functional
@@ -38,6 +62,8 @@ set(INSTALL_HEADERS
   bits/utils.h
   bits/when_any.h
   bits/when_all.h
+
+  ${CMAKE_CURRENT_BINARY_DIR}/bits/config.h
 )
 
 set(HEADERS
@@ -52,10 +78,12 @@ set(SRC
 )
 
 add_library(portable_concurrency ${SRC})
-target_sources(portable_concurrency PRIVATE ${HEADERS})
+target_sources(portable_concurrency PRIVATE ${HEADERS} bits/config.h.in)
 target_link_libraries(portable_concurrency Threads::Threads)
+target_include_directories(portable_concurrency PRIVATE ${PROJECT_BINARY_DIR})
 target_include_directories(portable_concurrency INTERFACE
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
   $<INSTALL_INTERFACE:include>
 )
 
