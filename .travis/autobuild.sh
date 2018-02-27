@@ -15,6 +15,7 @@ fi
 
 export CONAN_CMAKE_GENERATOR=Ninja
 
+cmake --version
 conan --version
 conan profile update settings.compiler.libcxx="${LIBCXX}" default
 conan profile update settings.build_type="${DEPS_BUILD_TYPE}" default
