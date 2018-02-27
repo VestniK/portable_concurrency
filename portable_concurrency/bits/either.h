@@ -40,6 +40,9 @@ using at_t = typename at<I, T...>::type;
 template<std::size_t I>
 using state_t = std::integral_constant<std::size_t, I>;
 
+template<typename T>
+void destroy(T& t) {t.~T();}
+
 template<typename... T>
 class either {
 public:
@@ -106,7 +109,7 @@ private:
   template<std::size_t... I>
   void clean(std::index_sequence<I...>) {
     swallow{
-      (state_ == I ? (get(state_t<I>{}).~at_t<I, T...>(), false) : false)...
+      (state_ == I ? (destroy(get(state_t<I>{})), false) : false)...
     };
     state_ = empty_state;
   }
