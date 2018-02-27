@@ -56,10 +56,10 @@ public:
     emplace(tag, std::forward<A>(a)...);
   }
 
-  either(either&& rhs) NOEXCEPT_IF(are_nothrow_move_constructible<T...>::value) {
+  either(either&& rhs) PORTABLE_CONCURRENCY_NOEXCEPT_IF(are_nothrow_move_constructible<T...>::value) {
     move_from(std::move(rhs), std::make_index_sequence<sizeof...(T)>{});
   }
-  either& operator= (either&& rhs) NOEXCEPT_IF(are_nothrow_move_constructible<T...>::value) {
+  either& operator= (either&& rhs) PORTABLE_CONCURRENCY_NOEXCEPT_IF(are_nothrow_move_constructible<T...>::value) {
     clean();
     move_from(std::move(rhs), std::make_index_sequence<sizeof...(T)>{});
     return *this;

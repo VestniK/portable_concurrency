@@ -2,7 +2,7 @@
 #cmakedefine HAS_STD_ALIGNED_UNION
 
 #if defined(HAS_CONDITIONAL_NOEXCEPT)
-#  define NOEXCEPT_IF(cond) noexcept(cond)
+#  define PORTABLE_CONCURRENCY_NOEXCEPT_IF(cond) noexcept(cond)
 #else
-#  define NOEXCEPT_IF(cond) noexcept
+#  define PORTABLE_CONCURRENCY_NOEXCEPT_IF(cond) noexcept
 #endif
