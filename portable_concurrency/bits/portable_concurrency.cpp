@@ -16,7 +16,7 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-#if defined(__GNUC__ ) && __GNUC__ < 5
+#if !defined(HAS_STD_ALIGN)
 
 // https://stackoverflow.com/a/37679065/128774 with fix of integer overflow
 void* align(std::size_t alignment, std::size_t size, void*& ptr, std::size_t& space) {

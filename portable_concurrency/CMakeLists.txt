@@ -1,34 +1,6 @@
 find_package(Threads REQUIRED)
+include(PreciseCxxFeatures)
 
-file(WRITE
-  ${CMAKE_CURRENT_BINARY_DIR}/check/check.cpp
-  "int main() {return 0;} void foo() noexcept(true) {} void bar() noexcept(false) {}"
-)
-file(WRITE
-  ${CMAKE_CURRENT_BINARY_DIR}/check/CMakeLists.txt
-  "project(check)
-  cmake_minimum_required(VERSION 3.3)
-  set(CMAKE_CXX_STANDARD 14)
-  add_executable(check check.cpp)"
-)
-try_compile(
-  HAS_CONDITIONAL_NOEXCEPT
-  ${CMAKE_CURRENT_BINARY_DIR}/check/build
-  ${CMAKE_CURRENT_BINARY_DIR}/check
-  check
-)
-file(WRITE
-  ${CMAKE_CURRENT_BINARY_DIR}/check/check.cpp
-  "#include <type_traits>
-  int main() {return 0;}
-  std::aligned_union_t<1, short, double> var;"
-)
-try_compile(
-  HAS_STD_ALIGNED_UNION
-  ${CMAKE_CURRENT_BINARY_DIR}/check/build
-  ${CMAKE_CURRENT_BINARY_DIR}/check
-  check
-)
 configure_file(bits/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/bits/config.h @ONLY)
 
 set(PUBLIC_HEADERS

@@ -7,23 +7,12 @@
 
 #include <portable_concurrency/bits/config.h>
 
+#include "align.h"
 #include "concurrency_type_traits.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
-
-template<typename... T>
-struct are_nothrow_move_constructible;
-
-template<typename T>
-struct are_nothrow_move_constructible<T>: std::is_nothrow_move_constructible<T> {};
-
-template<typename H, typename... T>
-struct are_nothrow_move_constructible<H, T...>: std::integral_constant<bool,
-  std::is_nothrow_move_constructible<H>::value &&
-  are_nothrow_move_constructible<T...>::value
-> {};
 
 template<std::size_t I, typename... T>
 struct at;
@@ -59,10 +48,10 @@ public:
     emplace(tag, std::forward<A>(a)...);
   }
 
-  either(either&& rhs) PORTABLE_CONCURRENCY_NOEXCEPT_IF(are_nothrow_move_constructible<T...>::value) {
+  either(either&& rhs) noexcept {
     move_from(std::move(rhs), std::make_index_sequence<sizeof...(T)>{});
   }
-  either& operator= (either&& rhs) PORTABLE_CONCURRENCY_NOEXCEPT_IF(are_nothrow_move_constructible<T...>::value) {
+  either& operator= (either&& rhs) noexcept {
     clean();
     move_from(std::move(rhs), std::make_index_sequence<sizeof...(T)>{});
     return *this;
@@ -99,7 +88,7 @@ public:
 
 private:
   template<std::size_t... I>
-  void move_from(either&& src, std::index_sequence<I...>) {
+  void move_from(either&& src, std::index_sequence<I...>) noexcept {
     swallow{
       (src.state_ == I ? (emplace(state_t<I>{}, std::move(src.get(state_t<I>{}))), false) : false)...
     };
@@ -115,14 +104,7 @@ private:
   }
 
 private:
-#if defined(HAS_STD_ALIGNED_UNION)
-  std::aligned_union_t<1, T...> storage_;
-#else
-  std::aligned_storage_t<
-    (sizeof(T) > sizeof(U) ? sizeof(T) : sizeof(U)),
-    (alignof(T) > alignof(U) ? alignof(T) : alignof(U))
-  > storage_;
-#endif
+  aligned_union_t<T...> storage_;
   std::size_t state_ = empty_state;
 };
 

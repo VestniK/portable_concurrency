@@ -1,8 +1,4 @@
-#cmakedefine HAS_CONDITIONAL_NOEXCEPT
-#cmakedefine HAS_STD_ALIGNED_UNION
+#pragma once
 
-#if defined(HAS_CONDITIONAL_NOEXCEPT)
-#  define PORTABLE_CONCURRENCY_NOEXCEPT_IF(cond) noexcept(cond)
-#else
-#  define PORTABLE_CONCURRENCY_NOEXCEPT_IF(cond) noexcept
-#endif
+#cmakedefine HAS_STD_ALIGNED_UNION
+#cmakedefine HAS_STD_ALIGN
