@@ -32,30 +32,30 @@ public:
   void set_exception(std::exception_ptr error) {
     if (!storage_.empty())
       throw std::future_error(std::future_errc::promise_already_satisfied);
-    storage_.emplace(state_t<1>{}, error);
+    storage_.emplace(state_t<2>{}, error);
     this->continuations().execute();
   }
 
   std::add_lvalue_reference_t<state_storage_t<T>> value_ref() final {
     assert(this->continuations().executed());
     assert(!storage_.empty());
-    if (storage_.state() == 1u)
-      std::rethrow_exception(storage_.get(state_t<1>{}));
+    if (storage_.state() == 2u)
+      std::rethrow_exception(storage_.get(state_t<2>{}));
     return storage_.get(state_t<0>{});
   }
 
   std::exception_ptr exception() final {
     assert(this->continuations().executed());
     assert(!storage_.empty());
-    if (storage_.state() == 0u)
+    if (storage_.state() != 2u)
       return nullptr;
-    return storage_.get(state_t<1>{});
+    return storage_.get(state_t<2>{});
   }
 
   continuations_stack& continuations() final {return continuations_;}
 
 private:
-  either<state_storage_t<T>, std::exception_ptr> storage_;
+  either<state_storage_t<T>, std::shared_ptr<future_state<T>>, std::exception_ptr> storage_;
   continuations_stack continuations_;
 };
 
