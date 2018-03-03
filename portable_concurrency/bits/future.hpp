@@ -119,7 +119,7 @@ T future<T>::await_resume() {return get();}
 
 template<typename T>
 void future<T>::await_suspend(std::experimental::coroutine_handle<> handle) {
-  state_->push_continuation(std::move(handle));
+  state_->push(std::move(handle));
 }
 #endif
 

@@ -119,7 +119,7 @@ typename shared_future<T>::get_result_type shared_future<T>::await_resume() cons
 
 template<typename T>
 void shared_future<T>::await_suspend(std::experimental::coroutine_handle<> handle) const {
-  state_->push_continuation(std::move(handle));
+  state_->push(std::move(handle));
 }
 #endif
 
