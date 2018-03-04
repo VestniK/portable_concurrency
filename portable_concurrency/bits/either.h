@@ -29,9 +29,16 @@ using at_t = typename at<I, T...>::type;
 template<std::size_t I>
 using state_t = std::integral_constant<std::size_t, I>;
 
-template<typename T>
-void destroy(T& t) {t.~T();}
+struct monostate {};
 
+struct destroy {
+  template<typename T>
+  void operator() (T& t) const {t.~T();}
+
+  void operator() (monostate) const {}
+};
+
+// Minimalistic backport of std::variant<std::monostate, T...> from C++17
 template<typename... T>
 class either {
 public:
@@ -81,8 +88,18 @@ public:
     return reinterpret_cast<const at_t<I, T...>&>(storage_);
   }
 
+  template<typename F>
+  decltype(auto) visit(F&& f) {
+    return visit(state_t<0>{}, std::forward<F>(f));
+  }
+
+  template<typename F>
+  decltype(auto) visit(F&& f) const {
+    return visit(state_t<0>{}, std::forward<F>(f));
+  }
+
   void clean() noexcept {
-    clean(std::make_index_sequence<sizeof...(T)>{});
+    visit(destroy{});
     state_ = empty_state;
   }
 
@@ -90,17 +107,33 @@ private:
   template<std::size_t... I>
   void move_from(either&& src, std::index_sequence<I...>) noexcept {
     swallow{
-      (src.state_ == I ? (emplace(state_t<I>{}, std::move(src.get(state_t<I>{}))), false) : false)...
+      (src.state_ == I ? (emplace(state_t<I>{}, std::move(reinterpret_cast<T&>(src.storage_))), false) : false)...
     };
     src.clean();
   }
 
-  template<std::size_t... I>
-  void clean(std::index_sequence<I...>) {
-    swallow{
-      (state_ == I ? (destroy(get(state_t<I>{})), false) : false)...
-    };
-    state_ = empty_state;
+  template<typename F, std::size_t I>
+  decltype(auto) visit(state_t<I>, F&& f) {
+    if (state_ == I)
+      return f(reinterpret_cast<at_t<I, T...>&>(storage_));
+    return visit(state_t<I+1>{}, std::forward<F>(f));
+  }
+
+  template<typename F, std::size_t I>
+  decltype(auto) visit(state_t<I>, F&& f) const {
+    if (state_ == I)
+      return f(reinterpret_cast<const at_t<I, T...>&>(storage_));
+    return visit(state_t<I+1>{}, std::forward<F>(f));
+  }
+
+  template<typename F>
+  decltype(auto) visit(state_t<empty_state>, F&& f) const {
+    return f(monostate{});
+  }
+
+  template<typename F>
+  decltype(auto) visit(state_t<empty_state>, F&& f) {
+    return f(monostate{});
   }
 
 private:

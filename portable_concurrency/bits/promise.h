@@ -50,22 +50,25 @@ struct promise_common {
   }
 
   std::shared_ptr<shared_state<T>> get_state(bool throw_no_state = true) {
-    switch (state_.state())
-    {
-    case 0u: return state_.get(state_t<0>{});
-    case 1u: return state_.get(state_t<1>{}).lock();
-    }
-    if (throw_no_state)
-      throw std::future_error(std::future_errc::no_state);
-    return nullptr;
+    struct {
+      bool throw_no_state;
+
+      std::shared_ptr<shared_state<T>> operator() (const std::shared_ptr<shared_state<T>>& val) const {return val;}
+      std::shared_ptr<shared_state<T>> operator() (const std::weak_ptr<shared_state<T>>& val) const {return val.lock();}
+      std::shared_ptr<shared_state<T>> operator() (monostate) const {
+        return !throw_no_state ? nullptr : throw std::future_error(std::future_errc::no_state);
+      }
+    } visitor{throw_no_state};
+    return state_.visit(visitor);
   }
 
   bool is_awaiten() const {
-    switch (state_.state()) {
-    case 0u: return true;
-    case 1u: return !state_.get(state_t<1>{}).expired();
-    }
-    throw std::future_error(std::future_errc::no_state);
+    struct {
+      bool operator() (const std::shared_ptr<shared_state<T>>&) const {return true;}
+      bool operator() (const std::weak_ptr<shared_state<T>>& val) const {return !val.expired();}
+      bool operator() (monostate) const {throw std::future_error(std::future_errc::no_state);}
+    } visitor;
+    return state_.visit(visitor);
   }
 };
 
