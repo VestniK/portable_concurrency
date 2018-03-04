@@ -32,7 +32,7 @@ public:
   virtual void push(continuation&& cnt) {this->continuations().push(std::move(cnt));}
 
   // throws stored exception if there is no value. UB if called before continuations are executed.
-  virtual std::add_lvalue_reference_t<state_storage_t<T>> value_ref() = 0;
+  virtual state_storage_t<T>& value_ref() = 0;
   // returns nullptr if there is no error. UB if called before continuations are executed.
   virtual std::exception_ptr exception() = 0;
 };

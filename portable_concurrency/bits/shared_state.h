@@ -36,20 +36,32 @@ public:
     this->continuations().execute();
   }
 
-  std::add_lvalue_reference_t<state_storage_t<T>> value_ref() final {
+  state_storage_t<T>& value_ref() final {
     assert(this->continuations().executed());
-    assert(!storage_.empty());
-    if (storage_.state() == 2u)
-      std::rethrow_exception(storage_.get(state_t<2>{}));
-    return storage_.get(state_t<0>{});
+    struct {
+      state_storage_t<T>& operator() (state_storage_t<T>& val) const {return val;}
+      state_storage_t<T>& operator() (std::shared_ptr<future_state<T>>& val) const {return val->value_ref();}
+      state_storage_t<T>& operator() (std::exception_ptr& err) const {std::rethrow_exception(err);}
+      state_storage_t<T>& operator() (monostate) {
+        assert(false);
+        throw std::logic_error{"Attempt to access shared_state storage while it's empty"};
+      }
+    } visitor;
+    return storage_.visit(visitor);
   }
 
   std::exception_ptr exception() final {
     assert(this->continuations().executed());
-    assert(!storage_.empty());
-    if (storage_.state() != 2u)
-      return nullptr;
-    return storage_.get(state_t<2>{});
+    struct {
+      std::exception_ptr operator() (state_storage_t<T>&) const {return nullptr;}
+      std::exception_ptr operator() (std::shared_ptr<future_state<T>>& val) const {return val->exception();}
+      std::exception_ptr operator() (std::exception_ptr& err) const {return err;}
+      std::exception_ptr operator() (monostate) {
+        assert(false);
+        throw std::logic_error{"Attempt to access shared_state storage while it's empty"};
+      }
+    } visitor;
+    return storage_.visit(visitor);
   }
 
   continuations_stack& continuations() final {return continuations_;}
