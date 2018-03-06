@@ -25,14 +25,14 @@ public:
   void emplace(U&&... u) {
     if (!storage_.empty())
       throw std::future_error(std::future_errc::promise_already_satisfied);
-    storage_.emplace(state_t<0>{}, std::forward<U>(u)...);
+    storage_.emplace(in_place_index_t<1>{}, std::forward<U>(u)...);
     this->continuations().execute();
   }
 
   void set_exception(std::exception_ptr error) {
     if (!storage_.empty())
       throw std::future_error(std::future_errc::promise_already_satisfied);
-    storage_.emplace(state_t<2>{}, error);
+    storage_.emplace(in_place_index_t<3>{}, error);
     this->continuations().execute();
   }
 
@@ -67,7 +67,7 @@ public:
   continuations_stack& continuations() final {return continuations_;}
 
 private:
-  either<state_storage_t<T>, std::shared_ptr<future_state<T>>, std::exception_ptr> storage_;
+  either<detail::monostate, state_storage_t<T>, std::shared_ptr<future_state<T>>, std::exception_ptr> storage_;
   continuations_stack continuations_;
 };
 

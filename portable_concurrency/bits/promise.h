@@ -17,14 +17,14 @@ namespace detail {
 
 template<typename T>
 struct promise_common {
-  either<std::shared_ptr<shared_state<T>>, std::weak_ptr<shared_state<T>>> state_;
+  either<detail::monostate, std::shared_ptr<shared_state<T>>, std::weak_ptr<shared_state<T>>> state_;
 
   promise_common():
-    state_{state_t<0>{}, std::make_shared<shared_state<T>>()}
+    state_{in_place_index_t<1>{}, std::make_shared<shared_state<T>>()}
   {}
   template<typename Alloc>
   explicit promise_common(const Alloc& allocator):
-    state_{state_t<0>{}, std::allocate_shared<allocated_state<T, Alloc>>(allocator, allocator)}
+    state_{in_place_index_t<1>{}, std::allocate_shared<allocated_state<T, Alloc>>(allocator, allocator)}
   {}
   ~promise_common() {
     auto state = get_state(false);
@@ -36,10 +36,10 @@ struct promise_common {
   promise_common& operator= (promise_common&&) noexcept = default;
 
   future<T> get_future() {
-    if (state_.state() == 1u)
+    if (state_.state() == 2u)
       throw std::future_error(std::future_errc::future_already_retrieved);
     auto state = get_state();
-    state_.emplace(state_t<1>{}, state);
+    state_.emplace(in_place_index_t<2>{}, state);
     return {state};
   }
 

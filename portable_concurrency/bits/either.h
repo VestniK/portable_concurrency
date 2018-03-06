@@ -27,7 +27,7 @@ template<std::size_t I, typename... T>
 using at_t = typename at<I, T...>::type;
 
 template<std::size_t I>
-using state_t = std::integral_constant<std::size_t, I>;
+using in_place_index_t = std::integral_constant<std::size_t, I>;
 
 struct monostate {};
 
@@ -38,11 +38,14 @@ struct destroy {
   void operator() (monostate) const {}
 };
 
+template<typename... T>
+class either;
+
 // Minimalistic backport of std::variant<std::monostate, T...> from C++17
 template<typename... T>
-class either {
+class either<monostate, T...> {
 public:
-  constexpr static std::size_t empty_state = sizeof...(T);
+  constexpr static std::size_t empty_state = 0;
 
   either() noexcept = default;
   ~either() {clean();}
@@ -51,7 +54,7 @@ public:
   either& operator= (const either&) = delete;
 
   template<std::size_t I, typename... A>
-  either(state_t<I> tag, A&&... a) {
+  either(in_place_index_t<I> tag, A&&... a) {
     emplace(tag, std::forward<A>(a)...);
   }
 
@@ -65,10 +68,10 @@ public:
   }
 
   template<std::size_t I, typename... A>
-  void emplace(state_t<I>, A&&... a) {
-    static_assert(I < empty_state, "Can't emplace construct empty state");
+  void emplace(in_place_index_t<I>, A&&... a) {
+    static_assert(I != empty_state, "Can't emplace construct monostate");
     clean();
-    new(&storage_) at_t<I, T...>(std::forward<A>(a)...);
+    new(&storage_) at_t<I - 1, T...>(std::forward<A>(a)...);
     state_ = I;
   }
 
@@ -77,25 +80,25 @@ public:
   bool empty() const noexcept {return state_ == empty_state;}
 
   template<std::size_t I>
-  auto& get(state_t<I>) noexcept {
+  auto& get(in_place_index_t<I>) noexcept {
     assert(state_ == I);
-    return reinterpret_cast<at_t<I, T...>&>(storage_);
+    return reinterpret_cast<at_t<I - 1, T...>&>(storage_);
   }
 
   template<std::size_t I>
-  const auto& get(state_t<I>) const noexcept {
+  const auto& get(in_place_index_t<I>) const noexcept {
     assert(state_ == I);
-    return reinterpret_cast<const at_t<I, T...>&>(storage_);
+    return reinterpret_cast<const at_t<I - 1, T...>&>(storage_);
   }
 
   template<typename F>
   decltype(auto) visit(F&& f) {
-    return visit(state_t<0>{}, std::forward<F>(f));
+    return visit_backward(in_place_index_t<sizeof...(T)>{}, std::forward<F>(f));
   }
 
   template<typename F>
   decltype(auto) visit(F&& f) const {
-    return visit(state_t<0>{}, std::forward<F>(f));
+    return visit_backward(in_place_index_t<sizeof...(T)>{}, std::forward<F>(f));
   }
 
   void clean() noexcept {
@@ -107,32 +110,35 @@ private:
   template<std::size_t... I>
   void move_from(either&& src, std::index_sequence<I...>) noexcept {
     swallow{
-      (src.state_ == I ? (emplace(state_t<I>{}, std::move(reinterpret_cast<T&>(src.storage_))), false) : false)...
+      (src.state_ == I+1 ?
+        (emplace(in_place_index_t<I+1>{}, std::move(reinterpret_cast<T&>(src.storage_))), false):
+        false
+      )...
     };
     src.clean();
   }
 
   template<typename F, std::size_t I>
-  decltype(auto) visit(state_t<I>, F&& f) {
+  decltype(auto) visit_backward(in_place_index_t<I>, F&& f) {
     if (state_ == I)
-      return f(reinterpret_cast<at_t<I, T...>&>(storage_));
-    return visit(state_t<I+1>{}, std::forward<F>(f));
+      return f(reinterpret_cast<at_t<I-1, T...>&>(storage_));
+    return visit_backward(in_place_index_t<I-1>{}, std::forward<F>(f));
   }
 
   template<typename F, std::size_t I>
-  decltype(auto) visit(state_t<I>, F&& f) const {
+  decltype(auto) visit_backward(in_place_index_t<I>, F&& f) const {
     if (state_ == I)
-      return f(reinterpret_cast<const at_t<I, T...>&>(storage_));
-    return visit(state_t<I+1>{}, std::forward<F>(f));
+      return f(reinterpret_cast<const at_t<I-1, T...>&>(storage_));
+    return visit_backward(in_place_index_t<I-1>{}, std::forward<F>(f));
   }
 
   template<typename F>
-  decltype(auto) visit(state_t<empty_state>, F&& f) const {
+  decltype(auto) visit_backward(in_place_index_t<empty_state>, F&& f) const {
     return f(monostate{});
   }
 
   template<typename F>
-  decltype(auto) visit(state_t<empty_state>, F&& f) {
+  decltype(auto) visit_backward(in_place_index_t<empty_state>, F&& f) {
     return f(monostate{});
   }
 

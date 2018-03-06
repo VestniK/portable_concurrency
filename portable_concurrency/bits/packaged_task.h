@@ -57,7 +57,7 @@ public:
 
   template<typename F>
   explicit packaged_task(F&& f)
-    : state_{detail::state_t<0>{}, std::make_shared<detail::task_state<F, R, A...>>(std::forward<F>(f))}
+    : state_{detail::in_place_index_t<1>{}, std::make_shared<detail::task_state<F, R, A...>>(std::forward<F>(f))}
   {}
 
   packaged_task(const packaged_task&) = delete;
@@ -77,10 +77,10 @@ public:
   }
 
   future<R> get_future() {
-    if (state_.state() == 1u)
+    if (state_.state() == 2u)
       throw std::future_error(std::future_errc::future_already_retrieved);
     auto state = get_state();
-    state_.emplace(detail::state_t<1>{}, state);
+    state_.emplace(detail::in_place_index_t<2>{}, state);
     return {std::shared_ptr<detail::future_state<R>>{state, state->get_future_state()}};
   }
 
@@ -91,18 +91,31 @@ public:
 
 private:
   std::shared_ptr<detail::packaged_task_state<R, A...>> get_state(bool throw_no_state = true) {
-    switch (state_.state())
-    {
-    case 0u: return state_.get(detail::state_t<0>{});
-    case 1u: return state_.get(detail::state_t<1>{}).lock();
-    }
-    if (throw_no_state)
-      throw std::future_error(std::future_errc::no_state);
-    return nullptr;
+    struct {
+      std::shared_ptr<detail::packaged_task_state<R, A...>> operator() (detail::monostate) {
+        if (throw_no_state)
+          throw std::future_error(std::future_errc::no_state);
+        return nullptr;
+      }
+      std::shared_ptr<detail::packaged_task_state<R, A...>> operator() (
+        const std::shared_ptr<detail::packaged_task_state<R, A...>>& state
+      ) {
+        return state;
+      }
+      std::shared_ptr<detail::packaged_task_state<R, A...>> operator() (
+        const std::weak_ptr<detail::packaged_task_state<R, A...>>& state
+      ) {
+        return state.lock();
+      }
+
+      bool throw_no_state;
+    } visitor{throw_no_state};
+    return state_.visit(visitor);
   }
 
 private:
   detail::either<
+    detail::monostate,
     std::shared_ptr<detail::packaged_task_state<R, A...>>,
     std::weak_ptr<detail::packaged_task_state<R, A...>>
   > state_;
