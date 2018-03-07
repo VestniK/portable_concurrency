@@ -41,7 +41,14 @@ struct destroy {
 template<typename... T>
 class either;
 
-// Minimalistic backport of std::variant<std::monostate, T...> from C++17
+// Minimalistic backport of std::variant<std::monostate, T...> from C++17:
+// MoveConstructable && !CopyConstructable
+//
+// Move operaton is explicitly marked as noexcept(true) and only used by library for instantiations on types which are
+// nothrow move constructable.
+//
+// First state (monostate) is used as vlueless by exception. Some steps are required to shift to std::variant after
+// switch to C++17
 template<typename... T>
 class either<monostate, T...> {
 public:
