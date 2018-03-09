@@ -22,8 +22,7 @@ static_assert(
 // Visitation test first since all access is going to happen through visitors. If allmost all test fails one should
 // debug visitation tests first
 
-class bad_variant_access: public std::exception {
-public:
+struct bad_variant_access: std::exception {
   const char* what() const noexcept override {return "bad_variant_access";}
 };
 
@@ -206,8 +205,7 @@ TEST_F(EitherCleanup, destructor_destroys_stored_second) {
 }
 
 // exception safety
-class surprize: public std::exception {
-public:
+struct surprize: std::exception {
   const char* what() const noexcept override {return  "surprize";};
 };
 
