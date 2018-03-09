@@ -66,10 +66,14 @@ public:
 
   continuations_stack& continuations() final {return continuations_;}
 
-  void unwrap(std::shared_ptr<shared_state>& self, const std::shared_ptr<future_state<T>>& val) {
+  static void unwrap(std::shared_ptr<shared_state>& self, const std::shared_ptr<future_state<T>>& val) {
     assert(!self->continuations().executed());
+    if (!val) {
+      self->set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+      return;
+    }
     self->storage_.emplace(in_place_index_t<2>{}, val);
-    val->continuations.push([wself = std::weak_ptr<shared_state>(self)] {
+    val->continuations().push([wself = std::weak_ptr<shared_state>(self)] {
       if (auto self = wself.lock())
         self->continuations().execute();
     });

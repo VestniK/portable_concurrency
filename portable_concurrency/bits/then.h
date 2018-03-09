@@ -86,48 +86,67 @@ struct cnt_arg<cnt_tag::shared_next, void> {
 // Invoke continuation and emplace result into storage. Separate helpers for cases when continuation argument is
 // void/non-void and continuation result is void/non-void.
 
+template<typename T>
+using is_regular = std::integral_constant<bool, !std::is_void<T>::value && !is_future<T>::value>;
+
 template<cnt_tag Tag, typename S, typename F, typename T>
-auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>>) -> std::enable_if_t<
-  std::is_void<cnt_arg_t<Tag, T>>::value && !std::is_void<
+auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>>) -> std::enable_if_t<
+  std::is_void<cnt_arg_t<Tag, T>>::value && is_regular<
     decltype(portable_concurrency::detail::invoke(std::forward<F>(func)))
   >::value
 > {
-  storage.emplace(
-    in_place_index_t<2>{},
-    portable_concurrency::detail::invoke(std::forward<F>(func))
-  );
+  state_sp->emplace(portable_concurrency::detail::invoke(std::forward<F>(func)));
 }
 
 template<cnt_tag Tag, typename S, typename F, typename T>
-auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>>) -> std::enable_if_t<
+auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>>) -> std::enable_if_t<
   std::is_void<cnt_arg_t<Tag, T>>::value && std::is_void<
     decltype(portable_concurrency::detail::invoke(std::forward<F>(func)))
   >::value
 > {
   portable_concurrency::detail::invoke(std::forward<F>(func));
-  storage.emplace(in_place_index_t<2>{});
+  state_sp->emplace();
 }
 
 template<cnt_tag Tag, typename S, typename F, typename T>
-auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
-  !std::is_void<cnt_arg_t<Tag, T>>::value && !std::is_void<
+auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>>) -> std::enable_if_t<
+  std::is_void<cnt_arg_t<Tag, T>>::value && is_future<
+    decltype(portable_concurrency::detail::invoke(std::forward<F>(func)))
+  >::value
+> {
+  S::unwrap(state_sp, state_of(portable_concurrency::detail::invoke(std::forward<F>(func))));
+}
+
+template<cnt_tag Tag, typename S, typename F, typename T>
+auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
+  !std::is_void<cnt_arg_t<Tag, T>>::value && is_regular<
     decltype(portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent)))
   >::value
 > {
-  storage.emplace(
-    in_place_index_t<2>{},
+  state_sp->emplace(
     portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent))
   );
 }
 
 template<cnt_tag Tag, typename S, typename F, typename T>
-auto invoke_emplace(S& storage, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
+auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
   !std::is_void<cnt_arg_t<Tag, T>>::value && std::is_void<
     decltype(portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent)))
   >::value
 > {
   portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent));
-  storage.emplace(in_place_index_t<2>{});
+  state_sp->emplace();
+}
+
+template<cnt_tag Tag, typename S, typename F, typename T>
+auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
+  !std::is_void<cnt_arg_t<Tag, T>>::value && is_future<
+    decltype(portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent)))
+  >::value
+> {
+  S::unwrap(state_sp, state_of(
+    portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent))
+  ));
 }
 
 // continuation state
@@ -181,37 +200,27 @@ struct cnt_action {
 };
 
 template<cnt_tag Tag, typename T, typename E, typename F>
-class cnt_state final:
-  public future_state<remove_future_t<cnt_result_t<F, cnt_arg_t<Tag, T>>>>,
-  public continuation_state
-{
+class cnt_state final: public continuation_state {
 public:
   using cnt_res = cnt_result_t<F, cnt_arg_t<Tag, T>>;
-  using res_t = remove_future_t<cnt_res>;
-  using stored_cnt_res = std::conditional_t<std::is_void<cnt_res>::value, void_val, cnt_res>;
+  using value_type = remove_future_t<cnt_res>;
 
   cnt_state(const E& exec, F func, std::shared_ptr<future_state<T>>&& parent):
-    storage_(in_place_index_t<1>{}, exec, std::move(func), std::move(parent))
+    action_(in_place_index_t<1>{}, exec, std::move(func), std::move(parent))
   {}
 
-  std::add_lvalue_reference_t<state_storage_t<res_t>> value_ref() override {
-    if (exception_)
-      std::rethrow_exception(exception_);
-    return unwrapped_ref(storage_.get(in_place_index_t<2>{}));
-  }
-
-  std::exception_ptr exception() override {return exception_;}
+  future_state<value_type>* get_future_state() {return &state_;}
 
   void abandon() override {
-    if (continuations_.executed())
+    if (state_.continuations().executed())
       return;
-    exception_ = std::make_exception_ptr(std::future_error{std::future_errc::broken_promise});
-    continuations_.execute();
+    action_.clean();
+    state_.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
   }
 
   void schedule(const std::shared_ptr<cnt_state>& self_sp) {
     assert(self_sp.get() == this);
-    E exec = storage_.get(in_place_index_t<1>{}).exec;
+    E exec = action_.get(in_place_index_t<1>{}).exec;
     post(exec, cnt_action{self_sp});
   }
 
@@ -221,12 +230,11 @@ public:
 // conditional expression is constant
 #pragma warning(disable: 4127)
 #endif
-    auto& action = storage_.get(in_place_index_t<1>{});
+    auto& action = action_.get(in_place_index_t<1>{});
     if (Tag != cnt_tag::then && Tag != cnt_tag::shared_then) {
       if (auto error = action.parent->exception()) {
-        storage_.clean();
-        exception_ = std::move(error);
-        continuations_.execute();
+        state_.set_exception(std::move(error));
+        action_.clean();
         return;
       }
     }
@@ -234,47 +242,25 @@ public:
 #pragma warning(pop)
 #endif
 
-    invoke_emplace<Tag>(storage_, std::move(action.func), std::move(action.parent));
-    unwrap(std::move(self_sp), is_future<cnt_result_t<F, cnt_arg_t<Tag, T>>>{});
+    invoke_emplace<Tag>(
+      std::shared_ptr<shared_state<value_type>>{self_sp, &state_},
+      std::move(action.func), std::move(action.parent)
+    );
+    action_.clean();
   } catch (...) {
-    exception_ = std::current_exception();
-    storage_.clean();
-    continuations_.execute();
-  }
-
-  continuations_stack& continuations() final {
-    return continuations_;
+    state_.set_exception(std::current_exception());
+    action_.clean();
   }
 
 private:
-  auto unwrap(std::shared_ptr<continuation_state>, std::false_type) {
-    continuations_.execute();
-  }
-
-  auto unwrap(std::shared_ptr<continuation_state> self_sp, std::true_type) {
-    auto& res_future = storage_.get(in_place_index_t<2>{});
-    if (!res_future.valid()) {
-      exception_ = std::make_exception_ptr(std::future_error{std::future_errc::broken_promise});
-      continuations_.execute();
-      return;
-    }
-    state_of(res_future)->continuations().push([wstate = weak(std::static_pointer_cast<cnt_state>(self_sp))] {
-      if (auto state = wstate.lock()) {
-        state->continuations_.execute();
-      }
-    });
-  }
-
-private:
-  either<detail::monostate, cnt_closure<E, F, T>, stored_cnt_res> storage_;
-  std::exception_ptr exception_ = nullptr;
-  continuations_stack continuations_;
+  shared_state<value_type> state_;
+  either<detail::monostate, cnt_closure<E, F, T>> action_;
 };
 
 template<cnt_tag Tag, typename T, typename E, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
   using cnt_data_t = cnt_state<Tag, T, std::decay_t<E>, std::decay_t<F>>;
-  using res_t = typename cnt_data_t::res_t;
+  using value_type = typename cnt_data_t::value_type;
 
   auto& continuations = parent->continuations();
   auto data = std::make_shared<cnt_data_t>(std::forward<E>(exec), std::forward<F>(f), std::move(parent));
@@ -282,7 +268,7 @@ auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
     if (auto data = wdata.lock())
       data->schedule(data);
   });
-  return std::shared_ptr<future_state<res_t>>{data};
+  return std::shared_ptr<future_state<value_type>>{data, data->get_future_state()};
 }
 
 } // namespace detail

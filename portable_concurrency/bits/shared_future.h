@@ -84,6 +84,7 @@ public:
 
 private:
   friend std::shared_ptr<detail::future_state<T>>& detail::state_of<T>(shared_future<T>&);
+  friend std::shared_ptr<detail::future_state<T>> detail::state_of<T>(shared_future<T>&&);
 
 private:
   std::shared_ptr<detail::future_state<T>> state_;

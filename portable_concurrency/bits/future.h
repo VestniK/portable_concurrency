@@ -129,6 +129,7 @@ public:
 private:
   friend class shared_future<T>;
   friend std::shared_ptr<detail::future_state<T>>& detail::state_of<T>(future<T>&);
+  friend std::shared_ptr<detail::future_state<T>> detail::state_of<T>(future<T>&&);
 
 private:
   std::shared_ptr<detail::future_state<T>> state_;

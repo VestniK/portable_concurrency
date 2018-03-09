@@ -130,6 +130,11 @@ std::shared_ptr<future_state<T>>& state_of(shared_future<T>& f) {
   return f.state_;
 }
 
+template<typename T>
+std::shared_ptr<future_state<T>> state_of(shared_future<T>&& f) {
+  return f.state_;
+}
+
 } // namespace detail
 
 } // inline namespace cxx14_v1
