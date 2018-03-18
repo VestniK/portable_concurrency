@@ -73,10 +73,11 @@ template<typename T>
 template<typename E, typename F>
 detail::cnt_future_t<F, shared_future<T>> shared_future<T>::then(E&& exec, F&& f) const {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
+  using result_type = detail::remove_future_t<detail::cnt_result_t<F, shared_future<T>>>;
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
-  return detail::make_then_state<detail::cnt_tag::shared_then, T, E, F>(
-    std::move(state_), std::forward<E>(exec), std::forward<F>(f)
+  return detail::make_then_state<result_type>(
+    state_, std::forward<E>(exec), detail::decorate_continuation<detail::cnt_tag::shared_then, T>(std::forward<F>(f))
   );
 }
 
@@ -90,10 +91,11 @@ template<typename T>
 template<typename E, typename F>
 detail::cnt_future_t<F, typename shared_future<T>::get_result_type> shared_future<T>::next(E&& exec, F&& f) const {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
+  using result_type = detail::remove_future_t<detail::cnt_result_t<F, typename shared_future<T>::get_result_type>>;
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
-  return detail::make_then_state<detail::cnt_tag::shared_next, T, E, F>(
-    state_, std::forward<E>(exec), std::forward<F>(f)
+  return detail::make_then_state<result_type>(
+    state_, std::forward<E>(exec), detail::decorate_continuation<detail::cnt_tag::shared_next, T>(std::forward<F>(f))
   );
 }
 

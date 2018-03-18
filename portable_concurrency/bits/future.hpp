@@ -73,10 +73,13 @@ template<typename T>
 template<typename E, typename F>
 detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
+  using result_type = detail::remove_future_t<detail::cnt_result_t<F, future<T>>>;
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
-  return detail::make_then_state<detail::cnt_tag::then, T, E, F>(
-    std::move(state_), std::forward<E>(exec), std::forward<F>(f)
+  return detail::make_then_state<result_type>(
+    std::move(state_),
+    std::forward<E>(exec),
+    detail::decorate_continuation<detail::cnt_tag::then, T>(std::forward<F>(f))
   );
 }
 
@@ -90,10 +93,13 @@ template<typename T>
 template<typename E, typename F>
 detail::cnt_future_t<F, T> future<T>::next(E&& exec, F&& f) {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
+  using result_type = detail::remove_future_t<detail::cnt_result_t<F, T>>;
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
-  return detail::make_then_state<detail::cnt_tag::next, T, E, F>(
-    std::move(state_), std::forward<E>(exec), std::forward<F>(f)
+  return detail::make_then_state<result_type>(
+    std::move(state_),
+    std::forward<E>(exec),
+    detail::decorate_continuation<detail::cnt_tag::next, T>(std::forward<F>(f))
   );
 }
 

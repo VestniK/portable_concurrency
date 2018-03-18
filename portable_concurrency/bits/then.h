@@ -199,17 +199,14 @@ struct cnt_action {
   }
 };
 
-template<cnt_tag Tag, typename T, typename E, typename F>
+template<typename R, typename T, typename E, typename F>
 class cnt_state final: public continuation_state {
 public:
-  using cnt_res = cnt_result_t<F, cnt_arg_t<Tag, T>>;
-  using value_type = remove_future_t<cnt_res>;
-
   cnt_state(const E& exec, F func, std::shared_ptr<future_state<T>>&& parent):
     action_(in_place_index_t<1>{}, exec, std::move(func), std::move(parent))
   {}
 
-  future_state<value_type>* get_future_state() {return &state_;}
+  future_state<R>* get_future_state() {return &state_;}
 
   void abandon() override {
     if (state_.continuations().executed())
@@ -218,34 +215,14 @@ public:
     state_.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
   }
 
-  void schedule(const std::shared_ptr<cnt_state>& self_sp) {
-    assert(self_sp.get() == this);
-    E exec = action_.get(in_place_index_t<1>{}).exec;
+  static void schedule(const std::shared_ptr<cnt_state>& self_sp) {
+    E exec = self_sp->action_.get(in_place_index_t<1>{}).exec;
     post(exec, cnt_action{self_sp});
   }
 
   void run(std::shared_ptr<continuation_state> self_sp) override try {
-#if defined(_MSC_VER)
-#pragma warning(push)
-// conditional expression is constant
-#pragma warning(disable: 4127)
-#endif
     auto& action = action_.get(in_place_index_t<1>{});
-    if (Tag != cnt_tag::then && Tag != cnt_tag::shared_then) {
-      if (auto error = action.parent->exception()) {
-        state_.set_exception(std::move(error));
-        action_.clean();
-        return;
-      }
-    }
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-    invoke_emplace<Tag>(
-      std::shared_ptr<shared_state<value_type>>{self_sp, &state_},
-      std::move(action.func), std::move(action.parent)
-    );
+    action.func(std::shared_ptr<shared_state<R>>{self_sp, &state_}, std::move(action.parent));
     action_.clean();
   } catch (...) {
     state_.set_exception(std::current_exception());
@@ -253,22 +230,47 @@ public:
   }
 
 private:
-  shared_state<value_type> state_;
+  shared_state<R> state_;
   either<detail::monostate, cnt_closure<E, F, T>> action_;
 };
 
-template<cnt_tag Tag, typename T, typename E, typename F>
+template<cnt_tag Tag, typename T, typename F>
+auto decorate_continuation(F&& f) {
+  using cnt_res = cnt_result_t<F, cnt_arg_t<Tag, T>>;
+  using value_type = remove_future_t<cnt_res>;
+
+  return [func = std::decay_t<F>{std::forward<F>(f)}](
+    std::shared_ptr<shared_state<value_type>> state, std::shared_ptr<future_state<T>> parent
+  ) mutable {
+#if defined(_MSC_VER)
+#pragma warning(push)
+// conditional expression is constant
+#pragma warning(disable: 4127)
+#endif
+    if (Tag != cnt_tag::then && Tag != cnt_tag::shared_then) {
+      if (auto error = parent->exception()) {
+        state->set_exception(std::move(error));
+        return;
+      }
+    }
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+    invoke_emplace<Tag>(std::move(state), std::move(func), std::move(parent));
+  };
+}
+
+template<typename R, typename T, typename E, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
-  using cnt_data_t = cnt_state<Tag, T, std::decay_t<E>, std::decay_t<F>>;
-  using value_type = typename cnt_data_t::value_type;
+  using cnt_data_t = cnt_state<R, T, std::decay_t<E>, std::decay_t<F>>;
 
   auto& continuations = parent->continuations();
   auto data = std::make_shared<cnt_data_t>(std::forward<E>(exec), std::forward<F>(f), std::move(parent));
   continuations.push([wdata = weak(data)] {
     if (auto data = wdata.lock())
-      data->schedule(data);
+      cnt_data_t::schedule(data);
   });
-  return std::shared_ptr<future_state<value_type>>{data, data->get_future_state()};
+  return std::shared_ptr<future_state<R>>{data, data->get_future_state()};
 }
 
 } // namespace detail
