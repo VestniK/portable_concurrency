@@ -28,7 +28,7 @@ public:
   virtual ~future_state() = default;
 
   virtual continuations_stack& continuations() = 0;
-  // Eqivalent to this->continuations().push(cnt, __allocator_type_erased_by(this))
+  // May be overloaded by shared_state with custom allocator in order to allocate continuation_stack node properly
   virtual void push(continuation&& cnt) {this->continuations().push(std::move(cnt));}
 
   // throws stored exception if there is no value. UB if called before continuations are executed.

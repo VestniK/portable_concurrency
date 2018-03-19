@@ -69,6 +69,53 @@ detail::cnt_future_t<F, future<T>> future<T>::then(F&& f) {
   return then(detail::inplace_executor{}, std::forward<F>(f));
 }
 
+namespace detail {
+
+namespace this_ns = ::portable_concurrency::cxx14_v1::detail;
+
+template<typename F, typename S>
+struct is_invocable_s: std::false_type {};
+
+template<typename F, typename R, typename... A>
+struct is_invocable_s<F, R(A...)>:
+  std::is_same<R, decltype(this_ns::invoke(std::declval<F>(), std::declval<A>()...))>
+{};
+
+template<typename F, typename S>
+using Callable = std::enable_if_t<is_invocable_s<F, S>::value, F>;
+
+template<typename R, typename T, typename F>
+auto decorate(Callable<F, R(future<T>)>&& f) {
+  return [f = std::move(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    set_state_value(*state, std::move(f), future<T>{std::move(parent)});
+  };
+}
+
+template<typename R, typename T, typename F>
+auto decorate(Callable<F, future<R>(future<T>)>&& f) {
+  return [f = std::move(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), future<T>{std::move(parent)})));
+  };
+}
+
+template<typename R, typename T, typename F>
+auto decorate(Callable<F, shared_future<R>(future<T>)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), future<T>{std::move(parent)})));
+  };
+}
+
+} // namespace detail
+
 template<typename T>
 template<typename E, typename F>
 detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
@@ -79,7 +126,7 @@ detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
   return detail::make_then_state<result_type>(
     std::move(state_),
     std::forward<E>(exec),
-    detail::decorate_continuation<detail::cnt_tag::then, T>(std::forward<F>(f))
+    detail::decorate<result_type, T, F>(std::forward<F>(f))
   );
 }
 

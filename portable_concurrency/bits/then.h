@@ -29,19 +29,9 @@ namespace detail {
 template<typename T>
 std::weak_ptr<T> weak(std::shared_ptr<T> ptr) {return {std::move(ptr)};}
 
-template<typename T>
-T& unwrapped_ref(T& ref) {return ref;}
-
-template<typename T>
-decltype(auto) unwrapped_ref(future<T>& f) {return state_of(f)->value_ref();}
-
-template<typename T>
-decltype(auto) unwrapped_ref(shared_future<T>& f) {return state_of(f)->value_ref();}
-
 // Tags for different continuation types and helper type traits to work with them
 
 enum class cnt_tag {
-  then,
   next,
   shared_then,
   shared_next
@@ -52,11 +42,6 @@ struct cnt_arg;
 template<cnt_tag Type, typename T>
 using cnt_arg_t = typename cnt_arg<Type, T>::type;
 
-template<typename T>
-struct cnt_arg<cnt_tag::then, T> {
-  using type = future<T>;
-  static type extract(std::shared_ptr<future_state<T>>& state) {return {std::move(state)};}
-};
 template<typename T>
 struct cnt_arg<cnt_tag::next, T> {
   using type = T;
@@ -247,7 +232,7 @@ auto decorate_continuation(F&& f) {
 // conditional expression is constant
 #pragma warning(disable: 4127)
 #endif
-    if (Tag != cnt_tag::then && Tag != cnt_tag::shared_then) {
+    if (Tag != cnt_tag::shared_then) {
       if (auto error = parent->exception()) {
         state->set_exception(std::move(error));
         return;
