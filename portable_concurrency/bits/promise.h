@@ -13,6 +13,10 @@
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
+
+struct canceler_arg_t {};
+constexpr canceler_arg_t canceler_arg = {};
+
 namespace detail {
 
 template<typename T>
@@ -25,6 +29,20 @@ struct promise_common {
   template<typename Alloc>
   explicit promise_common(const Alloc& allocator):
     state_{in_place_index_t<1>{}, std::allocate_shared<allocated_state<T, Alloc>>(allocator, allocator)}
+  {}
+  template<typename F>
+  promise_common(canceler_arg_t, F&& f):
+    state_{
+      in_place_index_t<1>{},
+      std::shared_ptr<shared_state<T>>(
+        new shared_state<T>,
+        [f = std::forward<F>(f)](shared_state<T>* ptr) {
+          std::unique_ptr<shared_state<T>> holder{ptr};
+          if (!ptr->continuations().executed())
+            f();
+        }
+      )
+    }
   {}
   ~promise_common() {
     auto state = get_state(false);
@@ -86,6 +104,8 @@ public:
   promise(std::allocator_arg_t, const Alloc& allocator = Alloc()) :
     common_(allocator)
   {}
+  template<typename F>
+  promise(canceler_arg_t tag, F&& f): common_{tag, std::forward<F>(f)} {}
   promise(promise&&) noexcept = default;
   promise(const promise&) = delete;
 

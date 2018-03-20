@@ -155,6 +155,31 @@ TEST(Promise, is_awaiten_returns_true_after_shared_future_detach) {
   EXPECT_TRUE(p.is_awaiten());
 }
 
+TEST(Canceler, is_not_called_by_promise_constructor) {
+  size_t call_count = 0u;
+  pc::promise<int> promise{pc::canceler_arg, [&] {++call_count;}};
+  EXPECT_EQ(call_count, 0u);
+}
+
+TEST(Canceler, is_called_once_if_future_destroyed_before_set) {
+  size_t call_count = 0u;
+  {
+    pc::promise<int> promise{pc::canceler_arg, [&] {++call_count;}};
+    promise.get_future();
+  }
+  EXPECT_EQ(call_count, 1u);
+}
+
+TEST(Canceler, is_not_called_if_future_destroyed_after_set) {
+  size_t call_count = 0u;
+  {
+    pc::promise<int> promise{pc::canceler_arg, [&] {++call_count;}};
+    auto future = promise.get_future();
+    promise.set_value(42);
+  }
+  EXPECT_EQ(call_count, 0u);
+}
+
 } // namespace
 } // namespace test
 } // namespace portable_concurrency
