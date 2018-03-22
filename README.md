@@ -24,6 +24,12 @@ extensions. Strict TS implementation is developed in the `strict-ts` branch.
  * `future` destuctor (as well as destructor of the last `shared_future` pointing to particular shared state) has cancel
    semantics. If continuation or `packaged_task` which calculates value fot this `future` is not yet started it will not
    be executed at all.
+   * `future::detach()` and `shared_future::detach()` functions allows to destroy future without cancelation of any tasks.
+   * `promise::is_awaiten()` allows to check if `future` or the last `shared_future` refferensing shared state associated
+     with this `promise` is already destroyed.
+   * `promise::promise(canceler_arg_t, CancelAction)` constructor allows to specify action which is called in `future`
+     or the last `shared_future` refferensing shared state associated with this `promise` is destroyed before value or
+     exception was set.
 
 ## Build
 
