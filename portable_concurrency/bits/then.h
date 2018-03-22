@@ -29,11 +29,92 @@ namespace detail {
 template<typename T>
 std::weak_ptr<T> weak(std::shared_ptr<T> ptr) {return {std::move(ptr)};}
 
+// Decorate different functors in order to be callable as
+// `decorated_func(shared_ptr<shared_state<R>>, shared_ptr<future_state<T>>);`
+
+namespace this_ns = ::portable_concurrency::cxx14_v1::detail;
+
+template<typename... T>
+struct voidify {using type = void;};
+
+template<typename... T>
+using void_t = typename voidify<T...>::type;
+
+template<typename F, typename S, typename = void>
+struct is_invocable_s: std::false_type {};
+
+template<typename F, typename R, typename... A>
+struct is_invocable_s<F, R(A...), void_t<decltype(this_ns::invoke(std::declval<F>(), std::declval<A>()...))>>:
+  std::is_same<R, decltype(this_ns::invoke(std::declval<F>(), std::declval<A>()...))>
+{};
+
+template<typename F, typename S>
+using Callable = std::enable_if_t<is_invocable_s<F, S>::value, F>;
+
+template<typename R, typename T, typename F>
+auto decorate_unique_then(Callable<F, R(future<T>)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    set_state_value(*state, std::move(f), future<T>{std::move(parent)});
+  };
+}
+
+template<typename R, typename T, typename F>
+auto decorate_unique_then(Callable<F, future<R>(future<T>)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), future<T>{std::move(parent)})));
+  };
+}
+
+template<typename R, typename T, typename F>
+auto decorate_unique_then(Callable<F, shared_future<R>(future<T>)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), future<T>{std::move(parent)})));
+  };
+}
+
+template<typename R, typename T, typename F>
+auto decorate_shared_then(Callable<F, R(shared_future<T>)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    set_state_value(*state, std::move(f), shared_future<T>{std::move(parent)});
+  };
+}
+
+template<typename R, typename T, typename F>
+auto decorate_shared_then(Callable<F, future<R>(shared_future<T>)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), shared_future<T>{std::move(parent)})));
+  };
+}
+
+template<typename R, typename T, typename F>
+auto decorate_shared_then(Callable<F, shared_future<R>(shared_future<T>)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), shared_future<T>{std::move(parent)})));
+  };
+}
+
 // Tags for different continuation types and helper type traits to work with them
 
 enum class cnt_tag {
   next,
-  shared_then,
   shared_next
 };
 
@@ -51,11 +132,6 @@ template<>
 struct cnt_arg<cnt_tag::next, void> {
   using type = void;
   static void extract(std::shared_ptr<future_state<void>>& state) {state->value_ref();}
-};
-template<typename T>
-struct cnt_arg<cnt_tag::shared_then, T> {
-  using type = shared_future<T>;
-  static type extract(std::shared_ptr<future_state<T>>& state) {return {std::move(state)};}
 };
 template<typename T>
 struct cnt_arg<cnt_tag::shared_next, T> {
@@ -220,27 +296,17 @@ private:
 };
 
 template<cnt_tag Tag, typename T, typename F>
-auto decorate_continuation(F&& f) {
+auto decorate_next(F&& f) {
   using cnt_res = cnt_result_t<F, cnt_arg_t<Tag, T>>;
   using value_type = remove_future_t<cnt_res>;
 
   return [func = std::decay_t<F>{std::forward<F>(f)}](
     std::shared_ptr<shared_state<value_type>> state, std::shared_ptr<future_state<T>> parent
   ) mutable {
-#if defined(_MSC_VER)
-#pragma warning(push)
-// conditional expression is constant
-#pragma warning(disable: 4127)
-#endif
-    if (Tag != cnt_tag::shared_then) {
-      if (auto error = parent->exception()) {
-        state->set_exception(std::move(error));
-        return;
-      }
+    if (auto error = parent->exception()) {
+      state->set_exception(std::move(error));
+      return;
     }
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
     invoke_emplace<Tag>(std::move(state), std::move(func), std::move(parent));
   };
 }
