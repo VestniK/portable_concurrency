@@ -170,12 +170,34 @@ TEST(Canceler, is_called_once_if_future_destroyed_before_set) {
   EXPECT_EQ(call_count, 1u);
 }
 
-TEST(Canceler, is_not_called_if_future_destroyed_after_set) {
+TEST(Canceler, is_not_called_if_future_destroyed_after_set_value) {
   size_t call_count = 0u;
   {
     pc::promise<int> promise{pc::canceler_arg, [&] {++call_count;}};
     auto future = promise.get_future();
     promise.set_value(42);
+  }
+  EXPECT_EQ(call_count, 0u);
+}
+
+TEST(Canceler, is_not_called_if_future_destroyed_after_set_exception) {
+  size_t call_count = 0u;
+  {
+    pc::promise<int> promise{pc::canceler_arg, [&] {++call_count;}};
+    auto future = promise.get_future();
+    promise.set_exception(std::make_exception_ptr(std::runtime_error{"qwe"}));
+  }
+  EXPECT_EQ(call_count, 0u);
+}
+
+TEST(Canceler, is_not_called_if_promise_abandoned) {
+  size_t call_count = 0u;
+  {
+    pc::future<int> f;
+    {
+      pc::promise<int> promise{pc::canceler_arg, [&] {++call_count;}};
+      f = promise.get_future();
+    }
   }
   EXPECT_EQ(call_count, 0u);
 }
