@@ -89,6 +89,20 @@ detail::cnt_future_t<F, T> future<T>::next(F&& f) {
   return next(detail::inplace_executor{}, std::forward<F>(f));
 }
 
+template<>
+template<typename E, typename F>
+detail::cnt_future_t<F, void> future<void>::next(E&& exec, F&& f) {
+  static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
+  using result_type = detail::remove_future_t<detail::cnt_result_t<F, void>>;
+  if (!state_)
+    throw std::future_error(std::future_errc::no_state);
+  return detail::make_then_state<result_type>(
+    std::move(state_),
+    std::forward<E>(exec),
+    detail::decorate_void_next<result_type, F>(std::forward<F>(f))
+  );
+}
+
 template<typename T>
 template<typename E, typename F>
 detail::cnt_future_t<F, T> future<T>::next(E&& exec, F&& f) {

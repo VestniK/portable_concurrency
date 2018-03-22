@@ -111,6 +111,48 @@ auto decorate_shared_then(Callable<F, shared_future<R>(shared_future<T>)>&& f) {
   };
 }
 
+template<typename R, typename F>
+auto decorate_void_next(Callable<F, R()>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<void>>&& parent
+  ) mutable {
+    if (auto error = parent->exception()) {
+      state->set_exception(std::move(error));
+      return;
+    }
+    set_state_value(*state, std::move(f));
+  };
+}
+
+template<typename R, typename F>
+auto decorate_void_next(Callable<F, future<R>()>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<void>>&& parent
+  ) mutable {
+    if (auto error = parent->exception()) {
+      state->set_exception(std::move(error));
+      return;
+    }
+    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f))));
+  };
+}
+
+template<typename R, typename F>
+auto decorate_void_next(Callable<F, shared_future<R>()>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<void>>&& parent
+  ) mutable {
+    if (auto error = parent->exception()) {
+      state->set_exception(std::move(error));
+      return;
+    }
+    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f))));
+  };
+}
+
 // Tags for different continuation types and helper type traits to work with them
 
 enum class cnt_tag {
@@ -128,20 +170,10 @@ struct cnt_arg<cnt_tag::next, T> {
   using type = T;
   static type&& extract(std::shared_ptr<future_state<T>>& state) {return std::move(state->value_ref());}
 };
-template<>
-struct cnt_arg<cnt_tag::next, void> {
-  using type = void;
-  static void extract(std::shared_ptr<future_state<void>>& state) {state->value_ref();}
-};
 template<typename T>
 struct cnt_arg<cnt_tag::shared_next, T> {
   using type = std::add_lvalue_reference_t<std::add_const_t<T>>;
   static const type& extract(std::shared_ptr<future_state<T>>& state) {return state->value_ref();}
-};
-template<>
-struct cnt_arg<cnt_tag::shared_next, void> {
-  using type = void;
-  static void extract(std::shared_ptr<future_state<void>>& state) {state->value_ref();}
 };
 
 // Invoke continuation and emplace result into storage. Separate helpers for cases when continuation argument is
@@ -151,36 +183,8 @@ template<typename T>
 using is_regular = std::integral_constant<bool, !std::is_void<T>::value && !is_future<T>::value>;
 
 template<cnt_tag Tag, typename S, typename F, typename T>
-auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>>) -> std::enable_if_t<
-  std::is_void<cnt_arg_t<Tag, T>>::value && is_regular<
-    decltype(portable_concurrency::detail::invoke(std::forward<F>(func)))
-  >::value
-> {
-  state_sp->emplace(portable_concurrency::detail::invoke(std::forward<F>(func)));
-}
-
-template<cnt_tag Tag, typename S, typename F, typename T>
-auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>>) -> std::enable_if_t<
-  std::is_void<cnt_arg_t<Tag, T>>::value && std::is_void<
-    decltype(portable_concurrency::detail::invoke(std::forward<F>(func)))
-  >::value
-> {
-  portable_concurrency::detail::invoke(std::forward<F>(func));
-  state_sp->emplace();
-}
-
-template<cnt_tag Tag, typename S, typename F, typename T>
-auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>>) -> std::enable_if_t<
-  std::is_void<cnt_arg_t<Tag, T>>::value && is_future<
-    decltype(portable_concurrency::detail::invoke(std::forward<F>(func)))
-  >::value
-> {
-  S::unwrap(state_sp, state_of(portable_concurrency::detail::invoke(std::forward<F>(func))));
-}
-
-template<cnt_tag Tag, typename S, typename F, typename T>
 auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
-  !std::is_void<cnt_arg_t<Tag, T>>::value && is_regular<
+  is_regular<
     decltype(portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent)))
   >::value
 > {
@@ -191,7 +195,7 @@ auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<fut
 
 template<cnt_tag Tag, typename S, typename F, typename T>
 auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
-  !std::is_void<cnt_arg_t<Tag, T>>::value && std::is_void<
+  std::is_void<
     decltype(portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent)))
   >::value
 > {
@@ -201,7 +205,7 @@ auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<fut
 
 template<cnt_tag Tag, typename S, typename F, typename T>
 auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
-  !std::is_void<cnt_arg_t<Tag, T>>::value && is_future<
+  is_future<
     decltype(portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent)))
   >::value
 > {

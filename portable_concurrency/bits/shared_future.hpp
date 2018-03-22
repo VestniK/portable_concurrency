@@ -101,6 +101,20 @@ detail::cnt_future_t<F, typename shared_future<T>::get_result_type> shared_futur
   );
 }
 
+template<>
+template<typename E, typename F>
+detail::cnt_future_t<F, typename shared_future<void>::get_result_type> shared_future<void>::next(E&& exec, F&& f) const {
+  static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
+  using result_type = detail::remove_future_t<detail::cnt_result_t<F, void>>;
+  if (!state_)
+    throw std::future_error(std::future_errc::no_state);
+  return detail::make_then_state<result_type>(
+    state_,
+    std::forward<E>(exec),
+    detail::decorate_void_next<result_type, F>(std::forward<F>(f))
+  );
+}
+
 template<typename T>
 void shared_future<T>::detach() {
   if (!state_)
