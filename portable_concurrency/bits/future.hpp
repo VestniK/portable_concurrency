@@ -113,7 +113,7 @@ detail::cnt_future_t<F, T> future<T>::next(E&& exec, F&& f) {
   return detail::make_then_state<result_type>(
     std::move(state_),
     std::forward<E>(exec),
-    detail::decorate_next<detail::cnt_tag::next, T>(std::forward<F>(f))
+    detail::decorate_unique_next<result_type, T, F>(std::forward<F>(f))
   );
 }
 

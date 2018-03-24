@@ -97,7 +97,9 @@ detail::cnt_future_t<F, typename shared_future<T>::get_result_type> shared_futur
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
   return detail::make_then_state<result_type>(
-    state_, std::forward<E>(exec), detail::decorate_next<detail::cnt_tag::shared_next, T>(std::forward<F>(f))
+    state_,
+    std::forward<E>(exec),
+    detail::decorate_shared_next<result_type, T, F>(std::forward<F>(f))
   );
 }
 

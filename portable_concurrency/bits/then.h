@@ -111,6 +111,93 @@ auto decorate_shared_then(Callable<F, shared_future<R>(shared_future<T>)>&& f) {
   };
 }
 
+template<typename R, typename T, typename F>
+auto decorate_unique_next(Callable<F, R(T)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    if (auto error = parent->exception()) {
+      state->set_exception(std::move(error));
+      return;
+    }
+    set_state_value(*state, std::move(f), std::move(parent->value_ref()));
+  };
+}
+
+template<typename R, typename T, typename F>
+auto decorate_unique_next(Callable<F, future<R>(T)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    if (auto error = parent->exception()) {
+      state->set_exception(std::move(error));
+      return;
+    }
+    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), std::move(parent->value_ref()))));
+  };
+}
+
+template<typename R, typename T, typename F>
+auto decorate_unique_next(Callable<F, shared_future<R>(T)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    if (auto error = parent->exception()) {
+      state->set_exception(std::move(error));
+      return;
+    }
+    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), std::move(parent->value_ref()))));
+  };
+}
+
+template<typename R, typename T, typename F>
+auto decorate_shared_next(Callable<F, R(const T&)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    if (auto error = parent->exception()) {
+      state->set_exception(std::move(error));
+      return;
+    }
+    using cref_t = std::add_lvalue_reference_t<std::add_const_t<T>>;
+    set_state_value(*state, std::move(f), static_cast<cref_t>(parent->value_ref()));
+  };
+}
+
+template<typename R, typename T, typename F>
+auto decorate_shared_next(Callable<F, future<R>(const T&)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    if (auto error = parent->exception()) {
+      state->set_exception(std::move(error));
+      return;
+    }
+    using cref_t = std::add_lvalue_reference_t<std::add_const_t<T>>;
+    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), static_cast<cref_t>(parent->value_ref()))));
+  };
+}
+
+template<typename R, typename T, typename F>
+auto decorate_shared_next(Callable<F, shared_future<R>(const T&)>&& f) {
+  return [f = std::forward<F>(f)](
+    std::shared_ptr<shared_state<R>>&& state,
+    std::shared_ptr<future_state<T>>&& parent
+  ) mutable {
+    if (auto error = parent->exception()) {
+      state->set_exception(std::move(error));
+      return;
+    }
+    using cref_t = std::add_lvalue_reference_t<std::add_const_t<T>>;
+    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), static_cast<cref_t>(parent->value_ref()))));
+  };
+}
+
 template<typename R, typename F>
 auto decorate_void_next(Callable<F, R()>&& f) {
   return [f = std::forward<F>(f)](
@@ -151,67 +238,6 @@ auto decorate_void_next(Callable<F, shared_future<R>()>&& f) {
     }
     shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f))));
   };
-}
-
-// Tags for different continuation types and helper type traits to work with them
-
-enum class cnt_tag {
-  next,
-  shared_next
-};
-
-template<cnt_tag Type, typename T>
-struct cnt_arg;
-template<cnt_tag Type, typename T>
-using cnt_arg_t = typename cnt_arg<Type, T>::type;
-
-template<typename T>
-struct cnt_arg<cnt_tag::next, T> {
-  using type = T;
-  static type&& extract(std::shared_ptr<future_state<T>>& state) {return std::move(state->value_ref());}
-};
-template<typename T>
-struct cnt_arg<cnt_tag::shared_next, T> {
-  using type = std::add_lvalue_reference_t<std::add_const_t<T>>;
-  static const type& extract(std::shared_ptr<future_state<T>>& state) {return state->value_ref();}
-};
-
-// Invoke continuation and emplace result into storage. Separate helpers for cases when continuation argument is
-// void/non-void and continuation result is void/non-void.
-
-template<typename T>
-using is_regular = std::integral_constant<bool, !std::is_void<T>::value && !is_future<T>::value>;
-
-template<cnt_tag Tag, typename S, typename F, typename T>
-auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
-  is_regular<
-    decltype(portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent)))
-  >::value
-> {
-  state_sp->emplace(
-    portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent))
-  );
-}
-
-template<cnt_tag Tag, typename S, typename F, typename T>
-auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
-  std::is_void<
-    decltype(portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent)))
-  >::value
-> {
-  portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent));
-  state_sp->emplace();
-}
-
-template<cnt_tag Tag, typename S, typename F, typename T>
-auto invoke_emplace(std::shared_ptr<S>&& state_sp, F&& func, std::shared_ptr<future_state<T>> parent) -> std::enable_if_t<
-  is_future<
-    decltype(portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent)))
-  >::value
-> {
-  S::unwrap(state_sp, state_of(
-    portable_concurrency::detail::invoke(std::forward<F>(func), cnt_arg<Tag, T>::extract(parent))
-  ));
 }
 
 // continuation state
@@ -298,22 +324,6 @@ private:
   shared_state<R> state_;
   either<detail::monostate, cnt_closure<E, F, T>> action_;
 };
-
-template<cnt_tag Tag, typename T, typename F>
-auto decorate_next(F&& f) {
-  using cnt_res = cnt_result_t<F, cnt_arg_t<Tag, T>>;
-  using value_type = remove_future_t<cnt_res>;
-
-  return [func = std::decay_t<F>{std::forward<F>(f)}](
-    std::shared_ptr<shared_state<value_type>> state, std::shared_ptr<future_state<T>> parent
-  ) mutable {
-    if (auto error = parent->exception()) {
-      state->set_exception(std::move(error));
-      return;
-    }
-    invoke_emplace<Tag>(std::move(state), std::move(func), std::move(parent));
-  };
-}
 
 template<typename R, typename T, typename E, typename F>
 auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
