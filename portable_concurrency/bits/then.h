@@ -34,25 +34,17 @@ std::weak_ptr<T> weak(std::shared_ptr<T> ptr) {return {std::move(ptr)};}
 
 namespace this_ns = ::portable_concurrency::cxx14_v1::detail;
 
-template<typename... T>
-struct voidify {using type = void;};
+template<typename T>
+using cref_t = std::add_lvalue_reference_t<std::add_const_t<T>>;
 
-template<typename... T>
-using void_t = typename voidify<T...>::type;
+template<typename F, typename T>
+using DirectContinuation = std::enable_if_t<!is_future<cnt_result_t<F, T>>::value, F>;
 
-template<typename F, typename S, typename = void>
-struct is_invocable_s: std::false_type {};
-
-template<typename F, typename R, typename... A>
-struct is_invocable_s<F, R(A...), void_t<decltype(this_ns::invoke(std::declval<F>(), std::declval<A>()...))>>:
-  std::is_same<R, decltype(this_ns::invoke(std::declval<F>(), std::declval<A>()...))>
-{};
-
-template<typename F, typename S>
-using Callable = std::enable_if_t<is_invocable_s<F, S>::value, F>;
+template<typename F, typename T>
+using UnwrappableContinuation = std::enable_if_t<is_future<cnt_result_t<F, T>>::value, F>;
 
 template<typename R, typename T, typename F>
-auto decorate_unique_then(Callable<F, R(future<T>)>&& f) {
+auto decorate_unique_then(DirectContinuation<F, future<T>>&& f) {
   return [f = std::forward<F>(f)](
     std::shared_ptr<shared_state<R>>&& state,
     std::shared_ptr<future_state<T>>&& parent
@@ -62,7 +54,7 @@ auto decorate_unique_then(Callable<F, R(future<T>)>&& f) {
 }
 
 template<typename R, typename T, typename F>
-auto decorate_unique_then(Callable<F, future<R>(future<T>)>&& f) {
+auto decorate_unique_then(UnwrappableContinuation<F, future<T>>&& f) {
   return [f = std::forward<F>(f)](
     std::shared_ptr<shared_state<R>>&& state,
     std::shared_ptr<future_state<T>>&& parent
@@ -72,17 +64,7 @@ auto decorate_unique_then(Callable<F, future<R>(future<T>)>&& f) {
 }
 
 template<typename R, typename T, typename F>
-auto decorate_unique_then(Callable<F, shared_future<R>(future<T>)>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<T>>&& parent
-  ) mutable {
-    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), future<T>{std::move(parent)})));
-  };
-}
-
-template<typename R, typename T, typename F>
-auto decorate_shared_then(Callable<F, R(shared_future<T>)>&& f) {
+auto decorate_shared_then(DirectContinuation<F, shared_future<T>>&& f) {
   return [f = std::forward<F>(f)](
     std::shared_ptr<shared_state<R>>&& state,
     std::shared_ptr<future_state<T>>&& parent
@@ -92,7 +74,7 @@ auto decorate_shared_then(Callable<F, R(shared_future<T>)>&& f) {
 }
 
 template<typename R, typename T, typename F>
-auto decorate_shared_then(Callable<F, future<R>(shared_future<T>)>&& f) {
+auto decorate_shared_then(UnwrappableContinuation<F, shared_future<T>>&& f) {
   return [f = std::forward<F>(f)](
     std::shared_ptr<shared_state<R>>&& state,
     std::shared_ptr<future_state<T>>&& parent
@@ -102,17 +84,7 @@ auto decorate_shared_then(Callable<F, future<R>(shared_future<T>)>&& f) {
 }
 
 template<typename R, typename T, typename F>
-auto decorate_shared_then(Callable<F, shared_future<R>(shared_future<T>)>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<T>>&& parent
-  ) mutable {
-    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), shared_future<T>{std::move(parent)})));
-  };
-}
-
-template<typename R, typename T, typename F>
-auto decorate_unique_next(Callable<F, R(T)>&& f) {
+auto decorate_unique_next(DirectContinuation<F, T>&& f) {
   return [f = std::forward<F>(f)](
     std::shared_ptr<shared_state<R>>&& state,
     std::shared_ptr<future_state<T>>&& parent
@@ -126,7 +98,7 @@ auto decorate_unique_next(Callable<F, R(T)>&& f) {
 }
 
 template<typename R, typename T, typename F>
-auto decorate_unique_next(Callable<F, future<R>(T)>&& f) {
+auto decorate_unique_next(UnwrappableContinuation<F, T>&& f) {
   return [f = std::forward<F>(f)](
     std::shared_ptr<shared_state<R>>&& state,
     std::shared_ptr<future_state<T>>&& parent
@@ -140,7 +112,7 @@ auto decorate_unique_next(Callable<F, future<R>(T)>&& f) {
 }
 
 template<typename R, typename T, typename F>
-auto decorate_unique_next(Callable<F, shared_future<R>(T)>&& f) {
+auto decorate_shared_next(DirectContinuation<F, cref_t<T>>&& f) {
   return [f = std::forward<F>(f)](
     std::shared_ptr<shared_state<R>>&& state,
     std::shared_ptr<future_state<T>>&& parent
@@ -149,12 +121,12 @@ auto decorate_unique_next(Callable<F, shared_future<R>(T)>&& f) {
       state->set_exception(std::move(error));
       return;
     }
-    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), std::move(parent->value_ref()))));
+    set_state_value(*state, std::move(f), static_cast<cref_t<T>>(parent->value_ref()));
   };
 }
 
 template<typename R, typename T, typename F>
-auto decorate_shared_next(Callable<F, R(const T&)>&& f) {
+auto decorate_shared_next(UnwrappableContinuation<F, cref_t<T>>&& f) {
   return [f = std::forward<F>(f)](
     std::shared_ptr<shared_state<R>>&& state,
     std::shared_ptr<future_state<T>>&& parent
@@ -163,43 +135,14 @@ auto decorate_shared_next(Callable<F, R(const T&)>&& f) {
       state->set_exception(std::move(error));
       return;
     }
-    using cref_t = std::add_lvalue_reference_t<std::add_const_t<T>>;
-    set_state_value(*state, std::move(f), static_cast<cref_t>(parent->value_ref()));
-  };
-}
-
-template<typename R, typename T, typename F>
-auto decorate_shared_next(Callable<F, future<R>(const T&)>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<T>>&& parent
-  ) mutable {
-    if (auto error = parent->exception()) {
-      state->set_exception(std::move(error));
-      return;
-    }
-    using cref_t = std::add_lvalue_reference_t<std::add_const_t<T>>;
-    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), static_cast<cref_t>(parent->value_ref()))));
-  };
-}
-
-template<typename R, typename T, typename F>
-auto decorate_shared_next(Callable<F, shared_future<R>(const T&)>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<T>>&& parent
-  ) mutable {
-    if (auto error = parent->exception()) {
-      state->set_exception(std::move(error));
-      return;
-    }
-    using cref_t = std::add_lvalue_reference_t<std::add_const_t<T>>;
-    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), static_cast<cref_t>(parent->value_ref()))));
+    shared_state<R>::unwrap(
+      state, state_of(this_ns::invoke(std::move(f), static_cast<cref_t<T>>(parent->value_ref())))
+    );
   };
 }
 
 template<typename R, typename F>
-auto decorate_void_next(Callable<F, R()>&& f) {
+auto decorate_void_next(DirectContinuation<F, void>&& f) {
   return [f = std::forward<F>(f)](
     std::shared_ptr<shared_state<R>>&& state,
     std::shared_ptr<future_state<void>>&& parent
@@ -213,21 +156,7 @@ auto decorate_void_next(Callable<F, R()>&& f) {
 }
 
 template<typename R, typename F>
-auto decorate_void_next(Callable<F, future<R>()>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<void>>&& parent
-  ) mutable {
-    if (auto error = parent->exception()) {
-      state->set_exception(std::move(error));
-      return;
-    }
-    shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f))));
-  };
-}
-
-template<typename R, typename F>
-auto decorate_void_next(Callable<F, shared_future<R>()>&& f) {
+auto decorate_void_next(UnwrappableContinuation<F, void>&& f) {
   return [f = std::forward<F>(f)](
     std::shared_ptr<shared_state<R>>&& state,
     std::shared_ptr<future_state<void>>&& parent
