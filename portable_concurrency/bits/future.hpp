@@ -70,6 +70,12 @@ detail::cnt_future_t<F, future<T>> future<T>::then(F&& f) {
 }
 
 template<typename T>
+template<typename F>
+detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(canceler_arg_t tag, F&& f) {
+  return then(detail::inplace_executor{}, tag, std::forward<F>(f));
+}
+
+template<typename T>
 template<typename E, typename F>
 detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
@@ -80,6 +86,25 @@ detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
     std::move(state_),
     std::forward<E>(exec),
     detail::decorate_unique_then<result_type, T, F>(std::forward<F>(f))
+  );
+}
+
+template<typename T>
+template<typename E, typename F>
+detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(E&& exec, canceler_arg_t, F&& f) {
+  static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
+  using result_type = detail::promise_arg_t<F, T>;
+  if (!state_)
+    throw std::future_error(std::future_errc::no_state);
+  return detail::make_then_state<result_type>(
+    std::move(state_),
+    std::forward<E>(exec),
+    [f = std::forward<F>(f)](
+      std::shared_ptr<detail::shared_state<result_type>>&& state,
+      std::shared_ptr<detail::future_state<T>>&& parent
+    ) {
+      ::portable_concurrency::detail::invoke(f, promise<result_type>{std::move(state)}, future<T>{std::move(parent)});
+    }
   );
 }
 

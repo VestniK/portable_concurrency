@@ -91,7 +91,7 @@ struct promise_arg {
 };
 
 template<typename F, typename T>
-using promise_arg_t = decltype(promise_arg<T>::deduce(std::declval<F>()));
+using promise_arg_t = decltype(promise_arg<T>::deduce(std::declval<std::decay_t<F>>()));
 
 // varaidic helper swallow
 

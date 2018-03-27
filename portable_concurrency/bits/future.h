@@ -99,8 +99,14 @@ public:
   template<typename F>
   detail::cnt_future_t<F, future<T>> then(F&& f);
 
+  template<typename F>
+  detail::add_future_t<detail::promise_arg_t<F, T>> then(canceler_arg_t, F&& f);
+
   template<typename E, typename F>
   detail::cnt_future_t<F, future<T>> then(E&& exec, F&& f);
+
+  template<typename E, typename F>
+  detail::add_future_t<detail::promise_arg_t<F, T>> then(E&& exec, canceler_arg_t, F&& f);
 
   template<typename F>
   detail::cnt_future_t<F, T> next(F&& f);

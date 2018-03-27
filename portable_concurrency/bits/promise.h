@@ -14,9 +14,6 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
-struct canceler_arg_t {};
-constexpr canceler_arg_t canceler_arg = {};
-
 namespace detail {
 
 template<typename T>
@@ -44,6 +41,9 @@ struct promise_common {
       )
     }
   {}
+
+  promise_common(std::weak_ptr<detail::shared_state<T>>&& state): state_{in_place_index_t<2>{}, std::move(state)} {}
+
   ~promise_common() {
     auto state = get_state(false);
     if (state && !state->continuations().executed())
@@ -106,6 +106,9 @@ public:
   {}
   template<typename F>
   promise(canceler_arg_t tag, F&& f): common_{tag, std::forward<F>(f)} {}
+
+  promise(std::weak_ptr<detail::shared_state<T>>&& state): common_(std::move(state)) {}
+
   promise(promise&&) noexcept = default;
   promise(const promise&) = delete;
 

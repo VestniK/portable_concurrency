@@ -231,6 +231,16 @@ TEST(Canceler, is_not_called_if_promise_abandoned) {
   EXPECT_EQ(call_count, 0u);
 }
 
+TEST(InterruptableContinuation, broken_promise_delivered_if_valie_is_not_set) {
+  pc::promise<int> promise;
+  pc::future<std::string> future = promise.get_future().then(
+    pc::canceler_arg,
+    [](pc::promise<std::string>, pc::future<int>) {}
+  );
+  promise.set_value(42);
+  EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
+}
+
 } // namespace
 } // namespace test
 } // namespace portable_concurrency
