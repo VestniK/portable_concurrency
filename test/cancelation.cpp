@@ -8,6 +8,35 @@ namespace portable_concurrency {
 namespace test {
 namespace {
 
+[[gnu::unused]]
+void foo(pc::promise<int>, pc::future<std::string>) {}
+
+static_assert(
+  std::is_same<detail::promise_arg_t<decltype(foo), std::string>, int>::value,
+  "PromiseArgDeduce: should work on function refference"
+);
+
+static_assert(
+  std::is_same<detail::promise_arg_t<decltype(&foo), std::string>, int>::value,
+  "PromiseArgDeduce: should work on function pointer"
+);
+
+TEST(PromiseArgDeduce, shoud_work_on_lambda) {
+  auto lambda = [c = 5u](pc::promise<char> p, pc::future<std::string> f){p.set_value(f.get()[c]);};
+  static_assert(
+    std::is_same<detail::promise_arg_t<decltype(lambda), std::string>, char>::value,
+    "PromiseArgDeduce, should work on lambda"
+  );
+}
+
+TEST(PromiseArgDeduce, shoud_work_on_mutable_lambda) {
+  auto lambda = [c = 5u](pc::promise<char> p, pc::future<std::string> f) mutable {p.set_value(f.get()[c++]);};
+  static_assert(
+    std::is_same<detail::promise_arg_t<decltype(lambda), std::string>, char>::value,
+    "PromiseArgDeduce, should work on mutable lambda"
+  );
+}
+
 TEST(PromiseCancelation, no_object_held_by_promise_after_future_destruction) {
   auto val = std::make_shared<int>(42);
   std::weak_ptr<int> weak = val;
