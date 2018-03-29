@@ -241,6 +241,21 @@ TEST(InterruptableContinuation, broken_promise_delivered_if_valie_is_not_set) {
   EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
 }
 
+TEST(InterruptableContinuation, DISABLED_continuation_detects_if_result_is_not_awaiten) {
+  pc::promise<int> promise;
+  pc::future<std::string> future;
+  bool is_awaiten = true;
+  future = promise.get_future().then(
+    pc::canceler_arg,
+    [&](pc::promise<std::string> p, pc::future<int>) {
+      future = {};
+      is_awaiten = p.is_awaiten();
+    }
+  );
+  promise.set_value(42);
+  EXPECT_EQ(is_awaiten, false);
+}
+
 } // namespace
 } // namespace test
 } // namespace portable_concurrency
