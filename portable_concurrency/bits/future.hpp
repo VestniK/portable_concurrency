@@ -146,7 +146,7 @@ template<typename T>
 void future<T>::detach() {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
-  auto state_ref = state_;
+  auto* state_ref = state_.get();
   state_ref->push([captured_state = std::move(state_)] {});
 }
 
