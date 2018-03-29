@@ -44,51 +44,43 @@ template<typename F, typename T>
 using UnwrappableContinuation = std::enable_if_t<is_future<cnt_result_t<F, T>>::value, F>;
 
 template<typename R, typename T, typename F>
-auto decorate_unique_then(DirectContinuation<F, future<T>>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<T>>&& parent
-  ) mutable {
+auto decorate_unique_then(DirectContinuation<F, future<T>>&& f, std::shared_ptr<future_state<T>>&& parent) {
+  return [f = std::forward<F>(f), parent = std::move(parent)](std::shared_ptr<shared_state<R>>&& state) mutable {
     set_state_value(*state, std::move(f), future<T>{std::move(parent)});
   };
 }
 
 template<typename R, typename T, typename F>
-auto decorate_unique_then(UnwrappableContinuation<F, future<T>>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<T>>&& parent
-  ) mutable {
+auto decorate_unique_then(UnwrappableContinuation<F, future<T>>&& f, std::shared_ptr<future_state<T>>&& parent) {
+  return [f = std::forward<F>(f), parent = std::move(parent)](std::shared_ptr<shared_state<R>>&& state) mutable {
     shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), future<T>{std::move(parent)})));
   };
 }
 
 template<typename R, typename T, typename F>
-auto decorate_shared_then(DirectContinuation<F, shared_future<T>>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<T>>&& parent
+auto decorate_shared_then(DirectContinuation<F, shared_future<T>>&& f, const std::shared_ptr<future_state<T>>& parent) {
+  return [f = std::forward<F>(f), parent = std::shared_ptr<future_state<T>>{parent}](
+    std::shared_ptr<shared_state<R>>&& state
   ) mutable {
     set_state_value(*state, std::move(f), shared_future<T>{std::move(parent)});
   };
 }
 
 template<typename R, typename T, typename F>
-auto decorate_shared_then(UnwrappableContinuation<F, shared_future<T>>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<T>>&& parent
+auto decorate_shared_then(
+  UnwrappableContinuation<F, shared_future<T>>&& f,
+  const std::shared_ptr<future_state<T>>& parent
+) {
+  return [f = std::forward<F>(f), parent = std::shared_ptr<future_state<T>>{parent}](
+    std::shared_ptr<shared_state<R>>&& state
   ) mutable {
     shared_state<R>::unwrap(state, state_of(this_ns::invoke(std::move(f), shared_future<T>{std::move(parent)})));
   };
 }
 
 template<typename R, typename T, typename F>
-auto decorate_unique_next(DirectContinuation<F, T>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<T>>&& parent
-  ) mutable {
+auto decorate_unique_next(DirectContinuation<F, T>&& f, std::shared_ptr<future_state<T>>&& parent) {
+  return [f = std::forward<F>(f), parent = std::move(parent)](std::shared_ptr<shared_state<R>>&& state) mutable {
     if (auto error = parent->exception()) {
       state->set_exception(std::move(error));
       return;
@@ -98,11 +90,8 @@ auto decorate_unique_next(DirectContinuation<F, T>&& f) {
 }
 
 template<typename R, typename T, typename F>
-auto decorate_unique_next(UnwrappableContinuation<F, T>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<T>>&& parent
-  ) mutable {
+auto decorate_unique_next(UnwrappableContinuation<F, T>&& f, std::shared_ptr<future_state<T>>&& parent) {
+  return [f = std::forward<F>(f), parent = std::move(parent)](std::shared_ptr<shared_state<R>>&& state) mutable {
     if (auto error = parent->exception()) {
       state->set_exception(std::move(error));
       return;
@@ -112,11 +101,8 @@ auto decorate_unique_next(UnwrappableContinuation<F, T>&& f) {
 }
 
 template<typename R, typename T, typename F>
-auto decorate_shared_next(DirectContinuation<F, cref_t<T>>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<T>>&& parent
-  ) mutable {
+auto decorate_shared_next(DirectContinuation<F, cref_t<T>>&& f, const std::shared_ptr<future_state<T>>& parent) {
+  return [f = std::forward<F>(f), parent](std::shared_ptr<shared_state<R>>&& state) mutable {
     if (auto error = parent->exception()) {
       state->set_exception(std::move(error));
       return;
@@ -126,11 +112,8 @@ auto decorate_shared_next(DirectContinuation<F, cref_t<T>>&& f) {
 }
 
 template<typename R, typename T, typename F>
-auto decorate_shared_next(UnwrappableContinuation<F, cref_t<T>>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<T>>&& parent
-  ) mutable {
+auto decorate_shared_next(UnwrappableContinuation<F, cref_t<T>>&& f, const std::shared_ptr<future_state<T>>& parent) {
+  return [f = std::forward<F>(f), parent](std::shared_ptr<shared_state<R>>&& state) mutable {
     if (auto error = parent->exception()) {
       state->set_exception(std::move(error));
       return;
@@ -142,11 +125,8 @@ auto decorate_shared_next(UnwrappableContinuation<F, cref_t<T>>&& f) {
 }
 
 template<typename R, typename F>
-auto decorate_void_next(DirectContinuation<F, void>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<void>>&& parent
-  ) mutable {
+auto decorate_void_next(DirectContinuation<F, void>&& f, std::shared_ptr<future_state<void>> parent) {
+  return [f = std::forward<F>(f), parent = std::move(parent)](std::shared_ptr<shared_state<R>>&& state) mutable {
     if (auto error = parent->exception()) {
       state->set_exception(std::move(error));
       return;
@@ -156,11 +136,8 @@ auto decorate_void_next(DirectContinuation<F, void>&& f) {
 }
 
 template<typename R, typename F>
-auto decorate_void_next(UnwrappableContinuation<F, void>&& f) {
-  return [f = std::forward<F>(f)](
-    std::shared_ptr<shared_state<R>>&& state,
-    std::shared_ptr<future_state<void>>&& parent
-  ) mutable {
+auto decorate_void_next(UnwrappableContinuation<F, void>&& f, std::shared_ptr<future_state<void>> parent) {
+  return [f = std::forward<F>(f), parent = std::move(parent)](std::shared_ptr<shared_state<R>>&& state) mutable {
     if (auto error = parent->exception()) {
       state->set_exception(std::move(error));
       return;
@@ -171,15 +148,14 @@ auto decorate_void_next(UnwrappableContinuation<F, void>&& f) {
 
 // continuation state
 
-template<typename E, typename F, typename T>
+template<typename E, typename F>
 struct cnt_closure {
-  cnt_closure(const E& exec, F&& func, std::shared_ptr<future_state<T>> parent):
-    exec(exec), func(std::move(func)), parent(std::move(parent))
+  cnt_closure(E&& exec, F&& func):
+    exec(std::move(exec)), func(std::move(func))
   {}
 
   E exec;
   F func;
-  std::shared_ptr<future_state<T>> parent;
 };
 
 class continuation_state {
@@ -219,11 +195,11 @@ struct cnt_action {
   }
 };
 
-template<typename R, typename T, typename E, typename F>
+template<typename R, typename E, typename F>
 class cnt_state final: public continuation_state {
 public:
-  cnt_state(const E& exec, F func, std::shared_ptr<future_state<T>>&& parent):
-    action_(in_place_index_t<1>{}, exec, std::move(func), std::move(parent))
+  cnt_state(E exec, F&& func):
+    action_(in_place_index_t<1>{}, std::move(exec), std::move(func))
   {}
 
   future_state<R>* get_future_state() {return &state_;}
@@ -242,7 +218,7 @@ public:
 
   void run(std::shared_ptr<continuation_state> self_sp) override try {
     auto& action = action_.get(in_place_index_t<1>{});
-    action.func(std::shared_ptr<shared_state<R>>{self_sp, &state_}, std::move(action.parent));
+    action.func(std::shared_ptr<shared_state<R>>{self_sp, &state_});
     action_.clean();
   } catch (...) {
     state_.set_exception(std::current_exception());
@@ -251,16 +227,15 @@ public:
 
 private:
   shared_state<R> state_;
-  either<detail::monostate, cnt_closure<E, F, T>> action_;
+  either<detail::monostate, cnt_closure<E, F>> action_;
 };
 
-template<typename R, typename T, typename E, typename F>
-auto make_then_state(std::shared_ptr<future_state<T>> parent, E&& exec, F&& f) {
-  using cnt_data_t = cnt_state<R, T, std::decay_t<E>, std::decay_t<F>>;
+template<typename R, typename E, typename F>
+auto make_then_state(continuations_stack& subscriptions, E&& exec, F&& f) {
+  using cnt_data_t = cnt_state<R, std::decay_t<E>, std::decay_t<F>>;
 
-  auto& continuations = parent->continuations();
-  auto data = std::make_shared<cnt_data_t>(std::forward<E>(exec), std::forward<F>(f), std::move(parent));
-  continuations.push([wdata = weak(data)] {
+  auto data = std::make_shared<cnt_data_t>(std::forward<E>(exec), std::forward<F>(f));
+  subscriptions.push([wdata = weak(data)] {
     if (auto data = wdata.lock())
       cnt_data_t::schedule(data);
   });

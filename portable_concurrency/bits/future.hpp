@@ -82,10 +82,11 @@ detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, future<T>>>;
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
+  detail::continuations_stack& subscriptions = state_->continuations();
   return detail::make_then_state<result_type>(
-    std::move(state_),
+    subscriptions,
     std::forward<E>(exec),
-    detail::decorate_unique_then<result_type, T, F>(std::forward<F>(f))
+    detail::decorate_unique_then<result_type, T, F>(std::forward<F>(f), std::move(state_))
   );
 }
 
@@ -96,13 +97,13 @@ detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(E&& exec, canc
   using result_type = detail::promise_arg_t<F, T>;
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
+  detail::continuations_stack& subscriptions = state_->continuations();
   return detail::make_then_state<result_type>(
-    std::move(state_),
+    subscriptions,
     std::forward<E>(exec),
-    [f = std::forward<F>(f)](
-      std::shared_ptr<detail::shared_state<result_type>>&& state,
-      std::shared_ptr<detail::future_state<T>>&& parent
-    ) {
+    [f = std::forward<F>(f), parent = std::move(state_)](
+      std::shared_ptr<detail::shared_state<result_type>>&& state
+    ) mutable {
       ::portable_concurrency::detail::invoke(f, promise<result_type>{std::move(state)}, future<T>{std::move(parent)});
     }
   );
@@ -121,10 +122,11 @@ detail::cnt_future_t<F, void> future<void>::next(E&& exec, F&& f) {
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, void>>;
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
+  detail::continuations_stack& subscriptions = state_->continuations();
   return detail::make_then_state<result_type>(
-    std::move(state_),
+    subscriptions,
     std::forward<E>(exec),
-    detail::decorate_void_next<result_type, F>(std::forward<F>(f))
+    detail::decorate_void_next<result_type, F>(std::forward<F>(f), std::move(state_))
   );
 }
 
@@ -135,10 +137,11 @@ detail::cnt_future_t<F, T> future<T>::next(E&& exec, F&& f) {
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, T>>;
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
+  detail::continuations_stack& subscriptions = state_->continuations();
   return detail::make_then_state<result_type>(
-    std::move(state_),
+    subscriptions,
     std::forward<E>(exec),
-    detail::decorate_unique_next<result_type, T, F>(std::forward<F>(f))
+    detail::decorate_unique_next<result_type, T, F>(std::forward<F>(f), std::move(state_))
   );
 }
 
