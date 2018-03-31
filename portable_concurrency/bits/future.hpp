@@ -102,9 +102,10 @@ detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(E&& exec, canc
     subscriptions,
     std::forward<E>(exec),
     [f = std::forward<F>(f), parent = std::move(state_)](
-      std::shared_ptr<detail::shared_state<result_type>>&& state
+      std::shared_ptr<detail::shared_state<result_type>> state
     ) mutable {
-      ::portable_concurrency::detail::invoke(f, promise<result_type>{std::move(state)}, future<T>{std::move(parent)});
+      promise<result_type> p{std::exchange(state, nullptr)};
+      ::portable_concurrency::detail::invoke(f, std::move(p), future<T>{std::move(parent)});
     }
   );
 }

@@ -199,7 +199,7 @@ struct cnt_action {
 
   void operator() () {
     if (auto data = std::exchange(wdata, {}).lock())
-      CntState::run(data);
+      CntState::run(std::move(data));
   }
 
   ~cnt_action() {
@@ -224,16 +224,18 @@ public:
     state_.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
   }
 
-  static void schedule(const std::shared_ptr<cnt_state>& self_sp) {
+  static void schedule(std::shared_ptr<cnt_state> self_sp) {
     E exec = self_sp->action_.get(in_place_index_t<1>{}).exec;
-    post(exec, cnt_action<cnt_state>{self_sp});
+    std::weak_ptr<cnt_state> weak_self = std::exchange(self_sp, nullptr);
+    post(exec, cnt_action<cnt_state>{std::move(weak_self)});
   }
 
   static void run(std::shared_ptr<cnt_state> self_sp) noexcept {
     F func = std::move(self_sp->action_.get(in_place_index_t<1>{}).func);
     self_sp->action_.clean();
     shared_state<R>* state = &self_sp->state_;
-    func(std::shared_ptr<shared_state<R>>{std::exchange(self_sp, nullptr), state});
+    std::shared_ptr<shared_state<R>> state_sp{std::exchange(self_sp, nullptr), state};
+    func(std::move(state_sp));
   }
 
 private:
@@ -248,7 +250,7 @@ auto make_then_state(continuations_stack& subscriptions, E&& exec, F&& f) {
   auto data = std::make_shared<cnt_data_t>(std::forward<E>(exec), std::forward<F>(f));
   subscriptions.push([wdata = weak(data)] {
     if (auto data = wdata.lock())
-      cnt_data_t::schedule(data);
+      cnt_data_t::schedule(std::move(data));
   });
   return std::shared_ptr<future_state<R>>{data, data->get_future_state()};
 }

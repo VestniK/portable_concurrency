@@ -241,7 +241,7 @@ TEST(InterruptableContinuation, broken_promise_delivered_if_valie_is_not_set) {
   EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
 }
 
-TEST(InterruptableContinuation, DISABLED_continuation_detects_if_result_is_not_awaiten) {
+TEST(InterruptableContinuation, continuation_detects_if_result_is_not_awaiten) {
   pc::promise<int> promise;
   pc::future<std::string> future;
   bool is_awaiten = true;
