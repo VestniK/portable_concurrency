@@ -185,7 +185,7 @@ struct cnt_action {
   cnt_action(const cnt_action&) = delete;
 
 #if defined(__GNUC__) && __GNUC__ < 5
-  cnt_action(std::weak_ptr<continuation_state> wdata): wdata(std::move(wdata)) {}
+  cnt_action(std::weak_ptr<CntState> wdata): wdata(std::move(wdata)) {}
   cnt_action(cnt_action&& rhs) noexcept: wdata(std::move(rhs.wdata)) {rhs.wdata.reset();}
   cnt_action& operator=(cnt_action&& rhs) noexcept {
     wdata = std::move(rhs.wdata);
