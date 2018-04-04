@@ -8,12 +8,12 @@ set(CMAKE_AUTOMOC On)
 find_package(Qt5Core REQUIRED)
 find_package(portable_concurrency REQUIRED)
 
-add_executable(qt_pc
+add_executable(qt-pc
   main.cpp
   PCFutureWatcher.cpp
   PCFutureWatcher.h
 )
-target_link_libraries(qt_pc
+target_link_libraries(qt-pc
   Qt5::Core
   portable_concurrency::portable_concurrency
 )

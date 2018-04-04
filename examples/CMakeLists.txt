@@ -20,3 +20,8 @@ find_package(Qt5Core QUIET)
 if (Qt5Core_FOUND)
   add_subdirectory(qt)
 endif()
+
+find_package(asio QUIET)
+if (asio_FOUND)
+  add_subdirectory(asio)
+endif()
