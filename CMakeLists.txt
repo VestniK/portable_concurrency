@@ -23,11 +23,11 @@ install(FILES portable_concurrency-config.cmake
 install(EXPORT portable_concurrency NAMESPACE portable_concurrency:: DESTINATION lib/cmake/portable_concurrency)
 export(EXPORT portable_concurrency
   NAMESPACE portable_concurrency::
-  FILE ${CMAKE_CURRENT_BINARY_DIR}/portable_concurrency/portable_concurrency.cmake
+  FILE ${CMAKE_CURRENT_BINARY_DIR}/portable_concurrency.cmake
 )
 configure_file(
   portable_concurrency-config.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/portable_concurrency/portable_concurrency-config.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/portable_concurrency-config.cmake
   COPYONLY
 )
 set(CPACK_GENERATOR TGZ)
