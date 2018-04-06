@@ -183,8 +183,8 @@ TEST(Canceler, is_not_called_if_future_destroyed_after_set_value) {
 TEST(Canceler, is_not_called_if_future_destroyed_after_set_exception) {
   size_t call_count = 0u;
   {
-    pc::promise<int> promise{pc::canceler_arg, [&] {++call_count;}};
-    auto future = promise.get_future();
+    pc::promise<int&> promise{pc::canceler_arg, [&] {++call_count;}};
+    pc::future<int&> future = promise.get_future();
     promise.set_exception(std::make_exception_ptr(std::runtime_error{"qwe"}));
   }
   EXPECT_EQ(call_count, 0u);
@@ -193,9 +193,9 @@ TEST(Canceler, is_not_called_if_future_destroyed_after_set_exception) {
 TEST(Canceler, is_not_called_if_promise_abandoned) {
   size_t call_count = 0u;
   {
-    pc::future<int> f;
+    pc::future<void> f;
     {
-      pc::promise<int> promise{pc::canceler_arg, [&] {++call_count;}};
+      pc::promise<void> promise{pc::canceler_arg, [&] {++call_count;}};
       f = promise.get_future();
     }
   }
