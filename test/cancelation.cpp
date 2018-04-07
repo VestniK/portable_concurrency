@@ -202,6 +202,17 @@ TEST(Canceler, is_not_called_if_promise_abandoned) {
   EXPECT_EQ(call_count, 0u);
 }
 
+TEST(Canceller, non_const_operation_is_supported) {
+  std::shared_ptr<int> resource = std::make_shared<int>(42);
+  std::weak_ptr<int> weak = resource;
+  pc::promise<int> promise{
+    pc::canceler_arg,
+    [resource = std::move(resource)] () mutable {resource.reset();}
+  };
+  promise.get_future();
+  EXPECT_TRUE(weak.expired());
+}
+
 } // namespace
 } // namespace test
 } // namespace portable_concurrency

@@ -36,7 +36,7 @@ struct promise_common {
       in_place_index_t<1>{},
       std::shared_ptr<shared_state<T>>(
         new shared_state<T>,
-        [f = std::forward<F>(f)](shared_state<T>* ptr) {
+        [f = std::forward<F>(f)](shared_state<T>* ptr) mutable {
           std::unique_ptr<shared_state<T>> holder{ptr};
           if (!ptr->continuations().executed())
             f();
