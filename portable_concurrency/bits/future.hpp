@@ -71,8 +71,8 @@ detail::cnt_future_t<F, future<T>> future<T>::then(F&& f) {
 
 template<typename T>
 template<typename F>
-detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(canceler_arg_t tag, F&& f) {
-  return then(detail::inplace_executor{}, tag, std::forward<F>(f));
+detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(F&& f) {
+  return then(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template<typename T>
@@ -92,7 +92,7 @@ detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
 
 template<typename T>
 template<typename E, typename F>
-detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(E&& exec, canceler_arg_t, F&& f) {
+detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(E&& exec, F&& f) {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::promise_arg_t<F, T>;
   if (!state_)

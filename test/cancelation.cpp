@@ -234,7 +234,6 @@ TEST(Canceler, is_not_called_if_promise_abandoned) {
 TEST(InterruptableContinuation, broken_promise_delivered_if_valie_is_not_set) {
   pc::promise<int> promise;
   pc::future<std::string> future = promise.get_future().then(
-    pc::canceler_arg,
     [](pc::promise<std::string>, pc::future<int>) {}
   );
   promise.set_value(42);
@@ -246,7 +245,6 @@ TEST(InterruptableContinuation, continuation_detects_if_result_is_not_awaiten) {
   pc::future<std::string> future;
   bool is_awaiten = true;
   future = promise.get_future().then(
-    pc::canceler_arg,
     [&](pc::promise<std::string> p, pc::future<int>) {
       future = {};
       is_awaiten = p.is_awaiten();
