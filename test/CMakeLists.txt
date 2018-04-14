@@ -39,7 +39,7 @@ set(TEST_TOOLS
 
 add_executable(unit_tests ${API_TESTS} ${DETAILS_TESTS} ${TEST_TOOLS})
 target_link_libraries(unit_tests portable_concurrency GTest::GTest GTest::Main)
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 7)
   # Useless warning on correct code which marks the problem which can only happen
   # when linking code compiled with -std=c++14 and -std=c++17 flags together.
   target_compile_options(unit_tests PRIVATE -Wno-noexcept-type)

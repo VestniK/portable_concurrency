@@ -61,12 +61,20 @@ auto is_null(const T&) noexcept
   return false;
 }
 
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 6
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress"
+#pragma GCC diagnostic ignored "-Wnonnull-compare"
+#endif
 template<typename T>
 auto is_null(const T& val) noexcept
   -> std::enable_if_t<is_null_comparable<T>::value, bool>
 {
   return val == nullptr;
 }
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 6
+#pragma GCC diagnostic pop
+#endif
 
 template<typename R, typename... A>
 small_unique_function<R(A...)>::small_unique_function() noexcept = default;
