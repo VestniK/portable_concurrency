@@ -46,15 +46,24 @@ const callable_vtbl<R, A...>& get_callable_vtbl() {
 }
 
 template<typename T>
+struct voidify {using type = void;};
+
+template<typename T, typename = void>
+struct is_null_comparable: std::false_type {};
+
+template<typename T>
+struct is_null_comparable<T, typename voidify<decltype(std::declval<T>() == nullptr)>::type>: std::true_type {};
+
+template<typename T>
 auto is_null(const T&) noexcept
-  -> std::enable_if_t<!std::is_convertible<std::nullptr_t, T>::value, bool>
+  -> std::enable_if_t<!is_null_comparable<T>::value, bool>
 {
   return false;
 }
 
 template<typename T>
 auto is_null(const T& val) noexcept
-  -> std::enable_if_t<std::is_convertible<std::nullptr_t, T>::value, bool>
+  -> std::enable_if_t<is_null_comparable<T>::value, bool>
 {
   return val == nullptr;
 }

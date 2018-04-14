@@ -59,5 +59,14 @@ TEST_F(small_unique_function, wrapps_packaged_task) {
   EXPECT_EQ(future.get(), 5u);
 }
 
+TEST_F(small_unique_function, lamda_with_this_as_only_capture) {
+  struct {
+    int x;
+    auto foo() {return [this](int a) {return a*x;};}
+  } obj;
+  pc::detail::small_unique_function<int(int)> f = obj.foo();
+  EXPECT_TRUE(f);
+}
+
 } // namespace test
 } // anonymous namespace
