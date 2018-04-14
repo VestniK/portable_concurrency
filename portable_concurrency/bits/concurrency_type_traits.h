@@ -76,7 +76,7 @@ using cnt_future_t = add_future_t<cnt_result_t<Func, Arg>>;
 // deduce result type for interruptable continuation
 
 template<typename T>
-struct promise_arg {
+struct promise_deducer {
   template<typename R>
   static R deduce(void (*) (promise<R>, future<T>));
 
@@ -90,8 +90,19 @@ struct promise_arg {
   static auto deduce(F) -> decltype(deduce_method(&F::operator()));
 };
 
+template<typename T>
+struct voidify {using type = void;};
+
+template<typename F, typename T, typename = void>
+struct promise_arg {};
+
 template<typename F, typename T>
-using promise_arg_t = decltype(promise_arg<T>::deduce(std::declval<std::decay_t<F>>()));
+struct promise_arg<F, T, typename voidify<decltype(promise_deducer<T>::deduce(std::declval<std::decay_t<F>>()))>::type> {
+  using type = decltype(promise_deducer<T>::deduce(std::declval<std::decay_t<F>>()));
+};
+
+template<typename F, typename T>
+using promise_arg_t = typename promise_arg<F, T>::type;
 
 // varaidic helper swallow
 
