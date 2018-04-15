@@ -78,13 +78,13 @@ using cnt_future_t = add_future_t<cnt_result_t<Func, Arg>>;
 template<typename T>
 struct promise_deducer {
   template<typename R>
-  static R deduce(void (*) (promise<R>, future<T>));
+  static R deduce(void (*) (promise<R>&, future<T>));
 
   template<typename R, typename C>
-  static R deduce_method(void (C::*) (promise<R>, future<T>) const);
+  static R deduce_method(void (C::*) (promise<R>&, future<T>) const);
 
   template<typename R, typename C>
-  static R deduce_method(void (C::*) (promise<R>, future<T>));
+  static R deduce_method(void (C::*) (promise<R>&, future<T>));
 
   template<typename F>
   static auto deduce(F) -> decltype(deduce_method(&F::operator()));

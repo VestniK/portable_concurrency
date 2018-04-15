@@ -90,6 +90,22 @@ detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
   );
 }
 
+/**
+ * Attaches interruptable continuation function `f` to this future object. [EXTENSION]
+ *
+ * Function must be callable with signature `void(promise<R>&, future<T>)`. Promise object passed as the first parameter
+ * can be used
+ *  * to test if the result of current operation is awaiten by any future or shared_future with `promise::is_awaiten`
+ *    member function
+ *  * to set the result or failure of the current operation with `promise::set_value` or `promise::set_exception` member
+ *    functions
+ *  * to move it into another promise which will be used to set vale or exception by some other operation
+ *
+ * If continuation function exits via exception it will be caut and stored in a shared state assotiated with the
+ * continuation as if `promise::set_exception` is called on a promise object passed as the first argume ot `f`.
+ * Note: This means that the behavior is undefined if continuation function moved promise argument to some other promise
+ * object and then thrown an exception.
+ */
 template<typename T>
 template<typename E, typename F>
 detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(E&& exec, F&& f) {
@@ -105,7 +121,11 @@ detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(E&& exec, F&& 
       std::shared_ptr<detail::shared_state<result_type>> state
     ) mutable {
       promise<result_type> p{std::exchange(state, nullptr)};
-      ::portable_concurrency::detail::invoke(f, std::move(p), future<T>{std::move(parent)});
+      try {
+        ::portable_concurrency::detail::invoke(f, p, future<T>{std::move(parent)});
+      } catch (...) {
+        p.set_exception(std::current_exception());
+      }
     }
   );
 }
