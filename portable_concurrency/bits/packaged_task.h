@@ -18,7 +18,7 @@ template<typename R, typename... A>
 struct packaged_task_state {
   virtual ~packaged_task_state() = default;
 
-  virtual void run(A...) = 0;
+  virtual void run(A&&...) = 0;
   virtual future_state<R>* get_future_state() = 0;
   virtual void abandon() = 0;
 };
@@ -27,8 +27,8 @@ template<typename F, typename R, typename... A>
 struct task_state final: packaged_task_state<R, A...> {
   task_state(F&& f): func(std::forward<F>(f)) {}
 
-  void run(A... a) override {
-    ::portable_concurrency::cxx14_v1::detail::set_state_value(state, func, a...);
+  void run(A&&... a) override {
+    ::portable_concurrency::cxx14_v1::detail::set_state_value(state, func, std::forward<A>(a)...);
   }
 
   future_state<R>* get_future_state() override {
@@ -86,7 +86,7 @@ public:
 
   void operator() (A... a) {
     if (auto state = get_state())
-      state->run(a...);
+      state->run(std::forward<A>(a)...);
   }
 
 private:

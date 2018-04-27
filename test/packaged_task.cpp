@@ -18,33 +18,114 @@ TYPED_TEST_CASE(PackagedTaskTest, TestTypes);
 
 namespace tests {
 
-template<typename T>
-void default_constructed_is_invalid() {
-  pc::packaged_task<T()> task;
+// Construction/Assignment
+
+TEST(packaged_task, default_constructed_is_invalid) {
+  pc::packaged_task<int(std::string)> task;
   EXPECT_FALSE(task.valid());
 }
 
-template<typename T>
-void moved_to_constructor_is_invalid() {
-  pc::packaged_task<T()> task1(some_value<T>);
-  EXPECT_TRUE(task1.valid());
-
-  pc::packaged_task<T()> task2(std::move(task1));
-  EXPECT_FALSE(task1.valid());
-  EXPECT_TRUE(task2.valid());
+TEST(packaged_task, cunstructed_from_funcion_object_is_valid) {
+  pc::packaged_task<void(int)> task{[](int) {}};
+  EXPECT_TRUE(task.valid());
 }
 
-template<typename T>
-void moved_to_assigment_is_invalid() {
-  pc::packaged_task<T()> task1(some_value<T>);
-  pc::packaged_task<T()> task2;
-  EXPECT_TRUE(task1.valid());
-  EXPECT_FALSE(task2.valid());
-
-  task2 = std::move(task1);
-  EXPECT_FALSE(task1.valid());
-  EXPECT_TRUE(task2.valid());
+TEST(packaged_task, move_constructed_from_valid_is_valid) {
+  pc::packaged_task<void(int)> src_task{[](int) {}};
+  pc::packaged_task<void(int)> dst_task{std::move(src_task)};
+  EXPECT_TRUE(dst_task.valid());
 }
+
+TEST(packaged_task, move_constructed_from_invalid_is_invalid) {
+  pc::packaged_task<void(int)> src_task;
+  pc::packaged_task<void(int)> dst_task{std::move(src_task)};
+  EXPECT_FALSE(dst_task.valid());
+}
+
+TEST(packaged_task, move_assigned_with_valid_is_valid) {
+  pc::packaged_task<void(int)> src_task{[](int) {}};
+  pc::packaged_task<void(int)> dst_task;
+  dst_task = std::move(src_task);
+  EXPECT_TRUE(dst_task.valid());
+}
+
+TEST(packaged_task, move_assigned_with_invalid_is_invalid) {
+  pc::packaged_task<void(int)> src_task;
+  pc::packaged_task<void(int)> dst_task;
+  dst_task = std::move(src_task);
+  EXPECT_FALSE(dst_task.valid());
+}
+
+TEST(packaged_task, moved_to_constructor_is_invalid) {
+  pc::packaged_task<void(int)> src_task{[](int) {}};
+  pc::packaged_task<void(int)> dst_task{std::move(src_task)};
+  EXPECT_FALSE(src_task.valid());
+}
+
+TEST(packaged_task, moved_to_assignment_is_invalid) {
+  pc::packaged_task<void(int)> src_task{[](int) {}};
+  pc::packaged_task<void(int)> dst_task;
+  dst_task = std::move(src_task);
+  EXPECT_FALSE(src_task.valid());
+}
+
+// Invocation
+
+TEST(packaged_task, invoke_with_copyable_argument) {
+  pc::packaged_task<size_t(std::string)> task{[](std::string arg) {return arg.size();}};
+  pc::future<size_t> f = task.get_future();
+
+  task("qwe");
+  EXPECT_EQ(f.get(), 3u);
+}
+
+TEST(packaged_task, invoke_with_move_only_argument) {
+  pc::packaged_task<int(std::unique_ptr<int>)> task{[](std::unique_ptr<int> arg) {return *arg;}};
+  pc::future<int> f = task.get_future();
+
+  task(std::make_unique<int>(42));
+  EXPECT_EQ(f.get(), 42);
+}
+
+TEST(packaged_task, invoke_with_lvalue_const_reference_argument) {
+  pc::packaged_task<size_t(std::string)> task{[](const std::string& arg) {return arg.size();}};
+  pc::future<size_t> f = task.get_future();
+
+  task("qwe");
+  EXPECT_EQ(f.get(), 3u);
+}
+
+TEST(packaged_task, invoke_with_rvalue_reference_argument) {
+  pc::packaged_task<int(std::unique_ptr<int>&&)> task{[](std::unique_ptr<int>&& arg) {return *arg;}};
+  pc::future<int> f = task.get_future();
+
+  task(std::make_unique<int>(42));
+  EXPECT_EQ(f.get(), 42);
+}
+
+TEST(packaged_task, invoke_with_mutable_reference_argument) {
+  pc::packaged_task<int*(int&)> task{[](int& arg) {return &arg;}};
+  pc::future<int*> f = task.get_future();
+
+  int the_val = 42;
+  task(the_val);
+  EXPECT_EQ(f.get(), &the_val);
+}
+
+// Abandon
+
+TEST(packaged_task, abandoned_task_sets_proper_error) {
+  pc::future<size_t> future;
+  {
+    pc::packaged_task<size_t(size_t, const std::string&)> task{[](size_t a, const std::string& b) {
+      return a + b.size();
+    }};
+    future = task.get_future();
+  }
+  EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
+}
+
+// Old tests to refactor
 
 template<typename T>
 void swap_valid_task_with_invalid() {
@@ -180,18 +261,6 @@ void moveonly_functor_task() {
 }
 
 template<typename T>
-void one_param_task() {
-  pc::packaged_task<T(std::chrono::milliseconds)> task([](std::chrono::milliseconds tm) -> T {
-    EXPECT_EQ(tm, 5ms);
-    return some_value<T>();
-  });
-  auto f = task.get_future();
-  g_future_tests_env->run_async(std::move(task), 5ms);
-  ASSERT_TRUE(f.valid());
-  EXPECT_SOME_VALUE(f);
-}
-
-template<typename T>
 void two_param_task() {
   pc::packaged_task<T(std::chrono::milliseconds, int)> task([](std::chrono::milliseconds tm, int n) -> T {
     EXPECT_EQ(tm, 1ms);
@@ -206,9 +275,6 @@ void two_param_task() {
 
 } // namespace tests
 
-TYPED_TEST(PackagedTaskTest, default_constructed_is_invalid) {tests::default_constructed_is_invalid<TypeParam>();}
-TYPED_TEST(PackagedTaskTest, moved_to_constructor_is_invalid) {tests::moved_to_constructor_is_invalid<TypeParam>();}
-TYPED_TEST(PackagedTaskTest, moved_to_assigment_is_invalid) {tests::moved_to_assigment_is_invalid<TypeParam>();}
 TYPED_TEST(PackagedTaskTest, swap_valid_task_with_invalid) {tests::swap_valid_task_with_invalid<TypeParam>();}
 TYPED_TEST(PackagedTaskTest, get_task_future_twice) {tests::get_task_future_twice<TypeParam>();}
 TYPED_TEST(PackagedTaskTest, successfull_call_makes_state_ready) {tests::successfull_call_makes_state_ready<TypeParam>();}
@@ -218,19 +284,7 @@ TYPED_TEST(PackagedTaskTest, call_task_twice) {tests::call_task_twice<TypeParam>
 TYPED_TEST(PackagedTaskTest, function_task) {tests::function_task<TypeParam>();}
 TYPED_TEST(PackagedTaskTest, copyable_functor_task) {tests::copyable_functor_task<TypeParam>();}
 TYPED_TEST(PackagedTaskTest, moveonly_functor_task) {tests::moveonly_functor_task<TypeParam>();}
-TYPED_TEST(PackagedTaskTest, one_param_task) {tests::one_param_task<TypeParam>();}
 TYPED_TEST(PackagedTaskTest, two_param_task) {tests::two_param_task<TypeParam>();}
-
-TYPED_TEST(PackagedTaskTest, abandoned_task_sets_proper_error) {
-  pc::future<TypeParam> future;
-  {
-    pc::packaged_task<TypeParam(int, const std::string&)> task{[](int, const std::string&) -> TypeParam {
-      return some_value<TypeParam>();
-    }};
-    future = task.get_future();
-  }
-  EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
-}
 
 TYPED_TEST(PackagedTaskTest, get_future_on_invalid_throws_no_state) {
   pc::packaged_task<TypeParam()> task;
