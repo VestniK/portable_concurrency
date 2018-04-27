@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #include <type_traits>
 
 #include "small_unique_function.h"
@@ -9,6 +8,9 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
+
+[[noreturn]]
+void throw_bad_func_call();
 
 // R(A...) is incomplete type so it is illegal to use sizeof(F)/alignof(F) for decayed function refference
 // turn it into function pointer which is implecitly constructable from function refference
@@ -118,7 +120,7 @@ small_unique_function<R(A...)>& small_unique_function<R(A...)>::operator= (small
 template<typename R, typename... A>
 R small_unique_function<R(A...)>::operator() (A... args)  {
   if (!vtbl_)
-    throw std::bad_function_call{};
+    throw_bad_func_call();
   return vtbl_->call(buffer_, args...);
 }
 

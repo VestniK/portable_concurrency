@@ -1,3 +1,5 @@
+#include <functional>
+
 #include "align.h"
 #include "future.hpp"
 #include "future_state.h"
@@ -30,6 +32,9 @@ void* align(std::size_t alignment, std::size_t size, void*& ptr, std::size_t& sp
 }
 
 #endif
+
+[[noreturn]]
+void throw_bad_func_call() {throw std::bad_function_call{};}
 
 template class small_unique_function<void()>;
 template struct forward_list_deleter<continuation>;
