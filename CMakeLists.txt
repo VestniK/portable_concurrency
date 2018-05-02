@@ -1,6 +1,7 @@
-project(portable_concurrency)
 cmake_minimum_required(VERSION 3.3)
+project(portable_concurrency VERSION 0.7.0 LANGUAGES C CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(GNUInstallDirs)
 include(BuildTypes)
 include(ConanDeps)
 
@@ -13,14 +14,22 @@ endif()
 
 add_subdirectory(portable_concurrency)
 
-enable_testing()
-add_subdirectory(test)
+option(BUILD_TESTS "Build library unit tests" On)
+if (BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(test)
+endif()
+add_subdirectory(examples EXCLUDE_FROM_ALL)
 
 install(FILES portable_concurrency-config.cmake
-  DESTINATION lib/cmake/portable_concurrency
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/portable_concurrency
   COMPONENT Devel
 )
-install(EXPORT portable_concurrency NAMESPACE portable_concurrency:: DESTINATION lib/cmake/portable_concurrency)
+install(
+  EXPORT portable_concurrency
+  NAMESPACE portable_concurrency::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/portable_concurrency
+)
 export(EXPORT portable_concurrency
   NAMESPACE portable_concurrency::
   FILE ${CMAKE_CURRENT_BINARY_DIR}/portable_concurrency.cmake
@@ -31,6 +40,6 @@ configure_file(
   COPYONLY
 )
 set(CPACK_GENERATOR TGZ)
+set(CPACK_PACKAGE_VERSION ${portable_concurrency_VERSION})
 include(CPack)
 
-add_subdirectory(examples EXCLUDE_FROM_ALL)
