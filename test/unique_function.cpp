@@ -231,6 +231,38 @@ TEST(UniqueFunction, call_small_non_copyable_function_after_move_asign) {
   EXPECT_EQ(f1(42), 84);
 }
 
+TEST(UniqueFunction, pass_builtin_type_argument) {
+  pc::unique_function<int(int)> f = [](int x) {return 2*x;};
+  EXPECT_EQ(f(21), 42);
+}
+
+TEST(UniqueFunction, pass_copyable_type_argument) {
+  pc::unique_function<size_t(std::string)> f = [](std::string s) {return s.size();};
+  EXPECT_EQ(f("foo"), 3u);
+}
+
+TEST(UniqueFunction, pass_moveable_type_argument) {
+  pc::unique_function<int(std::unique_ptr<int>)> f = [](std::unique_ptr<int> p) {return *p;};
+  EXPECT_EQ(f(std::make_unique<int>(42)), 42);
+}
+
+TEST(UniqueFunction, pass_const_refference_type_argument) {
+  pc::unique_function<size_t(const std::string&)> f = [](const std::string& s) {return s.size();};
+  EXPECT_EQ(f("foo"), 3u);
+}
+
+TEST(UniqueFunction, pass_rvalue_refference_type_argument) {
+  pc::unique_function<int(std::unique_ptr<int>&&)> f = [](std::unique_ptr<int>&& p) {return *p;};
+  EXPECT_EQ(f(std::make_unique<int>(42)), 42);
+}
+
+TEST(UniqueFunction, pass_refference_type_argument) {
+  pc::unique_function<void(std::string&)> f = [](std::string& s) {s = "'" + s + "'";};
+  std::string str = "Hello";
+  f(str);
+  EXPECT_EQ(str, "'Hello'");
+}
+
 } // namespace test
 
 } // anonymous namespace

@@ -47,7 +47,7 @@ unique_function<R(A...)>& unique_function<R(A...)>::operator= (unique_function<R
 
 template<typename R, typename... A>
 R unique_function<R(A...)>::operator() (A... args)  {
-  return func_(args...);
+  return func_(std::forward<A>(args)...);
 }
 
 template<typename R, typename... A>

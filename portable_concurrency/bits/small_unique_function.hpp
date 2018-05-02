@@ -41,7 +41,7 @@ const callable_vtbl<R, A...>& get_callable_vtbl() {
     [](small_buffer& buf) {reinterpret_cast<F&>(buf).~F();},
     [](small_buffer& src, small_buffer& dst) {new(&dst) F{std::move(reinterpret_cast<F&>(src))};},
     [](small_buffer& buf, A... a) -> R {
-      return portable_concurrency::cxx14_v1::detail::invoke(reinterpret_cast<F&>(buf), a...);
+      return portable_concurrency::cxx14_v1::detail::invoke(reinterpret_cast<F&>(buf), std::forward<A>(a)...);
     }
   };
   return res;
@@ -121,7 +121,7 @@ template<typename R, typename... A>
 R small_unique_function<R(A...)>::operator() (A... args)  {
   if (!vtbl_)
     throw_bad_func_call();
-  return vtbl_->call(buffer_, args...);
+  return vtbl_->call(buffer_, std::forward<A>(args)...);
 }
 
 } // namespace detail
