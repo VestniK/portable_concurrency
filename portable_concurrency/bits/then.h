@@ -196,10 +196,9 @@ struct cnt_action {
 
 #if defined(__GNUC__) && __GNUC__ < 5
   cnt_action(std::weak_ptr<continuation_state> wdata): wdata(std::move(wdata)) {}
-  cnt_action(cnt_action&& rhs) noexcept: wdata(std::move(rhs.wdata)) {rhs.wdata.reset();}
+  cnt_action(cnt_action&& rhs) noexcept: wdata(std::exchange(rhs.wdata, {})) {}
   cnt_action& operator=(cnt_action&& rhs) noexcept {
-    wdata = std::move(rhs.wdata);
-    rhs.wdata.reset();
+    wdata = std::exchange(rhs.wdata, {});
     return *this;
   }
 #else
@@ -208,9 +207,8 @@ struct cnt_action {
 #endif
 
   void operator() () {
-    if (auto data = wdata.lock())
+    if (auto data = std::exchange(wdata, {}).lock())
       data->run(data);
-    wdata.reset();
   }
 
   ~cnt_action() {
