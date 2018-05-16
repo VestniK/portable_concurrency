@@ -7,9 +7,9 @@ include(ConanDeps)
 
 set(CMAKE_CXX_STANDARD 14)
 if (MSVC)
-  add_definitions(/bigobj)
+  set_directory_properties(PROPERTIES COMPILE_OPTIONS /bigobj)
 else()
-  add_definitions(-Werror=all)
+  set_directory_properties(PROPERTIES COMPILE_OPTIONS -Werror=all)
 endif()
 
 add_subdirectory(portable_concurrency)
