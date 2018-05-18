@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
 project(portable_concurrency VERSION 0.7.0 LANGUAGES C CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(GNUInstallDirs)
@@ -21,15 +21,22 @@ if (BUILD_TESTS)
 endif()
 add_subdirectory(examples EXCLUDE_FROM_ALL)
 
-install(FILES portable_concurrency-config.cmake
+# Installation
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/portable_concurrency-config-version.cmake"
+  VERSION ${${PROJECT_NAME}_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+install(FILES portable_concurrency-config.cmake "${CMAKE_CURRENT_BINARY_DIR}/portable_concurrency-config-version.cmake"
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/portable_concurrency
-  COMPONENT Devel
 )
 install(
   EXPORT portable_concurrency
   NAMESPACE portable_concurrency::
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/portable_concurrency
 )
+# Build tree export
 export(EXPORT portable_concurrency
   NAMESPACE portable_concurrency::
   FILE ${CMAKE_CURRENT_BINARY_DIR}/portable_concurrency.cmake
@@ -39,6 +46,7 @@ configure_file(
   ${CMAKE_CURRENT_BINARY_DIR}/portable_concurrency-config.cmake
   COPYONLY
 )
+# Package generation
 set(CPACK_GENERATOR TGZ)
 set(CPACK_PACKAGE_VERSION ${portable_concurrency_VERSION})
 include(CPack)
