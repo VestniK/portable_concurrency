@@ -5,6 +5,9 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
+struct canceler_arg_t {};
+constexpr canceler_arg_t canceler_arg = {};
+
 enum class future_status {
   ready,
   timeout

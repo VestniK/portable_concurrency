@@ -8,6 +8,35 @@ namespace portable_concurrency {
 namespace test {
 namespace {
 
+[[gnu::unused]]
+void foo(pc::promise<int>&, pc::future<std::string>) {}
+
+static_assert(
+  std::is_same<detail::promise_arg_t<decltype(foo), std::string>, int>::value,
+  "PromiseArgDeduce: should work on function reference"
+);
+
+static_assert(
+  std::is_same<detail::promise_arg_t<decltype(&foo), std::string>, int>::value,
+  "PromiseArgDeduce: should work on function pointer"
+);
+
+TEST(PromiseArgDeduce, shoud_work_on_lambda) {
+  auto lambda = [c = 5u](pc::promise<char>& p, pc::future<std::string> f){p.set_value(f.get()[c]);};
+  static_assert(
+    std::is_same<detail::promise_arg_t<decltype(lambda), std::string>, char>::value,
+    "PromiseArgDeduce, should work on lambda"
+  );
+}
+
+TEST(PromiseArgDeduce, shoud_work_on_mutable_lambda) {
+  auto lambda = [c = 5u](pc::promise<char>& p, pc::future<std::string> f) mutable {p.set_value(f.get()[c++]);};
+  static_assert(
+    std::is_same<detail::promise_arg_t<decltype(lambda), std::string>, char>::value,
+    "PromiseArgDeduce, should work on mutable lambda"
+  );
+}
+
 TEST(PromiseCancelation, no_object_held_by_promise_after_future_destruction) {
   auto val = std::make_shared<int>(42);
   std::weak_ptr<int> weak = val;
@@ -211,6 +240,29 @@ TEST(Canceller, non_const_operation_is_supported) {
   };
   promise.get_future();
   EXPECT_TRUE(weak.expired());
+}
+
+TEST(InterruptableContinuation, broken_promise_delivered_if_valie_is_not_set) {
+  pc::promise<int> promise;
+  pc::future<std::string> future = promise.get_future().then(
+    [](pc::promise<std::string>&, pc::future<int>) {}
+  );
+  promise.set_value(42);
+  EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
+}
+
+TEST(InterruptableContinuation, continuation_detects_if_result_is_not_awaiten) {
+  pc::promise<int> promise;
+  pc::future<std::string> future;
+  bool was_awaiten = true;
+  future = promise.get_future().then(
+    [&](pc::promise<std::string>& p, pc::future<int>) {
+      future = {};
+      was_awaiten = p.is_awaiten();
+    }
+  );
+  promise.set_value(42);
+  EXPECT_EQ(was_awaiten, false);
 }
 
 } // namespace

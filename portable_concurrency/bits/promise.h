@@ -14,9 +14,6 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
-struct canceler_arg_t {};
-constexpr canceler_arg_t canceler_arg = {};
-
 namespace detail {
 
 template<typename T>
@@ -44,10 +41,21 @@ struct promise_common {
       )
     }
   {}
+
+  promise_common(std::weak_ptr<detail::shared_state<T>>&& state): state_{in_place_index_t<2>{}, std::move(state)} {}
+
   ~promise_common() {
-    auto state = get_state(false);
-    if (state && !state->continuations().executed())
-      state->set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+    struct {
+      void operator() (const std::weak_ptr<shared_state<T>>& wstate) {
+        if (auto state = wstate.lock()) {
+          if (!state->continuations().executed())
+            state->set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+        }
+      }
+      void operator() (const std::shared_ptr<shared_state<T>>&) {}
+      void operator() (monostate) {}
+    } visitor;
+    state_.visit(visitor);
   }
 
   promise_common(promise_common&&) noexcept = default;
@@ -67,16 +75,12 @@ struct promise_common {
       state->set_exception(error);
   }
 
-  std::shared_ptr<shared_state<T>> get_state(bool throw_no_state = true) {
+  std::shared_ptr<shared_state<T>> get_state() {
     struct {
-      bool throw_no_state;
-
       std::shared_ptr<shared_state<T>> operator() (const std::shared_ptr<shared_state<T>>& val) const {return val;}
       std::shared_ptr<shared_state<T>> operator() (const std::weak_ptr<shared_state<T>>& val) const {return val.lock();}
-      std::shared_ptr<shared_state<T>> operator() (monostate) const {
-        return !throw_no_state ? nullptr : throw std::future_error(std::future_errc::no_state);
-      }
-    } visitor{throw_no_state};
+      std::shared_ptr<shared_state<T>> operator() (monostate) {throw std::future_error(std::future_errc::no_state);}
+    } visitor;
     return state_.visit(visitor);
   }
 
@@ -106,6 +110,9 @@ public:
   {}
   template<typename F>
   promise(canceler_arg_t tag, F&& f): common_{tag, std::forward<F>(f)} {}
+
+  promise(std::weak_ptr<detail::shared_state<T>>&& state): common_(std::move(state)) {}
+
   promise(promise&&) noexcept = default;
   promise(const promise&) = delete;
 
