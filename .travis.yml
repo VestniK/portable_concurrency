@@ -7,10 +7,9 @@ services:
 env:
   - IMG=cxx-conan-gcc-4.9 LIBCXX=libstdc++ TYPE=Release
   - IMG=cxx-conan-gcc-5 LIBCXX=libstdc++11 TYPE=Release
-  - IMG=cxx-conan-gcc-7 LIBCXX=libstdc++11 TYPE=UBsan
-  - IMG=cxx-conan-clang-3.8 LIBCXX=libstdc++11 TYPE=Release
-  - IMG=cxx-conan-clang-3.8 LIBCXX=libc++ TYPE=Release
-  - IMG=cxx-conan-clang-5.0 LIBCXX=libc++ TYPE=Release
+  - IMG=cxx-conan-gcc-8 LIBCXX=libstdc++11 TYPE=UBsan
+  - IMG=cxx-conan-clang-3.9 LIBCXX=libc++ TYPE=Release
+  - IMG=cxx-conan-clang-6 LIBCXX=libc++ TYPE=Release
 
 before_install:
   - docker pull sirvestnik/${IMG}
