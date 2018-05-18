@@ -19,7 +19,7 @@ install:
 
     conan remote add VestniK https://api.bintray.com/conan/pdeps/deps
 
-    conan install -s arch=x86_64 -s compiler="Visual Studio" -s compiler.version=%CONAN_VC_VER% -s compiler.runtime=MT -s build_type=Release --build=missing ..
+    conan install -o gtest:shared=False -s arch=x86_64 -s compiler="Visual Studio" -s compiler.version=%CONAN_VC_VER% -s compiler.runtime=MT -s build_type=Release --build=missing ..
 
 build_script:
 - cmd: >-
