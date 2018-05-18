@@ -41,14 +41,7 @@ public:
   }
 
   static std::shared_ptr<future_state<when_any_result<Sequence>>> make(Sequence&& seq) {
-#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 3900
-    // looks like std::make_shared is affected by https://bugs.llvm.org/show_bug.cgi?id=22806
-    auto state = std::shared_ptr<when_any_state<Sequence>>{
-      new when_any_state<Sequence>{std::move(seq)}
-    };
-#else
     auto state = std::make_shared<when_any_state<Sequence>>(std::move(seq));
-#endif
     sequence_traits<Sequence>::for_each(
       state->result_.futures,
       [state, idx = std::size_t(0)](auto& f) mutable {
