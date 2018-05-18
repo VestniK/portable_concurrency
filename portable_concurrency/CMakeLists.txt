@@ -39,6 +39,7 @@ set(INSTALL_HEADERS
   bits/unique_function.h
   bits/unique_function.hpp
   bits/utils.h
+  bits/voidify.h
   bits/when_any.h
   bits/when_all.h
 

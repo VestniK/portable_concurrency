@@ -4,6 +4,7 @@
 
 #include "small_unique_function.h"
 #include "invoke.h"
+#include "voidify.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -46,9 +47,6 @@ const callable_vtbl<R, A...>& get_callable_vtbl() {
   };
   return res;
 }
-
-template<typename T>
-struct voidify {using type = void;};
 
 template<typename T, typename = void>
 struct is_null_comparable: std::false_type {};

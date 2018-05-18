@@ -3,6 +3,7 @@
 #include <type_traits>
 
 #include "fwd.h"
+#include "voidify.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -89,9 +90,6 @@ struct promise_deducer {
   template<typename F>
   static auto deduce(F) -> decltype(deduce_method(&F::operator()));
 };
-
-template<typename T>
-struct voidify {using type = void;};
 
 template<typename F, typename T, typename = void>
 struct promise_arg {};
