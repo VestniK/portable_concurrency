@@ -17,71 +17,90 @@ using hires_clock = std::chrono::high_resolution_clock;
 
 namespace {
 
+struct future: ::testing::Test {};
+
+TEST_F(future, default_constructed_is_invalid) {
+  pc::future<void> future;
+  EXPECT_FALSE(future.valid());
+}
+
+TEST_F(future, obtained_from_promise_is_valid) {
+  pc::promise<int> p;
+  pc::future<int> future = p.get_future();
+  EXPECT_TRUE(future.valid());
+}
+
+TEST_F(future, moved_to_constructor_is_invalid) {
+  pc::promise<std::string> p;
+  pc::future<std::string> future = p.get_future();
+  pc::future<std::string> another_future{std::move(future)};
+  EXPECT_FALSE(future.valid());
+}
+
+TEST_F(future, move_constructed_from_valid_is_valid) {
+  pc::promise<std::string&> p;
+  pc::future<std::string&> future = p.get_future();
+  pc::future<std::string&> another_future{std::move(future)};
+  EXPECT_TRUE(another_future.valid());
+}
+
+TEST_F(future, moved_to_assigment_to_invalid_is_invalid) {
+  pc::promise<std::unique_ptr<int>> p;
+  pc::future<std::unique_ptr<int>> src_future = p.get_future();
+  pc::future<std::unique_ptr<int>> dst_future;
+  dst_future= std::move(src_future);
+  EXPECT_FALSE(src_future.valid());
+}
+
+TEST_F(future, invalid_move_assigned_from_valid_is_valid) {
+  pc::promise<std::unique_ptr<int>> p;
+  pc::future<std::unique_ptr<int>> src_future = p.get_future();
+  pc::future<std::unique_ptr<int>> dst_future;
+  dst_future= std::move(src_future);
+  EXPECT_TRUE(dst_future.valid());
+}
+
+TEST_F(future, moved_to_assigment_to_valid_is_invalid) {
+  pc::promise<int&> p[2];
+  pc::future<int&> future[] = {p[0].get_future(), p[1].get_future()};
+
+  future[1] = std::move(future[0]);
+  EXPECT_TRUE(future[1].valid());
+}
+
+TEST_F(future, valid_move_assigned_with_another_valid_is_valid) {
+  pc::promise<int&> p[2];
+  pc::future<int&> future[] = {p[0].get_future(), p[1].get_future()};
+
+  future[1] = std::move(future[0]);
+  EXPECT_FALSE(future[0].valid());
+}
+
+TEST_F(future, share_invalidates_future) {
+  pc::promise<std::string> p;
+  pc::future<std::string> future = p.get_future();
+  pc::shared_future<std::string> shared = future.share();
+  EXPECT_FALSE(future.valid());
+}
+
+TEST_F(future, share_returns_valid_shared_future) {
+  pc::promise<std::string> p;
+  pc::future<std::string> future = p.get_future();
+  pc::shared_future<std::string> shared = future.share();
+  EXPECT_TRUE(shared.valid());
+}
+
+TEST_F(future, is_ready_return_false_on_nonready) {
+  pc::promise<void> p;
+  pc::future<void> future = p.get_future();
+  EXPECT_FALSE(future.is_ready());
+}
+
 template<typename T>
 struct FutureTests: ::testing::Test {
   pc::promise<T> promise[2];
 };
 TYPED_TEST_CASE(FutureTests, TestTypes);
-
-TYPED_TEST(FutureTests, default_constructed_is_invalid) {
-  pc::future<TypeParam> future;
-  EXPECT_FALSE(future.valid());
-}
-
-TYPED_TEST(FutureTests, obtained_from_promise_is_valid) {
-  auto future = this->promise[0].get_future();
-  EXPECT_TRUE(future.valid());
-}
-
-TYPED_TEST(FutureTests, moved_to_constructor_is_invalid) {
-  auto future = this->promise[0].get_future();
-  pc::future<TypeParam> another_future{std::move(future)};
-  EXPECT_FALSE(future.valid());
-}
-
-TYPED_TEST(FutureTests, move_constructed_from_valid_is_valid) {
-  auto src_future = this->promise[0].get_future();
-  pc::future<TypeParam> dst_future{std::move(src_future)};
-  EXPECT_TRUE(dst_future.valid());
-}
-
-TYPED_TEST(FutureTests, moved_to_assigment_to_invalid_is_invalid) {
-  auto src_future = this->promise[0].get_future();
-  pc::future<TypeParam> dst_future;
-  dst_future= std::move(src_future);
-  EXPECT_FALSE(src_future.valid());
-}
-
-TYPED_TEST(FutureTests, invalid_move_assigned_from_valid_is_valid) {
-  auto src_future = this->promise[0].get_future();
-  pc::future<TypeParam> dst_future;
-  dst_future= std::move(src_future);
-  EXPECT_TRUE(dst_future.valid());
-}
-
-TYPED_TEST(FutureTests, moved_to_assigment_to_valid_is_invalid) {
-  pc::future<TypeParam> future[] = {
-    this->promise[0].get_future(),
-    this->promise[1].get_future()
-  };
-
-  future[1] = std::move(future[0]);
-  EXPECT_TRUE(future[1].valid());
-  EXPECT_FALSE(future[0].valid());
-}
-
-TYPED_TEST(FutureTests, share_invalidates_future) {
-  auto future = this->promise[0].get_future();
-  ASSERT_TRUE(future.valid());
-  auto shared = future.share();
-  EXPECT_TRUE(shared.valid());
-  EXPECT_FALSE(future.valid());
-}
-
-TYPED_TEST(FutureTests, is_ready_on_nonready) {
-  auto future = this->promise[0].get_future();
-  EXPECT_FALSE(future.is_ready());
-}
 
 TYPED_TEST(FutureTests, is_ready_on_future_with_value) {
   auto future = this->promise[0].get_future();
