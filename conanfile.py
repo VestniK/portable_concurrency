@@ -1,10 +1,10 @@
-from conans import ConanFile, CMake
+from conans import ConanFile, CMake, tools
 
 
 class PortableconCurrencyConan(ConanFile):
     build_requires = "gtest/1.8.0@VestniK/stable"
     name = "portable_concurrency"
-    version = "0.7.0"
+    version = "0.8.0"
     license = "CC0"
     url = "https://github.com/VestniK/portable_concurrency"
     description = "Portable future/promise implemenattion close to ConcurrencyTS specification"
@@ -18,7 +18,8 @@ class PortableconCurrencyConan(ConanFile):
         cmake = CMake(self)
         cmake.configure(source_folder="./")
         cmake.build()
-        cmake.test()
+        if not tools.cross_building(self.settings):
+            cmake.test()
         cmake.install()
 
     def package(self):
