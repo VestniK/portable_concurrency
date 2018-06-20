@@ -29,6 +29,9 @@ public:
 
   ~small_unique_function();
 
+  small_unique_function(const small_unique_function&) = delete;
+  small_unique_function& operator=(const small_unique_function&) = delete;
+
   small_unique_function(small_unique_function&& rhs) noexcept;
 
   small_unique_function& operator= (small_unique_function&& rhs) noexcept;

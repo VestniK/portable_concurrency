@@ -58,6 +58,8 @@ public:
    */
   unique_function(unique_function&& rhs) noexcept;
 
+  unique_function(const unique_function&) = delete;
+  unique_function& operator=(const unique_function&) = delete;
 
   /**
    * Destroy function object stored in this `unique_function` object (if any) and move function object from `rhs`
