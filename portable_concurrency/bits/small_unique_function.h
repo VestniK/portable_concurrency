@@ -36,12 +36,12 @@ public:
 
   small_unique_function& operator= (small_unique_function&& rhs) noexcept;
 
-  R operator() (A... args);
+  R operator() (A... args) const;
 
   explicit operator bool () const noexcept {return vtbl_ != nullptr;}
 
 private:
-  small_buffer buffer_;
+  mutable small_buffer buffer_;
   const callable_vtbl<R, A...>* vtbl_ = nullptr;
 };
 

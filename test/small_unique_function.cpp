@@ -68,5 +68,10 @@ TEST_F(small_unique_function, lamda_with_this_as_only_capture) {
   EXPECT_TRUE(f);
 }
 
+TEST_F(small_unique_function, const_object_can_be_invoked) {
+  const pc::detail::small_unique_function<int(int)> f = [m = 0](int x) mutable {return x*(++m);};
+  EXPECT_EQ(f(2), 2);
+}
+
 } // namespace test
 } // anonymous namespace

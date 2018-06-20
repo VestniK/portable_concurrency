@@ -263,6 +263,11 @@ TEST(UniqueFunction, pass_refference_type_argument) {
   EXPECT_EQ(str, "'Hello'");
 }
 
+TEST(UniqueFunction, const_object_can_be_invoked) {
+  const pc::unique_function<int(int)> f = [m = 1](int x) mutable {return x*(++m);};
+  EXPECT_EQ(f(2), 4);
+}
+
 } // namespace test
 
 } // anonymous namespace

@@ -79,7 +79,7 @@ public:
    * Calls stored function object with parameters @a args and returns result of the operation. If `this` object is empty
    * throws `std::bad_function_call`.
    */
-  R operator() (A... args);
+  R operator() (A... args) const;
 
   /**
    * Checks if this object holds a function (not empty).

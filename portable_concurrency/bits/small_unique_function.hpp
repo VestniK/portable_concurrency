@@ -118,7 +118,7 @@ small_unique_function<R(A...)>& small_unique_function<R(A...)>::operator= (small
 }
 
 template<typename R, typename... A>
-R small_unique_function<R(A...)>::operator() (A... args)  {
+R small_unique_function<R(A...)>::operator() (A... args) const {
   if (!vtbl_)
     throw_bad_func_call();
   return vtbl_->call(buffer_, std::forward<A>(args)...);
