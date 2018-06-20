@@ -58,6 +58,8 @@ public:
    */
   unique_function(unique_function&& rhs) noexcept;
 
+  unique_function(const unique_function&) = delete;
+  unique_function& operator=(const unique_function&) = delete;
 
   /**
    * Destroy function object stored in this `unique_function` object (if any) and move function object from `rhs`
@@ -77,7 +79,7 @@ public:
    * Calls stored function object with parameters @a args and returns result of the operation. If `this` object is empty
    * throws `std::bad_function_call`.
    */
-  R operator() (A... args);
+  R operator() (A... args) const;
 
   /**
    * Checks if this object holds a function (not empty).

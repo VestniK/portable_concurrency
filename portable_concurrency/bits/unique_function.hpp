@@ -46,7 +46,7 @@ template<typename R, typename... A>
 unique_function<R(A...)>& unique_function<R(A...)>::operator= (unique_function<R(A...)>&& rhs) noexcept = default;
 
 template<typename R, typename... A>
-R unique_function<R(A...)>::operator() (A... args)  {
+R unique_function<R(A...)>::operator() (A... args) const {
   return func_(std::forward<A>(args)...);
 }
 
