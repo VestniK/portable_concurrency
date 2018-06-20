@@ -268,6 +268,13 @@ TEST(UniqueFunction, const_object_can_be_invoked) {
   EXPECT_EQ(f(2), 4);
 }
 
+TEST(UniqueFunction, void_function_ignores_wrapped_callable_return_type) {
+  bool invoked = false;
+  pc::unique_function<void(int)> f = [&](int x) -> int {invoked = true; return 2*x;};
+  f(2);
+  EXPECT_TRUE(invoked);
+}
+
 } // namespace test
 
 } // anonymous namespace
