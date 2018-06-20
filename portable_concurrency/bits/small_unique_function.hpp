@@ -41,7 +41,12 @@ const callable_vtbl<R, A...>& get_callable_vtbl() {
     [](small_buffer& buf) {reinterpret_cast<F&>(buf).~F();},
     [](small_buffer& src, small_buffer& dst) {new(&dst) F{std::move(reinterpret_cast<F&>(src))};},
     [](small_buffer& buf, A... a) -> R {
-      return portable_concurrency::cxx14_v1::detail::invoke(reinterpret_cast<F&>(buf), std::forward<A>(a)...);
+      // Must not perform conversions marked as explicit but must cast anything to `void` if `R` is `void`
+      return static_cast<std::conditional_t<std::is_void<R>::value, void, decltype(
+        portable_concurrency::cxx14_v1::detail::invoke(reinterpret_cast<F&>(buf), std::forward<A>(a)...)
+      )>>(
+        portable_concurrency::cxx14_v1::detail::invoke(reinterpret_cast<F&>(buf), std::forward<A>(a)...)
+      );
     }
   };
   return res;
