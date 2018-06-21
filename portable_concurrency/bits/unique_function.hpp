@@ -17,7 +17,7 @@ template<typename R, typename... A>
 unique_function<R(A...)>::unique_function(std::nullptr_t) noexcept {}
 
 template<typename R, typename... A>
-template<typename F>
+template<typename F, typename>
 unique_function<R(A...)>::unique_function(F&& f):
   unique_function(std::forward<F>(f), detail::is_storable_t<std::decay_t<F>>{})
 {}

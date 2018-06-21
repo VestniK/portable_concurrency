@@ -45,7 +45,7 @@ public:
    * template instantiations and for any function type which is sent to a user provided executor via ADL discovered
    * function `post`.
    */
-  template<typename F>
+  template<typename F, typename = std::enable_if_t<!std::is_same<std::decay_t<F>, unique_function>::value>>
   unique_function(F&& f);
 
   /**
