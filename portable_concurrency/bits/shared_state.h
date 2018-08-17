@@ -36,6 +36,11 @@ public:
     this->continuations().execute();
   }
 
+  void abandon() {
+    if (!continuations().executed())
+      set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+  }
+
   state_storage_t<T>& value_ref() final {
     assert(this->continuations().executed());
     struct {
@@ -80,7 +85,7 @@ public:
   }
 
 private:
-  either<detail::monostate, state_storage_t<T>, std::shared_ptr<future_state<T>>, std::exception_ptr> storage_;
+  either<monostate, state_storage_t<T>, std::shared_ptr<future_state<T>>, std::exception_ptr> storage_;
   continuations_stack continuations_;
 };
 

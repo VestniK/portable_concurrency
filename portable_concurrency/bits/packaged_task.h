@@ -36,9 +36,8 @@ struct task_state final: packaged_task_state<R, A...> {
   }
 
   void abandon() override {
-    if (!state.continuations().executed())
-      state.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
-  };
+    state.abandon();
+  }
 
   std::decay_t<F> func;
   shared_state<R> state;

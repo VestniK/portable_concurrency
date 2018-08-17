@@ -47,10 +47,8 @@ struct promise_common {
   ~promise_common() {
     struct {
       void operator() (const std::weak_ptr<shared_state<T>>& wstate) {
-        if (auto state = wstate.lock()) {
-          if (!state->continuations().executed())
-            state->set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
-        }
+        if (auto state = wstate.lock())
+          state->abandon();
       }
       void operator() (const std::shared_ptr<shared_state<T>>&) {}
       void operator() (monostate) {}

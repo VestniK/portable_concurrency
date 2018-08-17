@@ -168,16 +168,6 @@ auto decorate_void_next(UnwrappableContinuation<F, void>&& f, std::shared_ptr<fu
 
 // continuation state
 
-template<typename E, typename F>
-struct cnt_closure {
-  cnt_closure(E&& exec, F&& func):
-    exec(std::move(exec)), func(std::move(func))
-  {}
-
-  E exec;
-  F func;
-};
-
 template<typename CntState>
 struct cnt_action {
   std::weak_ptr<CntState> wdata;
@@ -211,26 +201,27 @@ template<typename R, typename E, typename F>
 class cnt_state final {
 public:
   cnt_state(E exec, F&& func):
-    action_(in_place_index_t<1>{}, std::move(exec), std::move(func))
+    action_(in_place_index_t<1>{}, std::move(func)),
+    exec_(in_place_index_t<1>{}, std::move(exec))
   {}
 
   future_state<R>* get_future_state() {return &state_;}
 
   void abandon() {
-    if (state_.continuations().executed())
-      return;
+    state_.abandon();
     action_.clean();
-    state_.set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+    exec_.clean();
   }
 
   static void schedule(std::shared_ptr<cnt_state> self_sp) {
-    E exec = self_sp->action_.get(in_place_index_t<1>{}).exec;
+    E exec = std::move(self_sp->exec_.get(in_place_index_t<1>{}));
+    self_sp->exec_.clean();
     std::weak_ptr<cnt_state> weak_self = std::exchange(self_sp, nullptr);
     post(exec, cnt_action<cnt_state>{std::move(weak_self)});
   }
 
   static void run(std::shared_ptr<cnt_state> self_sp) noexcept {
-    F func = std::move(self_sp->action_.get(in_place_index_t<1>{}).func);
+    F func = std::move(self_sp->action_.get(in_place_index_t<1>{}));
     self_sp->action_.clean();
     shared_state<R>* state = &self_sp->state_;
     std::shared_ptr<shared_state<R>> state_sp{std::exchange(self_sp, nullptr), state};
@@ -239,7 +230,8 @@ public:
 
 private:
   shared_state<R> state_;
-  either<detail::monostate, cnt_closure<E, F>> action_;
+  either<detail::monostate, F> action_;
+  either<detail::monostate, E> exec_;
 };
 
 template<typename R, typename E, typename F>
