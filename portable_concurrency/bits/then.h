@@ -197,71 +197,45 @@ struct cnt_action {
   }
 };
 
-template<typename CntState, typename E>
-class state_with_executor {
-public:
-  template<typename... A>
-  state_with_executor(E&& exec, A&&... a):
-    state_(std::forward<A>(a)...), exec_(in_place_index_t<1>{}, std::move(exec))
-  {}
-
-  template<typename... A>
-  state_with_executor(const E& exec, A&&... a):
-    state_(std::forward<A>(a)...), exec_(in_place_index_t<1>{}, exec)
-  {}
-
-  CntState& get_state() {return state_;}
-
-  static void run(std::shared_ptr<state_with_executor> self) {
-    E exec = std::move(self->exec_.get(in_place_index_t<1>{}));
-    self->exec_.clean();
-    CntState* state = &self->get_state();
-    std::weak_ptr<CntState> weak_state = std::shared_ptr<CntState>{std::exchange(self, nullptr), state};
-    post(exec, cnt_action<CntState>{std::move(weak_state)});
-  }
-
-private:
-  CntState state_;
-  either<detail::monostate, E> exec_;
-};
-
-template<typename R, typename F>
-class cnt_state final {
-public:
-  cnt_state(F&& func):
-    action_(in_place_index_t<1>{}, std::move(func))
-  {}
-
-  future_state<R>& get_future_state() {return state_;}
-
+template<typename R, typename F, typename E>
+struct cnt_state {
   void abandon() {
-    state_.abandon();
-    action_.clean();
+    state.abandon();
+    action.clean();
   }
 
-  static void run(std::shared_ptr<cnt_state> self_sp) noexcept {
-    F func = std::move(self_sp->action_.get(in_place_index_t<1>{}));
-    self_sp->action_.clean();
-    shared_state<R>* state = &self_sp->state_;
-    std::shared_ptr<shared_state<R>> state_sp{std::exchange(self_sp, nullptr), state};
+  static void run(std::shared_ptr<cnt_state> self) noexcept {
+    F func = std::move(self->action.get(in_place_index_t<1>{}));
+    self->action.clean();
+    shared_state<R>* state = &self->state;
+    std::shared_ptr<shared_state<R>> state_sp{std::exchange(self, nullptr), state};
     func(std::move(state_sp));
   }
 
-private:
-  shared_state<R> state_;
-  either<detail::monostate, F> action_;
+  static void schedule(std::shared_ptr<cnt_state> self) {
+    E exec = std::move(self->exec.get(in_place_index_t<1>{}));
+    self->exec.clean();
+    std::weak_ptr<cnt_state> wstate = std::exchange(self, nullptr);
+    post(exec, cnt_action<cnt_state>{std::move(wstate)});
+  }
+
+  either<detail::monostate, E> exec;
+  either<detail::monostate, F> action;
+  shared_state<R> state;
 };
 
 template<typename R, typename E, typename F>
 auto make_then_state(continuations_stack& subscriptions, E&& exec, F&& f) {
-  using cnt_data_t = state_with_executor<cnt_state<R, std::decay_t<F>>, std::decay_t<E>>;
+  using cnt_data_t = cnt_state<R, std::decay_t<F>, std::decay_t<E>>;
 
-  auto data = std::make_shared<cnt_data_t>(std::forward<E>(exec), std::forward<F>(f));
+  auto data = std::make_shared<cnt_data_t>();
+  data->exec.emplace(in_place_index_t<1>{}, std::forward<E>(exec));
+  data->action.emplace(in_place_index_t<1>{}, std::forward<F>(f));
   subscriptions.push([wdata = weak(data)] {
     if (auto data = wdata.lock())
-      cnt_data_t::run(std::move(data));
+      cnt_data_t::schedule(std::move(data));
   });
-  return std::shared_ptr<future_state<R>>{data, &data->get_state().get_future_state()};
+  return std::shared_ptr<future_state<R>>{data, &data->state};
 }
 
 } // namespace detail
