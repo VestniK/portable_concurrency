@@ -24,11 +24,6 @@ struct is_executor<detail::inplace_executor>: std::true_type {};
 inline namespace cxx14_v1 {
 namespace detail {
 
-// small helpers
-
-template<typename T>
-std::weak_ptr<T> weak(std::shared_ptr<T> ptr) {return {std::move(ptr)};}
-
 // Decorate different functors in order to be callable as
 // `decorated_func(shared_ptr<shared_state<R>>, shared_ptr<future_state<T>>);`
 
@@ -187,8 +182,7 @@ struct cnt_action {
 #endif
 
   void operator() () {
-    if (auto data = std::exchange(wdata, {}).lock())
-      CntState::run(std::move(data));
+    CntState::run(std::exchange(wdata, {}));
   }
 
   ~cnt_action() {
@@ -204,7 +198,10 @@ struct cnt_state {
     action.clean();
   }
 
-  static void run(std::shared_ptr<cnt_state> self) noexcept {
+  static void run(std::weak_ptr<cnt_state> wself) noexcept {
+    std::shared_ptr<cnt_state> self = wself.lock();
+    if (!self)
+      return;
     F func = std::move(self->action.get(in_place_index_t<1>{}));
     self->action.clean();
     shared_state<R>* state = &self->state;
@@ -212,7 +209,10 @@ struct cnt_state {
     func(std::move(state_sp));
   }
 
-  static void schedule(std::shared_ptr<cnt_state> self) {
+  static void schedule(std::weak_ptr<cnt_state> wself) {
+    auto self = wself.lock();
+    if (!self)
+      return;
     E exec = std::move(self->exec.get(in_place_index_t<1>{}));
     self->exec.clean();
     std::weak_ptr<cnt_state> wstate = std::exchange(self, nullptr);
@@ -231,10 +231,7 @@ auto make_then_state(continuations_stack& subscriptions, E&& exec, F&& f) {
   auto data = std::make_shared<cnt_data_t>();
   data->exec.emplace(in_place_index_t<1>{}, std::forward<E>(exec));
   data->action.emplace(in_place_index_t<1>{}, std::forward<F>(f));
-  subscriptions.push([wdata = weak(data)] {
-    if (auto data = wdata.lock())
-      cnt_data_t::schedule(std::move(data));
-  });
+  subscriptions.push([wdata = std::weak_ptr<cnt_data_t>{data}] {cnt_data_t::schedule(wdata);});
   return std::shared_ptr<future_state<R>>{data, &data->state};
 }
 
