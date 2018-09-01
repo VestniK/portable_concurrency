@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 namespace portable_concurrency {
 
 /**
@@ -17,12 +19,7 @@ namespace portable_concurrency {
  * @sa post
  */
 template<typename E>
-struct is_executor {
-  /**
-   * `true` if E is executor type, `false` otherwise
-   */
-  static constexpr bool value = false;
-};
+struct is_executor: std::false_type {};
 
 } // namespace portable_concurrency
 
