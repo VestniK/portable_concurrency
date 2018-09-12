@@ -36,7 +36,7 @@ record producer(stack<record>& records_stack, pc::latch& latch, size_t task_id) 
 }
 
 template<typename It>
-::testing::AssertionResult monotonic_sequence_predicate(
+::testing::AssertionResult monotonic_sequence(
   const char*, const char*,
   It first, It last
 ) {
@@ -94,6 +94,6 @@ TEST(OnceConsumableQueueTests, concurrent_push_until_consume) {
       continue;
     }
     EXPECT_EQ((ids_range.second - 1)->id + 1, last.id);
-    EXPECT_PRED_FORMAT2(monotonic_sequence_predicate, ids_range.first, ids_range.second);
+    EXPECT_PRED_FORMAT2(monotonic_sequence, ids_range.first, ids_range.second);
   }
 }

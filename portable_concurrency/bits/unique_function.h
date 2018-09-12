@@ -69,7 +69,7 @@ public:
 
   unique_function(detail::small_unique_function<R(A...)>&& rhs) noexcept;
   unique_function& operator= (detail::small_unique_function<R(A...)>&& rhs) noexcept;
-#if defined(__GNUC__) && __GNUC__ < 5
+#if defined(__GNUC__) && __GNUC__ < 5 && !defined(__clang__)
   operator detail::small_unique_function<R(A...)>& () noexcept;
 #else
   operator detail::small_unique_function<R(A...)>&& () && noexcept;
@@ -89,7 +89,7 @@ public:
   /**
    * Also checks if this object holds a function
    */
-  bool operator==(std::nullptr_t) const {return static_cast<bool>(func_);}
+  bool operator==(std::nullptr_t) const noexcept {return static_cast<bool>(func_);}
 
 private:
   template<typename F>

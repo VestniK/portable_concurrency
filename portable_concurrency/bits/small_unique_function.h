@@ -17,7 +17,7 @@ struct callable_vtbl;
 template<typename S>
 class small_unique_function;
 
-// Move-only type erasure for small NothrowMoveConstructablt Callable object.
+// Move-only type erasure for small NothrowMoveConstructable Callable object.
 template<typename R, typename... A>
 class small_unique_function<R(A...)> {
 public:

@@ -61,7 +61,7 @@ unique_function<R(A...)>& unique_function<R(A...)>::operator= (detail::small_uni
   return *this;
 }
 
-#if defined(__GNUC__) && __GNUC__ < 5
+#if defined(__GNUC__) && __GNUC__ < 5 && !defined(__clang__)
 template<typename R, typename... A>
 unique_function<R(A...)>::operator detail::small_unique_function<R(A...)>& () noexcept {
   return func_;
