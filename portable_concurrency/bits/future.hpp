@@ -5,7 +5,7 @@
 #include "execution.h"
 #include "future.h"
 #include "future_state.h"
-#include "then.h"
+#include "then.hpp"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
