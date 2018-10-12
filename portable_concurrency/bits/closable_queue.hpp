@@ -2,26 +2,26 @@
 
 #include "closable_queue.h"
 
+namespace portable_concurrency {
+inline namespace cxx14_v1 {
+namespace detail {
+
 template<typename T>
-T closable_queue<T>::pop() {
+bool closable_queue<T>::pop(T& dest) {
   std::unique_lock<std::mutex> lock(mutex_);
   cv_.wait(lock, [this]() {return closed_ || !queue_.empty();});
   if (closed_)
-    throw queue_closed();
-  T res = std::move(queue_.front());
+    return false;
+  std::swap(dest, queue_.front());
   queue_.pop();
-  bool empty = queue_.empty();
-  lock.unlock();
-  if (empty)
-    cv_.notify_all();
-  return res;
+  return true;
 }
 
 template<typename T>
 void closable_queue<T>::push(T&& val) {
   std::lock_guard<std::mutex> guard(mutex_);
   if (closed_)
-    throw queue_closed();
+    return;
   queue_.emplace(std::move(val));
   cv_.notify_one();
 }
@@ -33,8 +33,6 @@ void closable_queue<T>::close() {
   cv_.notify_all();
 }
 
-template<typename T>
-void closable_queue<T>::wait_empty() {
-  std::unique_lock<std::mutex> lock(mutex_);
-  cv_.wait(lock, [this] {return queue_.empty();});
-}
+} // namespace detail
+} // inline namespace cxx14_v1
+} // namespace portable_concurrency

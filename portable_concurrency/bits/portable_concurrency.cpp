@@ -1,6 +1,7 @@
 #include <functional>
 
 #include "align.h"
+#include "closable_queue.hpp"
 #include "future.hpp"
 #include "future_state.h"
 #include "latch.h"
@@ -79,6 +80,8 @@ bool continuations_stack::executed() const {
 const waiter& continuations_stack::get_waiter() const {
   return waiter_;
 }
+
+template class closable_queue<unique_function<void()>>;
 
 } // namespace detail
 

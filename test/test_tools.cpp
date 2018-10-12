@@ -1,49 +1,34 @@
-#include "closable_queue.hpp"
+#include <portable_concurrency/latch>
+
 #include "test_tools.h"
 
 future_tests_env* g_future_tests_env = static_cast<future_tests_env*>(
-  ::testing::AddGlobalTestEnvironment(new future_tests_env)
+  ::testing::AddGlobalTestEnvironment(new future_tests_env{std::max(3u, std::thread::hardware_concurrency())})
 );
 
 null_executor_t null_executor;
 
-namespace {
-
-void worker_function(closable_queue<pc::unique_function<void()>>& queue) {
-  while (true) try {
-    auto t = queue.pop();
-    t();
-  } catch (const queue_closed&) {
-    break;
-  } catch (const std::exception& e) {
-    ADD_FAILURE() << "Uncaught exception in worker thread: " << e.what();
-  } catch (...) {
-    ADD_FAILURE() << "Uncaught exception of unknown type in worker thread";
+future_tests_env::future_tests_env(size_t threads_num):
+  pool_{threads_num}
+{
+  tids_.reserve(threads_num);
+  pc::latch latch{static_cast<ptrdiff_t>(threads_num)};
+  std::mutex mtx;
+  while (threads_num --> 0) {
+    post(pool_.executor(), [this, &latch, &mtx] {
+      std::lock_guard<std::mutex>{mtx}, tids_.push_back(std::this_thread::get_id());
+      latch.count_down_and_wait();
+    });
   }
-}
-
-} // anonymous namespace
-
-template class closable_queue<pc::unique_function<void()>>;
-
-void future_tests_env::SetUp() {
-  const auto threads_count = std::max(3u, std::thread::hardware_concurrency());
-  for (workers_.reserve(threads_count); workers_.size() < threads_count;)
-    workers_.emplace_back(worker_function, std::ref(queue_));
+  latch.wait();
 }
 
 void future_tests_env::TearDown() {
-  queue_.close();
-  for (auto& worker: workers_) {
-    if (worker.joinable())
-      worker.join();
-  }
+  pool_.wait();
 }
 
 bool future_tests_env::uses_thread(std::thread::id id) const {
-  return std::find_if(
-    workers_.begin(), workers_.end(), [id](const std::thread& t) {return t.get_id() == id;}
-  ) != workers_.end();
+  return std::find(tids_.begin(), tids_.end(), id) != tids_.end();
 }
 
 void future_tests_env::wait_current_tasks() {
@@ -54,7 +39,10 @@ void future_tests_env::wait_current_tasks() {
     };
   }
 
-  queue_.wait_empty();
+  pc::latch latch{static_cast<ptrdiff_t>(tids_.size())};
+  for (size_t i = 0; i < tids_.size(); ++i)
+    post(pool_.executor(), [&latch] {latch.count_down_and_wait();});
+  latch.wait();
 }
 
 future_test::~future_test() {g_future_tests_env->wait_current_tasks();}
