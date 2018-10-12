@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
-project(portable_concurrency VERSION 0.7.1 LANGUAGES C CXX)
+project(portable_concurrency VERSION 0.7.2 LANGUAGES C CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(GNUInstallDirs)
 include(BuildTypes)
