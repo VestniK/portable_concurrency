@@ -28,7 +28,7 @@ public:
   explicit static_thread_pool(std::size_t num_threads) {
     threads_.reserve(num_threads);
     while (num_threads --> 0)
-      threads_.push_back(std::thread{[this] {attach();}});
+      threads_.push_back(std::thread{[this] {process_queue();}});
   }
 
   static_thread_pool(const static_thread_pool&) = delete;
@@ -41,10 +41,8 @@ public:
 
   /// attach current thread to the thread pools list of worker threads
   void attach() {
-    unique_function<void()> task;
-    while (queue_.pop(task))
-      task();
-    // Wait for other threads for non managed threads
+    process_queue();
+    wait();
   }
 
   /// signal all work to complete
@@ -62,6 +60,13 @@ public:
   }
 
   executor_type executor() noexcept {return &queue_;}
+
+private:
+  void process_queue() {
+    unique_function<void()> task;
+    while (queue_.pop(task))
+      task();
+  }
 
 private:
   detail::closable_queue<unique_function<void()>> queue_;
