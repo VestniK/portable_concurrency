@@ -11,6 +11,7 @@
 #include "shared_future.hpp"
 #include "shared_state.h"
 #include "small_unique_function.hpp"
+#include "thread_pool.h"
 #include "unique_function.hpp"
 #include "when_all.h"
 #include "when_any.h"
@@ -84,6 +85,16 @@ const waiter& continuations_stack::get_waiter() const {
 template class closable_queue<unique_function<void()>>;
 
 } // namespace detail
+
+namespace {
+
+void process_queue(detail::closable_queue<unique_function<void()>>& queue) {
+  unique_function<void()> task;
+  while (queue.pop(task))
+    task();
+}
+
+} // namespace
 
 template class unique_function<void()>;
 
@@ -163,6 +174,37 @@ future<when_any_result<std::tuple<>>> when_any() {
     static_cast<std::size_t>(-1),
     std::tuple<>{}
   });
+}
+
+static_thread_pool::static_thread_pool(std::size_t num_threads) {
+  threads_.reserve(num_threads);
+  while (num_threads --> 0)
+    threads_.push_back(std::thread{process_queue, std::ref(queue_)});
+}
+
+static_thread_pool::~static_thread_pool() {
+  wait();
+}
+
+void static_thread_pool::attach() {
+  process_queue(queue_);
+  wait();
+}
+
+void static_thread_pool::stop() {
+  queue_.close();
+}
+
+void static_thread_pool::wait() {
+  queue_.close();
+  for (auto& thread: threads_) {
+    if (thread.joinable())
+      thread.join();
+  }
+}
+
+void post(static_thread_pool::executor_type exec, unique_function<void()> task) {
+  exec->push(std::move(task));
 }
 
 } // inline namespace cxx14_v1

@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <condition_variable>
-#include <mutex>
 #include <thread>
 #include <type_traits>
 
@@ -25,57 +23,31 @@ class static_thread_pool {
 public:
   using executor_type = detail::closable_queue<unique_function<void()>>*;
 
-  explicit static_thread_pool(std::size_t num_threads) {
-    threads_.reserve(num_threads);
-    while (num_threads --> 0)
-      threads_.push_back(std::thread{[this] {process_queue();}});
-  }
+  explicit static_thread_pool(std::size_t num_threads);
 
   static_thread_pool(const static_thread_pool&) = delete;
   static_thread_pool& operator=(const static_thread_pool&) = delete;
 
   /// stop accepting incoming work and wait for work to drain
-  ~static_thread_pool() {
-    wait();
-  }
+  ~static_thread_pool();
 
   /// attach current thread to the thread pools list of worker threads
-  void attach() {
-    process_queue();
-    wait();
-  }
+  void attach();
 
   /// signal all work to complete
-  void stop() {
-    queue_.close();
-  }
+  void stop();
 
   /// wait for all threads in the thread pool to complete
-  void wait() {
-    queue_.close();
-    for (auto& thread: threads_) {
-      if (thread.joinable())
-        thread.join();
-    }
-  }
+  void wait();
 
   executor_type executor() noexcept {return &queue_;}
-
-private:
-  void process_queue() {
-    unique_function<void()> task;
-    while (queue_.pop(task))
-      task();
-  }
 
 private:
   detail::closable_queue<unique_function<void()>> queue_;
   std::vector<std::thread> threads_;
 };
 
-inline void post(static_thread_pool::executor_type exec, unique_function<void()> task) {
-  exec->push(std::move(task));
-}
+void post(static_thread_pool::executor_type exec, unique_function<void()> task);
 
 } // inline namespace cxx14_v1
 
