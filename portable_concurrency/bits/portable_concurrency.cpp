@@ -183,6 +183,7 @@ static_thread_pool::static_thread_pool(std::size_t num_threads) {
 }
 
 static_thread_pool::~static_thread_pool() {
+  stop();
   wait();
 }
 
@@ -201,6 +202,7 @@ void static_thread_pool::wait() {
     if (thread.joinable())
       thread.join();
   }
+  threads_.clear();
 }
 
 void post(static_thread_pool::executor_type exec, unique_function<void()> task) {
