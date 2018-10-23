@@ -8,8 +8,8 @@
 
 #include <portable_concurrency/functional>
 #include <portable_concurrency/future>
+#include <portable_concurrency/thread_pool>
 
-#include "closable_queue.h"
 #include "task.h"
 
 #define EXPECT_FUTURE_ERROR(statement, errc) \
@@ -24,26 +24,24 @@
     ADD_FAILURE() << "Unexpected unknown exception type"; \
   }
 
-extern template class closable_queue<pc::unique_function<void()>>;
-
 class future_tests_env: public ::testing::Environment {
 public:
-  void SetUp() override;
+  explicit future_tests_env(size_t threads_num);
 
   void TearDown() override;
 
   template<typename F, typename... A>
   void run_async(F&& f, A&&... a) {
-    queue_.push(make_task(std::forward<F>(f), std::forward<A>(a)...));
+    post(pool_.executor(), make_task(std::forward<F>(f), std::forward<A>(a)...));
   }
 
-  size_t threads_count() const {return workers_.size();}
+  size_t threads_count() const {return tids_.size();}
   bool uses_thread(std::thread::id id) const;
   void wait_current_tasks();
 
 private:
-  std::vector<std::thread> workers_;
-  closable_queue<pc::unique_function<void()>> queue_;
+  pc::static_thread_pool pool_;
+  std::vector<std::thread::id> tids_;
 };
 
 namespace portable_concurrency {

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cassert>
 #include <cstddef>
 #include <condition_variable>
 #include <mutex>
@@ -9,7 +8,7 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
 /**
- * @headerfile portable_concurrency/functional
+ * @headerfile portable_concurrency/latch
  * @ingroup latch
  *
  * The latch class is a downward counter of type ptrdiff_t which can be used to synchronize threads. The value of the

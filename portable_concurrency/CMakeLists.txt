@@ -10,11 +10,13 @@ set(PUBLIC_HEADERS
   future
   future_fwd
   latch
+  thread_pool
 )
 set(INSTALL_HEADERS
   bits/alias_namespace.h
   bits/align.h
   bits/async.h
+  bits/closable_queue.h
   bits/concurrency_type_traits.h
   bits/continuations_stack.h
   bits/either.h
@@ -36,6 +38,7 @@ set(INSTALL_HEADERS
   bits/small_unique_function.h
   bits/small_unique_function.hpp
   bits/then.hpp
+  bits/thread_pool.h
   bits/unique_function.h
   bits/unique_function.hpp
   bits/utils.h
@@ -50,6 +53,7 @@ set(HEADERS
   ${PUBLIC_HEADERS}
   ${INSTALL_HEADERS}
 
+  bits/closable_queue.hpp
   bits/once_consumable_stack.hpp
 )
 

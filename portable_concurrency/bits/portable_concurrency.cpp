@@ -1,6 +1,7 @@
 #include <functional>
 
 #include "align.h"
+#include "closable_queue.hpp"
 #include "future.hpp"
 #include "future_state.h"
 #include "latch.h"
@@ -10,6 +11,7 @@
 #include "shared_future.hpp"
 #include "shared_state.h"
 #include "small_unique_function.hpp"
+#include "thread_pool.h"
 #include "unique_function.hpp"
 #include "when_all.h"
 #include "when_any.h"
@@ -80,7 +82,22 @@ const waiter& continuations_stack::get_waiter() const {
   return waiter_;
 }
 
+template class closable_queue<unique_function<void()>>;
+
 } // namespace detail
+
+namespace {
+
+// P0443R7 states that if task submitted to static_thread_pool exits via exception
+// then std::terminate is called. This behavior established by marking this function
+// noexcept.
+void process_queue(detail::closable_queue<unique_function<void()>>& queue) noexcept {
+  unique_function<void()> task;
+  while (queue.pop(task))
+    task();
+}
+
+} // namespace
 
 template class unique_function<void()>;
 
@@ -160,6 +177,45 @@ future<when_any_result<std::tuple<>>> when_any() {
     static_cast<std::size_t>(-1),
     std::tuple<>{}
   });
+}
+
+static_thread_pool::static_thread_pool(std::size_t num_threads) {
+  threads_.reserve(num_threads);
+  while (num_threads --> 0)
+    threads_.push_back(std::thread{&static_thread_pool::attach, this});
+}
+
+static_thread_pool::~static_thread_pool() {
+  stop();
+  wait();
+}
+
+void static_thread_pool::attach() {
+  std::lock_guard<std::mutex>{mutex_}, ++attached_threads_;
+  process_queue(queue_);
+  {
+    std::unique_lock<std::mutex> lock{mutex_};
+    --attached_threads_;
+    cv_.wait(lock, [&] {return attached_threads_ == 0;});
+  }
+  cv_.notify_all();
+}
+
+void static_thread_pool::stop() {
+  queue_.close();
+}
+
+void static_thread_pool::wait() {
+  queue_.close();
+  for (auto& thread: threads_) {
+    if (thread.joinable())
+      thread.join();
+  }
+  threads_.clear();
+}
+
+void post(static_thread_pool::executor_type exec, unique_function<void()> task) {
+  exec->push(std::move(task));
 }
 
 } // inline namespace cxx14_v1
