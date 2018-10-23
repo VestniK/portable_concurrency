@@ -45,6 +45,9 @@ public:
 private:
   detail::closable_queue<unique_function<void()>> queue_;
   std::vector<std::thread> threads_;
+  unsigned attached_threads_ = 0;
+  std::mutex mutex_;
+  std::condition_variable cv_;
 };
 
 void post(static_thread_pool::executor_type exec, unique_function<void()> task);

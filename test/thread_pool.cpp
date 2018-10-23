@@ -5,10 +5,11 @@
 namespace {
 
 TEST(ThreadPool, should_execute_function_in_another_thread) {
-  pc::static_thread_pool pool{1};
   std::thread::id tid;
   std::mutex mtx;
   std::condition_variable cv;
+
+  pc::static_thread_pool pool{1};
   pc::post(pool.executor(), [&] {
     std::lock_guard<std::mutex>{mtx}, tid = std::this_thread::get_id();
     cv.notify_one();

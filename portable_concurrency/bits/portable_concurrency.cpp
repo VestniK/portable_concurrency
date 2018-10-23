@@ -88,7 +88,10 @@ template class closable_queue<unique_function<void()>>;
 
 namespace {
 
-void process_queue(detail::closable_queue<unique_function<void()>>& queue) {
+// P0443R7 states that if task submitted to static_thread_pool exits via exception
+// then std::terminate is called. This behavior established by marking this function
+// noexcept.
+void process_queue(detail::closable_queue<unique_function<void()>>& queue) noexcept {
   unique_function<void()> task;
   while (queue.pop(task))
     task();
@@ -179,7 +182,7 @@ future<when_any_result<std::tuple<>>> when_any() {
 static_thread_pool::static_thread_pool(std::size_t num_threads) {
   threads_.reserve(num_threads);
   while (num_threads --> 0)
-    threads_.push_back(std::thread{process_queue, std::ref(queue_)});
+    threads_.push_back(std::thread{&static_thread_pool::attach, this});
 }
 
 static_thread_pool::~static_thread_pool() {
@@ -188,8 +191,14 @@ static_thread_pool::~static_thread_pool() {
 }
 
 void static_thread_pool::attach() {
+  std::lock_guard<std::mutex>{mutex_}, ++attached_threads_;
   process_queue(queue_);
-  wait();
+  {
+    std::unique_lock<std::mutex> lock{mutex_};
+    --attached_threads_;
+    cv_.wait(lock, [&] {return attached_threads_ == 0;});
+  }
+  cv_.notify_all();
 }
 
 void static_thread_pool::stop() {
