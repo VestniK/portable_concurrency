@@ -14,11 +14,11 @@ void timed_queue::stop() {
 
 bool timed_queue::resume_next() {
   std::unique_lock lock{mutex_};
-  cv_.wait(lock, [this]{return stop_ || !queue_.empty();});
+  cv_.wait(lock, [this] { return stop_ || !queue_.empty(); });
   if (stop_)
     return false;
   time_point nearest = queue_.top().time;
-  while (cv_.wait_until(lock, nearest, [&]{return stop_ || queue_.top().time != nearest;})) {
+  while (cv_.wait_until(lock, nearest, [&] { return stop_ || queue_.top().time != nearest; })) {
     if (stop_)
       return false;
     nearest = queue_.top().time;

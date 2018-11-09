@@ -25,7 +25,7 @@ private:
     time_point time;
     coroutine_handle handle;
 
-    bool operator<(const value& rhs) const {return time > rhs.time;}
+    bool operator<(const value& rhs) const { return time > rhs.time; }
   };
 
   std::priority_queue<value> queue_;
@@ -45,12 +45,12 @@ public:
     time_point time;
     timer_executor* executor;
 
-    bool await_ready() const {return time <= clock::now();}
+    bool await_ready() const { return time <= clock::now(); }
     void await_resume() {}
-    void await_suspend(std::experimental::coroutine_handle<> h){executor->queue_.push_at(time, std::move(h));}
+    void await_suspend(std::experimental::coroutine_handle<> h) { executor->queue_.push_at(time, std::move(h)); }
   };
 
-  template<typename Rep, typename Period>
+  template <typename Rep, typename Period>
   timer sleep(std::chrono::duration<Rep, Period> timeout) {
     return {clock::now() + timeout, this};
   }
@@ -67,7 +67,7 @@ private:
 
 } // namespace coro
 
-template<typename Rep, typename Period>
+template <typename Rep, typename Period>
 auto operator co_await(std::chrono::duration<Rep, Period> timeout) {
   return coro::timer_executor::instance().sleep(timeout);
 }

@@ -4,18 +4,15 @@
 #include "PCFutureWatcher.h"
 
 struct PCFutureWatcher::SafeRef {
-  SafeRef(PCFutureWatcher* obj): ref(obj) {}
+  SafeRef(PCFutureWatcher* obj) : ref(obj) {}
 
   PCFutureWatcher* ref;
   QMutex mutex;
 };
 
-PCFutureWatcher::PCFutureWatcher(QObject* parent): QObject(parent)
-{}
+PCFutureWatcher::PCFutureWatcher(QObject* parent) : QObject(parent) {}
 
-PCFutureWatcher::~PCFutureWatcher() {
-  detachCurrRef();
-}
+PCFutureWatcher::~PCFutureWatcher() { detachCurrRef(); }
 
 void PCFutureWatcher::notify(SafeRef& ref) {
   QMutexLocker lock{&ref.mutex};

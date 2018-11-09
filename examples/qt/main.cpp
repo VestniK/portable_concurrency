@@ -12,15 +12,15 @@
 #include "PCFutureWatcher.h"
 
 namespace portable_concurrency {
-template<>
-struct is_executor<QThreadPool*>: std::true_type {};
-};
+template <>
+struct is_executor<QThreadPool*> : std::true_type {};
+}; // namespace portable_concurrency
 
 void post(QThreadPool* exec, pc::unique_function<void()> func) {
-  struct PCRunnable: QRunnable {
-    PCRunnable(pc::unique_function<void()>&& func) noexcept: func{std::move(func)} {}
+  struct PCRunnable : QRunnable {
+    PCRunnable(pc::unique_function<void()>&& func) noexcept : func{std::move(func)} {}
 
-    void run() override {func();}
+    void run() override { func(); }
 
     pc::unique_function<void()> func;
   };
@@ -35,9 +35,9 @@ int main(int argc, char** argv) {
     return QStringLiteral("Hello Qt Concurent");
   });
   PCFutureWatcher watcher;
-  QObject::connect(&watcher, &PCFutureWatcher::finished, [&f]() {qInfo() << f.get();});
+  QObject::connect(&watcher, &PCFutureWatcher::finished, [&f]() { qInfo() << f.get(); });
   QObject::connect(&watcher, &PCFutureWatcher::finished, &app, &QCoreApplication::quit);
   watcher.setFuture(f);
 
-  return  app.exec();
+  return app.exec();
 }

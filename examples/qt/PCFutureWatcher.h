@@ -5,13 +5,13 @@
 
 #include <portable_concurrency/future>
 
-class PCFutureWatcher: public QObject {
+class PCFutureWatcher : public QObject {
   Q_OBJECT
 public:
   PCFutureWatcher(QObject* parent = nullptr);
   ~PCFutureWatcher();
 
-  template<typename T>
+  template <typename T>
   void setFuture(pc::future<T>& future) {
     future = future.then([ref = createNewRef()](pc::future<T> ready) {
       PCFutureWatcher::notify(*ref);
@@ -19,7 +19,7 @@ public:
     });
   }
 
-  template<typename T>
+  template <typename T>
   void setFuture(pc::shared_future<T>& future) {
     future = future.then([ref = createNewRef()](pc::future<T> ready) {
       PCFutureWatcher::notify(*ref);

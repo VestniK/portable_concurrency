@@ -1,9 +1,9 @@
 #include <algorithm>
 #include <iostream>
 #include <iterator>
-#include <string_view>
-#include <string>
 #include <sstream>
+#include <string>
+#include <string_view>
 
 #include <portable_concurrency/future>
 
@@ -28,18 +28,19 @@ int main() try {
   asio::streambuf response;
 
   asio::ip::tcp::resolver resolver{ctx};
-  pc::future<size_t> response_sz = resolver.async_resolve(httpbin_host, "80", use_future)
-    .next([&socket, httpbin_host](asio::ip::tcp::resolver::results_type resolved_results) {
-      if (resolved_results.empty())
-        throw std::runtime_error{"No addresses resolved for host: " + std::string{httpbin_host}};
-      return socket.async_connect(resolved_results.begin()->endpoint(), use_future);
-    }).next([&socket, request] {
-      return asio::async_write(socket, asio::buffer(request), use_future);
-    }).next([&socket, request, &response](size_t written) {
-      if (written != request.size())
-        throw std::runtime_error{"failed to send request"};
-      return asio::async_read_until(socket, response, "\r\n\r\n"sv, use_future);
-    });
+  pc::future<size_t> response_sz =
+      resolver.async_resolve(httpbin_host, "80", use_future)
+          .next([&socket, httpbin_host](asio::ip::tcp::resolver::results_type resolved_results) {
+            if (resolved_results.empty())
+              throw std::runtime_error{"No addresses resolved for host: " + std::string{httpbin_host}};
+            return socket.async_connect(resolved_results.begin()->endpoint(), use_future);
+          })
+          .next([&socket, request] { return asio::async_write(socket, asio::buffer(request), use_future); })
+          .next([&socket, request, &response](size_t written) {
+            if (written != request.size())
+              throw std::runtime_error{"failed to send request"};
+            return asio::async_read_until(socket, response, "\r\n\r\n"sv, use_future);
+          });
   ctx.run();
 
   std::cout << "Response:\n";
@@ -47,5 +48,5 @@ int main() try {
   return EXIT_SUCCESS;
 } catch (const std::exception& error) {
   std::cerr << "Error: " << error.what() << '\n';
-  return  EXIT_FAILURE;
+  return EXIT_FAILURE;
 }
