@@ -15,7 +15,7 @@ TEST(ThreadPool, should_execute_function_in_another_thread) {
     cv.notify_one();
   });
   std::unique_lock<std::mutex> lock{mtx};
-  cv.wait(lock, [&] {return tid != std::thread::id{};});
+  cv.wait(lock, [&] { return tid != std::thread::id{}; });
   EXPECT_NE(tid, std::this_thread::get_id());
 }
 

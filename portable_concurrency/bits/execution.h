@@ -18,8 +18,8 @@ namespace portable_concurrency {
  *
  * @sa post
  */
-template<typename E>
-struct is_executor: std::false_type {};
+template <typename E>
+struct is_executor : std::false_type {};
 
 } // namespace portable_concurrency
 
@@ -36,6 +36,6 @@ struct is_executor: std::false_type {};
  *
  * @sa portable_concurrency::is_executor
  */
-template<typename Executor, typename Functor>
+template <typename Executor, typename Functor>
 void post(Executor exec, Functor func);
 #endif

@@ -13,23 +13,19 @@ namespace detail {
 
 struct void_val {};
 
-template<typename T>
-using state_storage_t = std::conditional_t<std::is_void<T>::value,
-  void_val,
-  std::conditional_t<std::is_reference<T>::value,
-    std::reference_wrapper<std::remove_reference_t<T>>,
-    std::remove_const_t<T>
-  >
->;
+template <typename T>
+using state_storage_t = std::conditional_t<std::is_void<T>::value, void_val,
+    std::conditional_t<std::is_reference<T>::value, std::reference_wrapper<std::remove_reference_t<T>>,
+        std::remove_const_t<T>>>;
 
-template<typename T>
+template <typename T>
 class future_state {
 public:
   virtual ~future_state() = default;
 
   virtual continuations_stack& continuations() = 0;
   // May be overloaded by shared_state with custom allocator in order to allocate continuation_stack node properly
-  virtual void push(continuation&& cnt) {this->continuations().push(std::move(cnt));}
+  virtual void push(continuation&& cnt) { this->continuations().push(std::move(cnt)); }
 
   // throws stored exception if there is no value. UB if called before continuations are executed.
   virtual state_storage_t<T>& value_ref() = 0;
@@ -38,5 +34,5 @@ public:
 };
 
 } // namespace detail
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency

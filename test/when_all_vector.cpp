@@ -90,9 +90,7 @@ TEST(WhenAllVectorTest, single_ready_shared_future) {
 }
 
 TEST(WhenAllVectorTest, single_error_future) {
-  auto raw_f = pc::make_exceptional_future<future_tests_env&>(
-    std::runtime_error("panic")
-  );
+  auto raw_f = pc::make_exceptional_future<future_tests_env&>(std::runtime_error("panic"));
   auto f = pc::when_all(&raw_f, &raw_f + 1);
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(raw_f.valid());
@@ -107,9 +105,7 @@ TEST(WhenAllVectorTest, single_error_future) {
 }
 
 TEST(WhenAllVectorTest, single_error_shared_future) {
-  auto raw_f = pc::make_exceptional_future<future_tests_env&>(
-    std::runtime_error("panic")
-  ).share();
+  auto raw_f = pc::make_exceptional_future<future_tests_env&>(std::runtime_error("panic")).share();
   auto f = pc::when_all(&raw_f, &raw_f + 1);
   ASSERT_TRUE(f.valid());
   EXPECT_TRUE(raw_f.valid());
@@ -127,31 +123,27 @@ TEST(WhenAllVectorTest, multiple_futures) {
   pc::promise<int> ps[5];
   pc::future<int> fs[5];
 
-  std::transform(
-    std::begin(ps), std::end(ps),
-    std::begin(fs),
-    std::mem_fn(&pc::promise<int>::get_future)
-  );
+  std::transform(std::begin(ps), std::end(ps), std::begin(fs), std::mem_fn(&pc::promise<int>::get_future));
 
   auto f = pc::when_all(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
-  for (const auto& fi: fs)
+  for (const auto& fi : fs)
     EXPECT_FALSE(fi.valid());
 
-  for (std::size_t pos: {3, 0, 1, 4, 2}) {
+  for (std::size_t pos : {3, 0, 1, 4, 2}) {
     EXPECT_FALSE(f.is_ready());
-    ps[pos].set_value(static_cast<int>(42*pos));
+    ps[pos].set_value(static_cast<int>(42 * pos));
   }
   ASSERT_TRUE(f.is_ready());
 
   auto res = f.get();
   EXPECT_EQ(res.size(), 5u);
   int idx = 0;
-  for (auto& fc: res) {
+  for (auto& fc : res) {
     ASSERT_TRUE(fc.valid());
     ASSERT_TRUE(fc.is_ready());
-    EXPECT_EQ(fc.get(), 42*idx++);
+    EXPECT_EQ(fc.get(), 42 * idx++);
   }
 }
 
@@ -159,31 +151,27 @@ TEST(WhenAllVectorTest, multiple_shared_futures) {
   pc::promise<std::string> ps[5];
   pc::shared_future<std::string> fs[5];
 
-  std::transform(
-    std::begin(ps), std::end(ps),
-    std::begin(fs),
-    std::mem_fn(&pc::promise<std::string>::get_future)
-  );
+  std::transform(std::begin(ps), std::end(ps), std::begin(fs), std::mem_fn(&pc::promise<std::string>::get_future));
 
   auto f = pc::when_all(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
-  for (const auto& fi: fs)
+  for (const auto& fi : fs)
     EXPECT_TRUE(fi.valid());
 
-  for (std::size_t pos: {3, 0, 1, 4, 2}) {
+  for (std::size_t pos : {3, 0, 1, 4, 2}) {
     EXPECT_FALSE(f.is_ready());
-    ps[pos].set_value(to_string(42*pos));
+    ps[pos].set_value(to_string(42 * pos));
   }
   ASSERT_TRUE(f.is_ready());
 
   auto res = f.get();
   EXPECT_EQ(res.size(), 5u);
   std::size_t idx = 0;
-  for (auto& fc: res) {
+  for (auto& fc : res) {
     ASSERT_TRUE(fc.valid());
     ASSERT_TRUE(fc.is_ready());
-    EXPECT_EQ(fc.get(), to_string(42*idx++));
+    EXPECT_EQ(fc.get(), to_string(42 * idx++));
   }
 }
 
@@ -191,18 +179,14 @@ TEST(WhenAllVectorTest, multiple_futures_one_initionally_ready) {
   pc::promise<void> ps[5];
   pc::future<void> fs[5];
 
-  std::transform(
-    std::begin(ps), std::end(ps),
-    std::begin(fs),
-    std::mem_fn(&pc::promise<void>::get_future)
-  );
+  std::transform(std::begin(ps), std::end(ps), std::begin(fs), std::mem_fn(&pc::promise<void>::get_future));
   ps[1].set_value();
   ASSERT_TRUE(fs[1].is_ready());
 
   auto f = pc::when_all(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
 
-  for(std::size_t pos: {4, 0, 3, 2}) {
+  for (std::size_t pos : {4, 0, 3, 2}) {
     EXPECT_FALSE(f.is_ready());
     ps[pos].set_value();
   }
@@ -210,7 +194,7 @@ TEST(WhenAllVectorTest, multiple_futures_one_initionally_ready) {
 
   auto res = f.get();
   EXPECT_EQ(res.size(), 5u);
-  for (auto& fc: res) {
+  for (auto& fc : res) {
     ASSERT_TRUE(fc.valid());
     ASSERT_TRUE(fc.is_ready());
     ASSERT_NO_THROW(fc.get());
@@ -222,17 +206,13 @@ TEST(WhenAllVectorTest, multiple_shared_futures_one_initionally_ready) {
   pc::promise<int&> ps[5];
   pc::shared_future<int&> fs[5];
 
-  std::transform(
-    std::begin(ps), std::end(ps),
-    std::begin(fs),
-    std::mem_fn(&pc::promise<int&>::get_future)
-  );
+  std::transform(std::begin(ps), std::end(ps), std::begin(fs), std::mem_fn(&pc::promise<int&>::get_future));
   ps[0].set_value(some_vars[0]);
   ASSERT_TRUE(fs[0].is_ready());
 
   auto f = pc::when_all(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
-  for(std::size_t pos: {4, 1, 3, 2}) {
+  for (std::size_t pos : {4, 1, 3, 2}) {
     EXPECT_FALSE(f.is_ready());
     ps[pos].set_value(some_vars[pos]);
   }
@@ -241,7 +221,7 @@ TEST(WhenAllVectorTest, multiple_shared_futures_one_initionally_ready) {
   auto res = f.get();
   EXPECT_EQ(res.size(), 5u);
   std::size_t idx = 0;
-  for (auto& fc: res) {
+  for (auto& fc : res) {
     ASSERT_TRUE(fc.valid());
     ASSERT_TRUE(fc.is_ready());
     EXPECT_EQ(&fc.get(), &some_vars[idx++]);
@@ -253,17 +233,14 @@ TEST(WhenAllVectorTest, multiple_futures_one_initionally_error) {
   pc::future<std::unique_ptr<int>> fs[5];
 
   std::transform(
-    std::begin(ps), std::end(ps),
-    std::begin(fs),
-    std::mem_fn(&pc::promise<std::unique_ptr<int>>::get_future)
-  );
+      std::begin(ps), std::end(ps), std::begin(fs), std::mem_fn(&pc::promise<std::unique_ptr<int>>::get_future));
   ps[4].set_exception(std::make_exception_ptr(std::runtime_error("epic fail")));
   ASSERT_TRUE(fs[4].is_ready());
 
   auto f = pc::when_all(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
 
-  for (std::size_t pos: {0, 1, 3, 2}) {
+  for (std::size_t pos : {0, 1, 3, 2}) {
     EXPECT_FALSE(f.is_ready());
     ps[pos].set_value(nullptr);
   }
@@ -271,7 +248,7 @@ TEST(WhenAllVectorTest, multiple_futures_one_initionally_error) {
   auto res = f.get();
   EXPECT_EQ(res.size(), 5u);
   std::size_t idx = 0;
-  for (auto& fc: res) {
+  for (auto& fc : res) {
     ASSERT_TRUE(fc.valid());
     ASSERT_TRUE(fc.is_ready());
     if (idx++ == 4)
@@ -285,32 +262,28 @@ TEST(WhenAllVectorTest, multiple_shared_futures_one_initionally_error) {
   pc::promise<std::size_t> ps[5];
   pc::shared_future<std::size_t> fs[5];
 
-  std::transform(
-    std::begin(ps), std::end(ps),
-    std::begin(fs),
-    std::mem_fn(&pc::promise<std::size_t>::get_future)
-  );
+  std::transform(std::begin(ps), std::end(ps), std::begin(fs), std::mem_fn(&pc::promise<std::size_t>::get_future));
   ps[4].set_exception(std::make_exception_ptr(std::runtime_error("epic fail")));
   ASSERT_TRUE(fs[4].is_ready());
 
   auto f = pc::when_all(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
 
-  for (std::size_t pos: {0, 1, 3, 2}) {
+  for (std::size_t pos : {0, 1, 3, 2}) {
     EXPECT_FALSE(f.is_ready());
-    ps[pos].set_value(17*pos);
+    ps[pos].set_value(17 * pos);
   }
 
   auto res = f.get();
   EXPECT_EQ(res.size(), 5u);
   std::size_t idx = 0;
-  for (auto& fc: res) {
+  for (auto& fc : res) {
     ASSERT_TRUE(fc.valid());
     ASSERT_TRUE(fc.is_ready());
     if (idx == 4)
       EXPECT_RUNTIME_ERROR(fc, "epic fail");
     else
-      EXPECT_EQ(fc.get(), 17*idx);
+      EXPECT_EQ(fc.get(), 17 * idx);
     ++idx;
   }
 }
@@ -319,19 +292,15 @@ TEST(WhenAllVectorTest, futures_becomes_ready_concurrently) {
   pc::promise<std::size_t> ps[3];
   pc::shared_future<std::size_t> fs[3];
 
-  std::transform(
-    std::begin(ps), std::end(ps),
-    std::begin(fs),
-    std::mem_fn(&pc::promise<size_t>::get_future)
-  );
+  std::transform(std::begin(ps), std::end(ps), std::begin(fs), std::mem_fn(&pc::promise<size_t>::get_future));
   auto f = pc::when_all(std::begin(fs), std::end(fs));
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
 
   pc::latch latch{4};
   std::size_t idx = 0;
-  for (auto& p: ps) {
-    g_future_tests_env->run_async([val = 5*idx++, &latch, p = std::move(p)]() mutable {
+  for (auto& p : ps) {
+    g_future_tests_env->run_async([val = 5 * idx++, &latch, p = std::move(p)]() mutable {
       latch.count_down_and_wait();
       p.set_value(val);
     });
@@ -340,10 +309,10 @@ TEST(WhenAllVectorTest, futures_becomes_ready_concurrently) {
   latch.count_down_and_wait();
   auto res = f.get();
   idx = 0;
-  for (auto& fc: res) {
+  for (auto& fc : res) {
     ASSERT_TRUE(fc.valid());
     ASSERT_TRUE(fc.is_ready());
-    EXPECT_EQ(fc.get(), 5*idx++);
+    EXPECT_EQ(fc.get(), 5 * idx++);
   }
 }
 

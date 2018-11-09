@@ -8,33 +8,24 @@ namespace portable_concurrency {
 namespace test {
 namespace {
 
-[[gnu::unused]]
-void foo(pc::promise<int>&, pc::future<std::string>) {}
+[[gnu::unused]] void foo(pc::promise<int>&, pc::future<std::string>) {}
 
-static_assert(
-  std::is_same<detail::promise_arg_t<decltype(foo), std::string>, int>::value,
-  "PromiseArgDeduce: should work on function reference"
-);
+static_assert(std::is_same<detail::promise_arg_t<decltype(foo), std::string>, int>::value,
+    "PromiseArgDeduce: should work on function reference");
 
-static_assert(
-  std::is_same<detail::promise_arg_t<decltype(&foo), std::string>, int>::value,
-  "PromiseArgDeduce: should work on function pointer"
-);
+static_assert(std::is_same<detail::promise_arg_t<decltype(&foo), std::string>, int>::value,
+    "PromiseArgDeduce: should work on function pointer");
 
 TEST(PromiseArgDeduce, shoud_work_on_lambda) {
-  auto lambda = [c = 5u](pc::promise<char>& p, pc::future<std::string> f){p.set_value(f.get()[c]);};
-  static_assert(
-    std::is_same<detail::promise_arg_t<decltype(lambda), std::string>, char>::value,
-    "PromiseArgDeduce, should work on lambda"
-  );
+  auto lambda = [c = 5u](pc::promise<char>& p, pc::future<std::string> f) { p.set_value(f.get()[c]); };
+  static_assert(std::is_same<detail::promise_arg_t<decltype(lambda), std::string>, char>::value,
+      "PromiseArgDeduce, should work on lambda");
 }
 
 TEST(PromiseArgDeduce, shoud_work_on_mutable_lambda) {
-  auto lambda = [c = 5u](pc::promise<char>& p, pc::future<std::string> f) mutable {p.set_value(f.get()[c++]);};
-  static_assert(
-    std::is_same<detail::promise_arg_t<decltype(lambda), std::string>, char>::value,
-    "PromiseArgDeduce, should work on mutable lambda"
-  );
+  auto lambda = [c = 5u](pc::promise<char>& p, pc::future<std::string> f) mutable { p.set_value(f.get()[c++]); };
+  static_assert(std::is_same<detail::promise_arg_t<decltype(lambda), std::string>, char>::value,
+      "PromiseArgDeduce, should work on mutable lambda");
 }
 
 TEST(PromiseCancelation, no_object_held_by_promise_after_future_destruction) {
@@ -80,7 +71,7 @@ TEST(PackagedTaskCancelation, run_canceled_task_do_not_throw) {
 
 TEST(PackagedTaskCancelation, run_canceled_task_do_not_execute_stored_function) {
   bool executed = false;
-  pc::packaged_task<void()> task{[&executed] {executed = true;}};
+  pc::packaged_task<void()> task{[&executed] { executed = true; }};
   task.get_future();
   task();
   EXPECT_FALSE(executed);
@@ -89,7 +80,7 @@ TEST(PackagedTaskCancelation, run_canceled_task_do_not_execute_stored_function) 
 TEST(ContinuationCancelation, then_continuation_is_not_executed_afeter_future_destruction) {
   pc::promise<int> promise;
   bool executed = false;
-  promise.get_future().then([&executed](pc::future<int>) {executed = true;});
+  promise.get_future().then([&executed](pc::future<int>) { executed = true; });
   promise.set_value(42);
   EXPECT_FALSE(executed);
 }
@@ -97,7 +88,10 @@ TEST(ContinuationCancelation, then_continuation_is_not_executed_afeter_future_de
 TEST(ContinuationCancelation, then_unwrapped_continuation_is_not_executed_afeter_future_destruction) {
   pc::promise<int> promise;
   bool executed = false;
-  promise.get_future().then([&executed](pc::future<int>) {executed = true; return pc::make_ready_future();});
+  promise.get_future().then([&executed](pc::future<int>) {
+    executed = true;
+    return pc::make_ready_future();
+  });
   promise.set_value(42);
   EXPECT_FALSE(executed);
 }
@@ -105,7 +99,7 @@ TEST(ContinuationCancelation, then_unwrapped_continuation_is_not_executed_afeter
 TEST(ContinuationCancelation, then_continuation_with_executor_is_not_executed_afeter_future_destruction) {
   pc::promise<int> promise;
   std::atomic<bool> executed{false};
-  promise.get_future().then(g_future_tests_env, [&executed](pc::future<int>) {executed = true;});
+  promise.get_future().then(g_future_tests_env, [&executed](pc::future<int>) { executed = true; });
   promise.set_value(42);
   g_future_tests_env->wait_current_tasks();
   EXPECT_FALSE(executed);
@@ -114,7 +108,7 @@ TEST(ContinuationCancelation, then_continuation_with_executor_is_not_executed_af
 TEST(ContinuationCancelation, next_continuation_is_not_executed_afeter_future_destruction) {
   pc::promise<int> promise;
   bool executed = false;
-  promise.get_future().next([&executed](int) {executed = true;});
+  promise.get_future().next([&executed](int) { executed = true; });
   promise.set_value(42);
   EXPECT_FALSE(executed);
 }
@@ -122,7 +116,7 @@ TEST(ContinuationCancelation, next_continuation_is_not_executed_afeter_future_de
 TEST(ContinuationCancelation, next_continuation_with_executor_is_not_executed_afeter_future_destruction) {
   pc::promise<int> promise;
   std::atomic<bool> executed{false};
-  promise.get_future().next(g_future_tests_env, [&executed](int) {executed = true;});
+  promise.get_future().next(g_future_tests_env, [&executed](int) { executed = true; });
   promise.set_value(42);
   g_future_tests_env->wait_current_tasks();
   EXPECT_FALSE(executed);
@@ -148,13 +142,13 @@ TEST(Promise, is_awaiten_returns_true_after_future_sharing) {
 
 TEST(Promise, is_awaiten_returns_true_after_attaching_continuation) {
   pc::promise<int> p;
-  auto f = p.get_future().next([](int val) {return 5*val;});
+  auto f = p.get_future().next([](int val) { return 5 * val; });
   EXPECT_TRUE(p.is_awaiten());
 }
 
 TEST(Promise, is_awaiten_returns_false_after_continuation_future_abandoned) {
   pc::promise<int> p;
-  p.get_future().next([](int val) {return 5*val;});
+  p.get_future().next([](int val) { return 5 * val; });
   EXPECT_FALSE(p.is_awaiten());
 }
 
@@ -186,14 +180,14 @@ TEST(Promise, is_awaiten_returns_true_after_shared_future_detach) {
 
 TEST(Canceler, is_not_called_by_promise_constructor) {
   size_t call_count = 0u;
-  pc::promise<int> promise{pc::canceler_arg, [&] {++call_count;}};
+  pc::promise<int> promise{pc::canceler_arg, [&] { ++call_count; }};
   EXPECT_EQ(call_count, 0u);
 }
 
 TEST(Canceler, is_called_once_if_future_destroyed_before_set) {
   size_t call_count = 0u;
   {
-    pc::promise<int> promise{pc::canceler_arg, [&] {++call_count;}};
+    pc::promise<int> promise{pc::canceler_arg, [&] { ++call_count; }};
     promise.get_future();
   }
   EXPECT_EQ(call_count, 1u);
@@ -202,7 +196,7 @@ TEST(Canceler, is_called_once_if_future_destroyed_before_set) {
 TEST(Canceler, is_not_called_if_future_destroyed_after_set_value) {
   size_t call_count = 0u;
   {
-    pc::promise<int> promise{pc::canceler_arg, [&] {++call_count;}};
+    pc::promise<int> promise{pc::canceler_arg, [&] { ++call_count; }};
     auto future = promise.get_future();
     promise.set_value(42);
   }
@@ -212,7 +206,7 @@ TEST(Canceler, is_not_called_if_future_destroyed_after_set_value) {
 TEST(Canceler, is_not_called_if_future_destroyed_after_set_exception) {
   size_t call_count = 0u;
   {
-    pc::promise<int&> promise{pc::canceler_arg, [&] {++call_count;}};
+    pc::promise<int&> promise{pc::canceler_arg, [&] { ++call_count; }};
     pc::future<int&> future = promise.get_future();
     promise.set_exception(std::make_exception_ptr(std::runtime_error{"qwe"}));
   }
@@ -224,7 +218,7 @@ TEST(Canceler, is_not_called_if_promise_abandoned) {
   {
     pc::future<void> f;
     {
-      pc::promise<void> promise{pc::canceler_arg, [&] {++call_count;}};
+      pc::promise<void> promise{pc::canceler_arg, [&] { ++call_count; }};
       f = promise.get_future();
     }
   }
@@ -234,19 +228,14 @@ TEST(Canceler, is_not_called_if_promise_abandoned) {
 TEST(Canceller, non_const_operation_is_supported) {
   std::shared_ptr<int> resource = std::make_shared<int>(42);
   std::weak_ptr<int> weak = resource;
-  pc::promise<int> promise{
-    pc::canceler_arg,
-    [resource = std::move(resource)] () mutable {resource.reset();}
-  };
+  pc::promise<int> promise{pc::canceler_arg, [resource = std::move(resource)]() mutable { resource.reset(); }};
   promise.get_future();
   EXPECT_TRUE(weak.expired());
 }
 
 TEST(InterruptableContinuation, broken_promise_delivered_if_valie_is_not_set) {
   pc::promise<int> promise;
-  pc::future<std::string> future = promise.get_future().then(
-    [](pc::promise<std::string>&, pc::future<int>) {}
-  );
+  pc::future<std::string> future = promise.get_future().then([](pc::promise<std::string>&, pc::future<int>) {});
   promise.set_value(42);
   EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
 }
@@ -255,12 +244,10 @@ TEST(InterruptableContinuation, continuation_detects_if_result_is_not_awaiten) {
   pc::promise<int> promise;
   pc::future<std::string> future;
   bool was_awaiten = true;
-  future = promise.get_future().then(
-    [&](pc::promise<std::string>& p, pc::future<int>) {
-      future = {};
-      was_awaiten = p.is_awaiten();
-    }
-  );
+  future = promise.get_future().then([&](pc::promise<std::string>& p, pc::future<int>) {
+    future = {};
+    was_awaiten = p.is_awaiten();
+  });
   promise.set_value(42);
   EXPECT_EQ(was_awaiten, false);
 }

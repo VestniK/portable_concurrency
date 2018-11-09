@@ -19,9 +19,10 @@ inline namespace cxx14_v1 {
  * @ingroup future_hdr
  * @brief The class template future provides a mechanism to access the result of asynchronous operations.
  */
-template<typename T>
+template <typename T>
 class future {
   static_assert(!detail::is_future<T>::value, "future<future<T>> and future<shared_future<T>> are not allowed");
+
 public:
   /**
    * Constructs invalid future object
@@ -43,13 +44,13 @@ public:
   /**
    * Copy assignment operator is explicitly deleted. Future object is not copyable.
    */
-  future& operator= (const future&) = delete;
+  future& operator=(const future&) = delete;
   /**
    * Move assignmet
    *
    * @post rhs.valid() == false
    */
-  future& operator= (future&& rhs) noexcept = default;
+  future& operator=(future&& rhs) noexcept = default;
 
   /**
    * Destroys associated shared state and cancel not yet started operations.
@@ -78,7 +79,7 @@ public:
    */
   void wait() const;
 
-  template<typename Rep, typename Period>
+  template <typename Rep, typename Period>
   future_status wait_for(const std::chrono::duration<Rep, Period>& rel_time) const;
 
   template <typename Clock, typename Duration>
@@ -96,22 +97,22 @@ public:
    */
   bool is_ready() const;
 
-  template<typename F>
+  template <typename F>
   detail::cnt_future_t<F, future<T>> then(F&& f);
 
-  template<typename F>
+  template <typename F>
   detail::add_future_t<detail::promise_arg_t<F, T>> then(F&& f);
 
-  template<typename E, typename F>
+  template <typename E, typename F>
   detail::cnt_future_t<F, future<T>> then(E&& exec, F&& f);
 
-  template<typename E, typename F>
+  template <typename E, typename F>
   detail::add_future_t<detail::promise_arg_t<F, T>> then(E&& exec, F&& f);
 
-  template<typename F>
+  template <typename F>
   detail::cnt_future_t<F, T> next(F&& f);
 
-  template<typename E, typename F>
+  template <typename E, typename F>
   detail::cnt_future_t<F, T> next(E&& exec, F&& f);
 
   /**
@@ -141,8 +142,8 @@ private:
   std::shared_ptr<detail::future_state<T>> state_;
 };
 
-template<>
+template <>
 void future<void>::get();
 
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency

@@ -14,7 +14,7 @@ inline namespace cxx14_v1 {
 
 namespace detail {
 
-template<typename R, typename... A>
+template <typename R, typename... A>
 struct packaged_task_state {
   virtual ~packaged_task_state() = default;
 
@@ -23,21 +23,17 @@ struct packaged_task_state {
   virtual void abandon() = 0;
 };
 
-template<typename F, typename R, typename... A>
-struct task_state final: packaged_task_state<R, A...> {
-  task_state(F&& f): func(std::forward<F>(f)) {}
+template <typename F, typename R, typename... A>
+struct task_state final : packaged_task_state<R, A...> {
+  task_state(F&& f) : func(std::forward<F>(f)) {}
 
   void run(A&&... a) override {
     ::portable_concurrency::cxx14_v1::detail::set_state_value(state, func, std::forward<A>(a)...);
   }
 
-  future_state<R>* get_future_state() override {
-    return &state;
-  }
+  future_state<R>* get_future_state() override { return &state; }
 
-  void abandon() override {
-    state.abandon();
-  }
+  void abandon() override { state.abandon(); }
 
   std::decay_t<F> func;
   shared_state<R> state;
@@ -45,7 +41,7 @@ struct task_state final: packaged_task_state<R, A...> {
 
 } // namespace detail
 
-template<typename R, typename... A>
+template <typename R, typename... A>
 class packaged_task<R(A...)> {
 public:
   packaged_task() noexcept = default;
@@ -54,20 +50,17 @@ public:
       state->abandon();
   }
 
-  template<typename F>
+  template <typename F>
   explicit packaged_task(F&& f)
-    : state_{detail::in_place_index_t<1>{}, std::make_shared<detail::task_state<F, R, A...>>(std::forward<F>(f))}
-  {}
+      : state_{detail::in_place_index_t<1>{}, std::make_shared<detail::task_state<F, R, A...>>(std::forward<F>(f))} {}
 
   packaged_task(const packaged_task&) = delete;
   packaged_task(packaged_task&&) noexcept = default;
 
-  packaged_task& operator= (const packaged_task&) = delete;
-  packaged_task& operator= (packaged_task&&) noexcept = default;
+  packaged_task& operator=(const packaged_task&) = delete;
+  packaged_task& operator=(packaged_task&&) noexcept = default;
 
-  bool valid() const noexcept {
-    return !state_.empty();
-  }
+  bool valid() const noexcept { return !state_.empty(); }
 
   void swap(packaged_task& other) noexcept {
     auto tmp = std::move(state_);
@@ -83,7 +76,7 @@ public:
     return {std::shared_ptr<detail::future_state<R>>{state, state->get_future_state()}};
   }
 
-  void operator() (A... a) {
+  void operator()(A... a) {
     if (auto state = get_state())
       state->run(std::forward<A>(a)...);
   }
@@ -91,19 +84,17 @@ public:
 private:
   std::shared_ptr<detail::packaged_task_state<R, A...>> get_state(bool throw_no_state = true) {
     struct {
-      std::shared_ptr<detail::packaged_task_state<R, A...>> operator() (detail::monostate) {
+      std::shared_ptr<detail::packaged_task_state<R, A...>> operator()(detail::monostate) {
         if (throw_no_state)
           throw std::future_error(std::future_errc::no_state);
         return nullptr;
       }
-      std::shared_ptr<detail::packaged_task_state<R, A...>> operator() (
-        const std::shared_ptr<detail::packaged_task_state<R, A...>>& state
-      ) {
+      std::shared_ptr<detail::packaged_task_state<R, A...>> operator()(
+          const std::shared_ptr<detail::packaged_task_state<R, A...>>& state) {
         return state;
       }
-      std::shared_ptr<detail::packaged_task_state<R, A...>> operator() (
-        const std::weak_ptr<detail::packaged_task_state<R, A...>>& state
-      ) {
+      std::shared_ptr<detail::packaged_task_state<R, A...>> operator()(
+          const std::weak_ptr<detail::packaged_task_state<R, A...>>& state) {
         return state.lock();
       }
 
@@ -113,13 +104,10 @@ private:
   }
 
 private:
-  detail::either<
-    detail::monostate,
-    std::shared_ptr<detail::packaged_task_state<R, A...>>,
-    std::weak_ptr<detail::packaged_task_state<R, A...>>
-  > state_;
+  detail::either<detail::monostate, std::shared_ptr<detail::packaged_task_state<R, A...>>,
+      std::weak_ptr<detail::packaged_task_state<R, A...>>>
+      state_;
 };
 
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency
-

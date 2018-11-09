@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstddef>
 #include <condition_variable>
+#include <cstddef>
 #include <mutex>
 
 namespace portable_concurrency {
@@ -17,7 +17,7 @@ inline namespace cxx14_v1 {
  */
 class latch {
 public:
-  explicit latch(ptrdiff_t count): counter_(count) {}
+  explicit latch(ptrdiff_t count) : counter_(count) {}
 
   latch(const latch&) = delete;
   latch& operator=(const latch&) = delete;
@@ -36,5 +36,5 @@ private:
   mutable std::condition_variable cv_;
 };
 
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency

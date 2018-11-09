@@ -8,7 +8,7 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
-template<typename S>
+template <typename S>
 class unique_function;
 
 /**
@@ -18,7 +18,7 @@ class unique_function;
  *
  * Implementation of http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4543.pdf proposal.
  */
-template<typename R, typename... A>
+template <typename R, typename... A>
 class unique_function<R(A...)> {
 public:
   /**
@@ -45,7 +45,7 @@ public:
    * template instantiations and for any function type which is sent to a user provided executor via ADL discovered
    * function `post`.
    */
-  template<typename F, typename = std::enable_if_t<!std::is_same<std::decay_t<F>, unique_function>::value>>
+  template <typename F, typename = std::enable_if_t<!std::is_same<std::decay_t<F>, unique_function>::value>>
   unique_function(F&& f);
 
   /**
@@ -65,37 +65,37 @@ public:
    * Destroy function object stored in this `unique_function` object (if any) and move function object from `rhs`
    * to `*this`.
    */
-  unique_function& operator= (unique_function&& rhs) noexcept;
+  unique_function& operator=(unique_function&& rhs) noexcept;
 
   unique_function(detail::small_unique_function<R(A...)>&& rhs) noexcept;
-  unique_function& operator= (detail::small_unique_function<R(A...)>&& rhs) noexcept;
+  unique_function& operator=(detail::small_unique_function<R(A...)>&& rhs) noexcept;
 #if defined(__GNUC__) && __GNUC__ < 5 && !defined(__clang__)
-  operator detail::small_unique_function<R(A...)>& () noexcept;
+  operator detail::small_unique_function<R(A...)>&() noexcept;
 #else
-  operator detail::small_unique_function<R(A...)>&& () && noexcept;
+  operator detail::small_unique_function<R(A...)> &&() && noexcept;
 #endif
 
   /**
    * Calls stored function object with parameters @a args and returns result of the operation. If `this` object is empty
    * throws `std::bad_function_call`.
    */
-  R operator() (A... args) const;
+  R operator()(A... args) const;
 
   /**
    * Checks if this object holds a function (not empty).
    */
-  explicit operator bool () const noexcept {return static_cast<bool>(func_);}
+  explicit operator bool() const noexcept { return static_cast<bool>(func_); }
 
   /**
    * Also checks if this object holds a function
    */
-  bool operator==(std::nullptr_t) const noexcept {return static_cast<bool>(func_);}
+  bool operator==(std::nullptr_t) const noexcept { return static_cast<bool>(func_); }
 
 private:
-  template<typename F>
+  template <typename F>
   unique_function(F&& f, std::true_type);
 
-  template<typename F>
+  template <typename F>
   unique_function(F&& f, std::false_type);
 
 private:
@@ -104,5 +104,5 @@ private:
 
 extern template class unique_function<void()>;
 
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency

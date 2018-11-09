@@ -7,12 +7,9 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-template<typename T>
+template <typename T>
 struct forward_list_node {
-  forward_list_node(T&& val, forward_list_node* next = nullptr):
-    val(std::move(val)),
-    next(next)
-  {}
+  forward_list_node(T&& val, forward_list_node* next = nullptr) : val(std::move(val)), next(next) {}
 
   virtual void deallocate_self() = 0;
 
@@ -23,20 +20,20 @@ protected:
   virtual ~forward_list_node() = default;
 };
 
-template<typename T>
+template <typename T>
 struct forward_list_deleter {
-  void operator() (forward_list_node<T>* head) noexcept;
+  void operator()(forward_list_node<T>* head) noexcept;
 };
 
-template<typename T>
+template <typename T>
 using forward_list = std::unique_ptr<forward_list_node<T>, forward_list_deleter<T>>;
 
-template<typename T, typename Alloc>
+template <typename T, typename Alloc>
 forward_list<T> allocate_list_node(T&& val, const Alloc& alloc) {
-  struct node final: Alloc, forward_list_node<T> {
-    node(T&& val, const Alloc& alloc): Alloc(alloc), forward_list_node<T>(std::move(val)) {}
+  struct node final : Alloc, forward_list_node<T> {
+    node(T&& val, const Alloc& alloc) : Alloc(alloc), forward_list_node<T>(std::move(val)) {}
 
-    Alloc& get_allocator() {return *this;}
+    Alloc& get_allocator() { return *this; }
 
     void deallocate_self() override {
       using node_allocator = typename std::allocator_traits<Alloc>::template rebind_alloc<node>;
@@ -71,7 +68,7 @@ forward_list<T> allocate_list_node(T&& val, const Alloc& alloc) {
  * Last requrement allows consumer atomically trasfer data to producers with a single
  * operation of stack consumption.
  */
-template<typename T>
+template <typename T>
 class once_consumable_stack {
 public:
   once_consumable_stack() noexcept;
@@ -90,13 +87,13 @@ public:
    */
   bool push(T& val);
 
-  template<typename Alloc>
+  template <typename Alloc>
   bool push(T& val, const Alloc& alloc) {
     forward_list<T> node = allocate_list_node(std::move(val), alloc);
     if (push(node))
       return true;
     val = std::move(node->val);
-    return  false;
+    return false;
   }
 
   /**
@@ -129,5 +126,5 @@ private:
 };
 
 } // namespace detail
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency

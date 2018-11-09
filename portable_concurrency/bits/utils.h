@@ -9,7 +9,7 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-template<typename R, typename F, typename... A>
+template <typename R, typename F, typename... A>
 void set_state_value(shared_state<R>& state, F&& f, A&&... a) {
   bool executed = false;
   try {
@@ -23,7 +23,7 @@ void set_state_value(shared_state<R>& state, F&& f, A&&... a) {
   }
 }
 
-template<typename R, typename F, typename... A>
+template <typename R, typename F, typename... A>
 void set_state_value(shared_state<R&>& state, F&& f, A&&... a) {
   bool executed = false;
   try {
@@ -37,7 +37,7 @@ void set_state_value(shared_state<R&>& state, F&& f, A&&... a) {
   }
 }
 
-template<typename F, typename... A>
+template <typename F, typename... A>
 void set_state_value(shared_state<void>& state, F&& f, A&&... a) {
   bool executed = false;
   try {
@@ -52,5 +52,5 @@ void set_state_value(shared_state<void>& state, F&& f, A&&... a) {
 }
 
 } // namespace detail
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency

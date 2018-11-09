@@ -8,7 +8,7 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-template<typename T>
+template <typename T>
 class closable_queue {
 public:
   bool pop(T& dest);
@@ -23,5 +23,5 @@ private:
 };
 
 } // namespace detail
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency

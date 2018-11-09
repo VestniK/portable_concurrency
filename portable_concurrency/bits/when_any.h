@@ -16,7 +16,7 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
-template<typename Sequence>
+template <typename Sequence>
 struct when_any_result {
   std::size_t index;
   Sequence futures;
@@ -24,13 +24,10 @@ struct when_any_result {
 
 namespace detail {
 
-template<typename Sequence>
-class when_any_state final: public future_state<when_any_result<Sequence>>
-{
+template <typename Sequence>
+class when_any_state final : public future_state<when_any_result<Sequence>> {
 public:
-  when_any_state(Sequence&& futures):
-    result_{static_cast<std::size_t>(-1), std::move(futures)}
-  {}
+  when_any_state(Sequence&& futures) : result_{static_cast<std::size_t>(-1), std::move(futures)} {}
 
   // threadsafe
   void notify(std::size_t pos) {
@@ -42,12 +39,9 @@ public:
 
   static std::shared_ptr<future_state<when_any_result<Sequence>>> make(Sequence&& seq) {
     auto state = std::make_shared<when_any_state<Sequence>>(std::move(seq));
-    sequence_traits<Sequence>::for_each(
-      state->result_.futures,
-      [state, idx = std::size_t(0)](auto& f) mutable {
-        state_of(f)->continuations().push([state, pos = idx++] {state->notify(pos);});
-      }
-    );
+    sequence_traits<Sequence>::for_each(state->result_.futures, [state, idx = std::size_t(0)](auto& f) mutable {
+      state_of(f)->continuations().push([state, pos = idx++] { state->notify(pos); });
+    });
     return state;
   }
 
@@ -61,9 +55,7 @@ public:
     return nullptr;
   }
 
-  continuations_stack& continuations() final {
-    return continuations_;
-  }
+  continuations_stack& continuations() final { return continuations_; }
 
 private:
   when_any_result<Sequence> result_;
@@ -75,48 +67,34 @@ private:
 
 future<when_any_result<std::tuple<>>> when_any();
 
-template<typename... Futures>
-auto when_any(Futures&&... futures) ->
-  std::enable_if_t<
-    detail::are_futures<std::decay_t<Futures>...>::value,
-    future<when_any_result<std::tuple<std::decay_t<Futures>...>>>
-  >
-{
+template <typename... Futures>
+auto when_any(Futures&&... futures) -> std::enable_if_t<detail::are_futures<std::decay_t<Futures>...>::value,
+    future<when_any_result<std::tuple<std::decay_t<Futures>...>>>> {
   using Sequence = std::tuple<std::decay_t<Futures>...>;
-  return future<when_any_result<Sequence>>{detail::when_any_state<Sequence>::make(
-    Sequence{std::forward<Futures>(futures)...}
-  )};
+  return future<when_any_result<Sequence>>{
+      detail::when_any_state<Sequence>::make(Sequence{std::forward<Futures>(futures)...})};
 }
 
-template<typename InputIt>
-auto when_any(InputIt first, InputIt last) ->
-  std::enable_if_t<
-    detail::is_unique_future<typename std::iterator_traits<InputIt>::value_type>::value,
-    future<when_any_result<std::vector<typename std::iterator_traits<InputIt>::value_type>>>
-  >
-{
+template <typename InputIt>
+auto when_any(InputIt first, InputIt last)
+    -> std::enable_if_t<detail::is_unique_future<typename std::iterator_traits<InputIt>::value_type>::value,
+        future<when_any_result<std::vector<typename std::iterator_traits<InputIt>::value_type>>>> {
   using Sequence = std::vector<typename std::iterator_traits<InputIt>::value_type>;
   if (first == last)
     return make_ready_future(when_any_result<Sequence>{static_cast<std::size_t>(-1), {}});
-  return future<when_any_result<Sequence>>{detail::when_any_state<Sequence>::make(
-    Sequence{std::make_move_iterator(first), std::make_move_iterator(last)}
-  )};
+  return future<when_any_result<Sequence>>{
+      detail::when_any_state<Sequence>::make(Sequence{std::make_move_iterator(first), std::make_move_iterator(last)})};
 }
 
-template<typename InputIt>
-auto when_any(InputIt first, InputIt last) ->
-  std::enable_if_t<
-    detail::is_shared_future<typename std::iterator_traits<InputIt>::value_type>::value,
-    future<when_any_result<std::vector<typename std::iterator_traits<InputIt>::value_type>>>
-  >
-{
+template <typename InputIt>
+auto when_any(InputIt first, InputIt last)
+    -> std::enable_if_t<detail::is_shared_future<typename std::iterator_traits<InputIt>::value_type>::value,
+        future<when_any_result<std::vector<typename std::iterator_traits<InputIt>::value_type>>>> {
   using Sequence = std::vector<typename std::iterator_traits<InputIt>::value_type>;
   if (first == last)
     return make_ready_future(when_any_result<Sequence>{static_cast<std::size_t>(-1), {}});
-  return future<when_any_result<Sequence>>{detail::when_any_state<Sequence>::make(
-    Sequence{first, last}
-  )};
+  return future<when_any_result<Sequence>>{detail::when_any_state<Sequence>::make(Sequence{first, last})};
 }
 
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency

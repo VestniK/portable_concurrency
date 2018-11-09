@@ -1,0 +1,9 @@
+﻿---
+BasedOnStyle: LLVM
+AlignAfterOpenBracket: 'false'
+AlwaysBreakTemplateDeclarations: 'true'
+ColumnLimit: '120'
+MaxEmptyLinesToKeep: '1'
+PointerAlignment: Left
+
+...

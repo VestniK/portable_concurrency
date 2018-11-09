@@ -10,7 +10,7 @@
 namespace {
 namespace test {
 
-struct small_unique_function: ::testing::Test {};
+struct small_unique_function : ::testing::Test {};
 
 TEST_F(small_unique_function, default_constructed_is_null) {
   pc::detail::small_unique_function<int()> func;
@@ -27,7 +27,7 @@ TEST_F(small_unique_function, wrapps_member_func_pointer) {
     std::array<int, 128> arr;
 
     void fill(int first, int step) {
-      for (int& item: arr)
+      for (int& item : arr)
         first = (item = first) + step;
     }
   } large;
@@ -42,7 +42,7 @@ TEST_F(small_unique_function, wrapps_refference_wrapper) {
   struct {
     std::array<int, 128> arr;
 
-    size_t operator() () const {return arr.size();}
+    size_t operator()() const { return arr.size(); }
   } large;
 
   pc::detail::small_unique_function<size_t()> foo = std::ref(large);
@@ -50,7 +50,7 @@ TEST_F(small_unique_function, wrapps_refference_wrapper) {
 }
 
 TEST_F(small_unique_function, wrapps_packaged_task) {
-  pc::packaged_task<size_t(const std::string&)> task{[](const std::string& str) {return  str.size();}};
+  pc::packaged_task<size_t(const std::string&)> task{[](const std::string& str) { return str.size(); }};
   auto future = task.get_future();
 
   pc::detail::small_unique_function<void(const std::string&)> foo = std::move(task);
@@ -62,14 +62,16 @@ TEST_F(small_unique_function, wrapps_packaged_task) {
 TEST_F(small_unique_function, lamda_with_this_as_only_capture) {
   struct {
     int x;
-    auto foo() {return [this](int a) {return a*x;};}
+    auto foo() {
+      return [this](int a) { return a * x; };
+    }
   } obj;
   pc::detail::small_unique_function<int(int)> f = obj.foo();
   EXPECT_TRUE(f);
 }
 
 TEST_F(small_unique_function, const_object_can_be_invoked) {
-  const pc::detail::small_unique_function<int(int)> f = [m = 0](int x) mutable {return x*(++m);};
+  const pc::detail::small_unique_function<int(int)> f = [m = 0](int x) mutable { return x * (++m); };
   EXPECT_EQ(f(2), 2);
 }
 

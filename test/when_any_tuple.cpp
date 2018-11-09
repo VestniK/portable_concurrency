@@ -9,7 +9,7 @@ using namespace std::literals;
 
 namespace {
 
-class WhenAnyTupleTest: public ::testing::TestWithParam<size_t> {};
+class WhenAnyTupleTest : public ::testing::TestWithParam<size_t> {};
 
 TEST(WhenAnyTupleTest, empty_sequence) {
   auto res_fut = pc::when_any();
@@ -180,9 +180,12 @@ TEST(WhenAnyTupleTest, next_ready_futures_dont_affect_result_after_get) {
 
 TEST(WhenAnyTupleTest, concurrent_result_delivery) {
   pc::latch latch{3};
-  pc::packaged_task<int()> t0{[&latch] {latch.count_down_and_wait(); return 42;}};
+  pc::packaged_task<int()> t0{[&latch] {
+    latch.count_down_and_wait();
+    return 42;
+  }};
   pc::promise<std::string> p1;
-  pc::packaged_task<void()> t2{[&latch] {latch.count_down_and_wait();}};
+  pc::packaged_task<void()> t2{[&latch] { latch.count_down_and_wait(); }};
 
   auto f = pc::when_any(t0.get_future(), p1.get_future(), t2.get_future());
   ASSERT_TRUE(f.valid());
@@ -208,13 +211,7 @@ TEST_P(WhenAnyTupleTest, multiple_futures) {
   pc::promise<future_tests_env&> p4;
   auto raw_f4 = p4.get_future();
 
-  auto f = pc::when_any(
-    std::move(raw_f0),
-    raw_f1,
-    std::move(raw_f2),
-    raw_f3,
-    std::move(raw_f4)
-  );
+  auto f = pc::when_any(std::move(raw_f0), raw_f1, std::move(raw_f2), raw_f3, std::move(raw_f4));
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(raw_f0.valid());
   EXPECT_TRUE(raw_f1.valid());
@@ -225,11 +222,21 @@ TEST_P(WhenAnyTupleTest, multiple_futures) {
 
   size_t idx_first = GetParam();
   switch (idx_first) {
-  case 0: p0.set_value(345); break;
-  case 1: p1.set_value("hello world"); break;
-  case 2: p2.set_value(std::make_unique<int>(42)); break;
-  case 3: p3.set_value(); break;
-  case 4: p4.set_value(*g_future_tests_env); break;
+  case 0:
+    p0.set_value(345);
+    break;
+  case 1:
+    p1.set_value("hello world");
+    break;
+  case 2:
+    p2.set_value(std::make_unique<int>(42));
+    break;
+  case 3:
+    p3.set_value();
+    break;
+  case 4:
+    p4.set_value(*g_future_tests_env);
+    break;
   }
   ASSERT_TRUE(f.is_ready());
 
@@ -250,11 +257,21 @@ TEST_P(WhenAnyTupleTest, multiple_futures) {
   ASSERT_TRUE(std::get<4>(res.futures).is_ready() || idx_first != 4);
 
   switch (idx_first) {
-  case 0: EXPECT_EQ(std::get<0>(res.futures).get(), 345); break;
-  case 1: EXPECT_EQ(std::get<1>(res.futures).get(), "hello world"); break;
-  case 2: EXPECT_EQ(*std::get<2>(res.futures).get(), 42); break;
-  case 3: EXPECT_NO_THROW(std::get<3>(res.futures).get()); break;
-  case 4: EXPECT_EQ(&std::get<4>(res.futures).get(), g_future_tests_env); break;
+  case 0:
+    EXPECT_EQ(std::get<0>(res.futures).get(), 345);
+    break;
+  case 1:
+    EXPECT_EQ(std::get<1>(res.futures).get(), "hello world");
+    break;
+  case 2:
+    EXPECT_EQ(*std::get<2>(res.futures).get(), 42);
+    break;
+  case 3:
+    EXPECT_NO_THROW(std::get<3>(res.futures).get());
+    break;
+  case 4:
+    EXPECT_EQ(&std::get<4>(res.futures).get(), g_future_tests_env);
+    break;
   }
 }
 
@@ -273,20 +290,24 @@ TEST_P(WhenAnyTupleTest, multiple_futures_one_initially_ready) {
 
   size_t idx_first = GetParam();
   switch (idx_first) {
-  case 0: p0.set_value(345); break;
-  case 1: p1.set_value("hello world"); break;
-  case 2: p2.set_value(std::make_unique<int>(42)); break;
-  case 3: p3.set_value(); break;
-  case 4: p4.set_value(*g_future_tests_env); break;
+  case 0:
+    p0.set_value(345);
+    break;
+  case 1:
+    p1.set_value("hello world");
+    break;
+  case 2:
+    p2.set_value(std::make_unique<int>(42));
+    break;
+  case 3:
+    p3.set_value();
+    break;
+  case 4:
+    p4.set_value(*g_future_tests_env);
+    break;
   }
 
-  auto f = pc::when_any(
-    raw_f0,
-    std::move(raw_f1),
-    raw_f2,
-    std::move(raw_f3),
-    raw_f4
-  );
+  auto f = pc::when_any(raw_f0, std::move(raw_f1), raw_f2, std::move(raw_f3), raw_f4);
   ASSERT_TRUE(f.valid());
   EXPECT_TRUE(raw_f0.valid());
   EXPECT_FALSE(raw_f1.valid());
@@ -313,11 +334,21 @@ TEST_P(WhenAnyTupleTest, multiple_futures_one_initially_ready) {
   ASSERT_TRUE(std::get<4>(res.futures).is_ready() || idx_first != 4);
 
   switch (idx_first) {
-  case 0: EXPECT_EQ(std::get<0>(res.futures).get(), 345); break;
-  case 1: EXPECT_EQ(std::get<1>(res.futures).get(), "hello world"); break;
-  case 2: EXPECT_EQ(*std::get<2>(res.futures).get(), 42); break;
-  case 3: EXPECT_NO_THROW(std::get<3>(res.futures).get()); break;
-  case 4: EXPECT_EQ(&std::get<4>(res.futures).get(), g_future_tests_env); break;
+  case 0:
+    EXPECT_EQ(std::get<0>(res.futures).get(), 345);
+    break;
+  case 1:
+    EXPECT_EQ(std::get<1>(res.futures).get(), "hello world");
+    break;
+  case 2:
+    EXPECT_EQ(*std::get<2>(res.futures).get(), 42);
+    break;
+  case 3:
+    EXPECT_NO_THROW(std::get<3>(res.futures).get());
+    break;
+  case 4:
+    EXPECT_EQ(&std::get<4>(res.futures).get(), g_future_tests_env);
+    break;
   }
 }
 

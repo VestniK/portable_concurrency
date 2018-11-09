@@ -10,72 +10,70 @@ namespace portable_concurrency {
 namespace test {
 namespace {
 
-static_assert(
-  !std::is_copy_constructible<detail::either<detail::monostate, int, std::string>>::value,
-  "either should not be copyable"
-);
-static_assert(
-  !std::is_copy_assignable<detail::either<detail::monostate, int, std::string>>::value,
-  "either should not be copyable"
-);
+static_assert(!std::is_copy_constructible<detail::either<detail::monostate, int, std::string>>::value,
+    "either should not be copyable");
+static_assert(!std::is_copy_assignable<detail::either<detail::monostate, int, std::string>>::value,
+    "either should not be copyable");
 
 // Visitation test first since all access is going to happen through visitors. If allmost all test fails one should
 // debug visitation tests first
 
-struct bad_variant_access: std::exception {
-  const char* what() const noexcept override {return "bad_variant_access";}
+struct bad_variant_access : std::exception {
+  const char* what() const noexcept override { return "bad_variant_access"; }
 };
 
-template<typename T>
+template <typename T>
 struct get_visitor {
-  T& operator() (T& val) const {return val;}
+  T& operator()(T& val) const { return val; }
 
-  template<typename U>
-  T& operator() (const U&) const {throw bad_variant_access{};}
+  template <typename U>
+  T& operator()(const U&) const {
+    throw bad_variant_access{};
+  }
 };
-
 
 TEST(Either, visitor_access_empty) {
   const detail::either<detail::monostate, int> either{};
   struct {
-    bool operator() (detail::monostate) {return true;}
-    bool operator() (int) {return  false;}
+    bool operator()(detail::monostate) { return true; }
+    bool operator()(int) { return false; }
   } visitor;
   EXPECT_TRUE(either.visit(visitor));
 }
 
 TEST(Either, visitor_access_first) {
   const detail::either<detail::monostate, int, std::string, std::unique_ptr<double>> either{
-    detail::in_place_index_t<1>{}, 42
-  };
+      detail::in_place_index_t<1>{}, 42};
   EXPECT_EQ(either.visit(get_visitor<const int>{}), 42);
 }
 
 TEST(Either, visitor_access_second) {
   detail::either<detail::monostate, int, std::string, std::unique_ptr<double>> either{
-    detail::in_place_index_t<2>{}, "42"
-  };
+      detail::in_place_index_t<2>{}, "42"};
   EXPECT_EQ(either.visit(get_visitor<std::string>{}), "42");
 }
 
 TEST(Either, visitor_access_third) {
   const detail::either<detail::monostate, int, std::string, std::unique_ptr<double>> either{
-    detail::in_place_index_t<3>{}, std::make_unique<double>(3.14)
-  };
+      detail::in_place_index_t<3>{}, std::make_unique<double>(3.14)};
   EXPECT_EQ(*either.visit(get_visitor<const std::unique_ptr<double>>{}), 3.14);
 }
 
-template<typename T, typename E>
-T& get(E& either) {return either.visit(get_visitor<T>{});}
+template <typename T, typename E>
+T& get(E& either) {
+  return either.visit(get_visitor<T>{});
+}
 
-template<typename T, typename E>
-const T& get(const E& either) {return either.visit(get_visitor<const T>{});}
+template <typename T, typename E>
+const T& get(const E& either) {
+  return either.visit(get_visitor<const T>{});
+}
 
 TEST(Either, visitor_modifies_first) {
   detail::either<detail::monostate, int> either{detail::in_place_index_t<1>{}, 100500};
   struct {
-    void operator() (detail::monostate) {}
-    void operator() (int& val) {val += 42;}
+    void operator()(detail::monostate) {}
+    void operator()(int& val) { val += 42; }
   } visitor;
   either.visit(visitor);
   EXPECT_EQ(get<int>(either), 100542);
@@ -172,7 +170,7 @@ TEST(Either, get_second_value_after_move) {
   EXPECT_EQ(get<std::string>(either_new), "voodo");
 }
 
-struct EitherCleanup: ::testing::Test {
+struct EitherCleanup : ::testing::Test {
   using sptr_t = std::shared_ptr<int>;
   std::shared_ptr<int> sval = std::make_shared<int>(100500);
   std::weak_ptr<int> wval = sval;
@@ -191,27 +189,23 @@ TEST_F(EitherCleanup, switch_from_second_to_first_destroys_old_value) {
 }
 
 TEST_F(EitherCleanup, destructor_destroys_stored_first) {
-  {
-    detail::either<detail::monostate, sptr_t, std::string> either{detail::in_place_index_t<1>{}, std::move(sval)};
-  }
+  { detail::either<detail::monostate, sptr_t, std::string> either{detail::in_place_index_t<1>{}, std::move(sval)}; }
   EXPECT_TRUE(wval.expired());
 }
 
 TEST_F(EitherCleanup, destructor_destroys_stored_second) {
-  {
-    detail::either<detail::monostate, std::string, sptr_t> either{detail::in_place_index_t<2>{}, std::move(sval)};
-  }
+  { detail::either<detail::monostate, std::string, sptr_t> either{detail::in_place_index_t<2>{}, std::move(sval)}; }
   EXPECT_TRUE(wval.expired());
 }
 
 // exception safety
-struct surprize: std::exception {
-  const char* what() const noexcept override {return  "surprize";};
+struct surprize : std::exception {
+  const char* what() const noexcept override { return "surprize"; };
 };
 
 class throwing {
 public:
-  throwing() {throw surprize{};}
+  throwing() { throw surprize{}; }
 };
 
 TEST(Either, remains_empty_on_exception_from_ctor_called_by_emplace) {

@@ -19,13 +19,12 @@ inline namespace cxx14_v1 {
  * @ingroup future_hdr
  * @brief The class template shared_future provides a mechanism to access the result of asynchronous operations.
  */
-template<typename T>
+template <typename T>
 class shared_future {
-  static_assert (
-    !detail::is_future<T>::value,
-    "shared_future<future<T> and shared_future<shared_future<T>> are not allowed"
-  );
+  static_assert(
+      !detail::is_future<T>::value, "shared_future<future<T> and shared_future<shared_future<T>> are not allowed");
   using get_result_type = std::add_lvalue_reference_t<std::add_const_t<T>>;
+
 public:
   shared_future() noexcept = default;
   shared_future(const shared_future&) noexcept = default;
@@ -39,7 +38,7 @@ public:
 
   void wait() const;
 
-  template<typename Rep, typename Period>
+  template <typename Rep, typename Period>
   future_status wait_for(const std::chrono::duration<Rep, Period>& rel_time) const;
 
   template <typename Clock, typename Duration>
@@ -51,17 +50,16 @@ public:
 
   bool is_ready() const;
 
-  template<typename F>
-  detail::cnt_future_t<F, shared_future<T>>
-  then(F&& f) const;
+  template <typename F>
+  detail::cnt_future_t<F, shared_future<T>> then(F&& f) const;
 
-  template<typename E, typename F>
+  template <typename E, typename F>
   detail::cnt_future_t<F, shared_future<T>> then(E&& exec, F&& f) const;
 
-  template<typename F>
+  template <typename F>
   detail::cnt_future_t<F, get_result_type> next(F&& f) const;
 
-  template<typename E, typename F>
+  template <typename E, typename F>
   detail::cnt_future_t<F, get_result_type> next(E&& exec, F&& f) const;
 
   /**
@@ -90,8 +88,8 @@ private:
   std::shared_ptr<detail::future_state<T>> state_;
 };
 
-template<>
+template <>
 typename shared_future<void>::get_result_type shared_future<void>::get() const;
 
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency

@@ -9,7 +9,7 @@ using namespace std::literals;
 
 namespace {
 
-class WhenAllTupleTest: public ::testing::Test {};
+class WhenAllTupleTest : public ::testing::Test {};
 
 TEST(WhenAllTupleTest, empty_sequence) {
   auto res_fut = pc::when_all();
@@ -152,9 +152,15 @@ TEST(WhenAllTupleTest, ready_on_all_only) {
 
 TEST(WhenAllTupleTest, concurrent_result_delivery) {
   pc::latch latch{4};
-  pc::packaged_task<int()> t0([&latch] {latch.count_down_and_wait(); return 42;});
-  pc::packaged_task<std::string()> t1([&latch] {latch.count_down_and_wait(); return std::string{"qwe"};});
-  pc::packaged_task<void()> t2([&latch] {latch.count_down_and_wait();});
+  pc::packaged_task<int()> t0([&latch] {
+    latch.count_down_and_wait();
+    return 42;
+  });
+  pc::packaged_task<std::string()> t1([&latch] {
+    latch.count_down_and_wait();
+    return std::string{"qwe"};
+  });
+  pc::packaged_task<void()> t2([&latch] { latch.count_down_and_wait(); });
 
   auto f = pc::when_all(t0.get_future().share(), t1.get_future(), t2.get_future());
   ASSERT_TRUE(f.valid());

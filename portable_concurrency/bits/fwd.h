@@ -8,29 +8,31 @@ inline namespace cxx14_v1 {
 struct canceler_arg_t {};
 constexpr canceler_arg_t canceler_arg = {};
 
-enum class future_status {
-  ready,
-  timeout
-};
+enum class future_status { ready, timeout };
 
-template<typename T> class future;
-template<typename Signature> class packaged_task;
-template<typename T> class promise;
-template<typename T> class shared_future;
+template <typename T>
+class future;
+template <typename Signature>
+class packaged_task;
+template <typename T>
+class promise;
+template <typename T>
+class shared_future;
 
 namespace detail {
-template<typename T> class future_state;
+template <typename T>
+class future_state;
 
-template<typename T>
+template <typename T>
 std::shared_ptr<future_state<T>>& state_of(future<T>&);
-template<typename T>
+template <typename T>
 std::shared_ptr<future_state<T>> state_of(future<T>&&);
 
-template<typename T>
+template <typename T>
 std::shared_ptr<future_state<T>>& state_of(shared_future<T>&);
-template<typename T>
+template <typename T>
 std::shared_ptr<future_state<T>> state_of(shared_future<T>&&);
 } // namespace detail
 
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency

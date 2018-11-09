@@ -18,7 +18,7 @@ extern template class once_consumable_stack<continuation>;
 class waiter final {
 public:
   waiter();
-  void operator() ();
+  void operator()();
   void wait() const;
   bool wait_for(std::chrono::nanoseconds timeout) const;
 
@@ -34,7 +34,7 @@ public:
   ~continuations_stack();
 
   void push(continuation&& cnt);
-  template<typename Alloc>
+  template <typename Alloc>
   void push(continuation&& cnt, const Alloc& alloc) {
     if (!stack_.push(cnt, alloc))
       cnt();
@@ -50,5 +50,5 @@ private:
 };
 
 } // namespace detail
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency

@@ -4,9 +4,9 @@
 #include <thread>
 #include <type_traits>
 
+#include "closable_queue.h"
 #include "execution.h"
 #include "unique_function.hpp"
-#include "closable_queue.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -40,7 +40,7 @@ public:
   /// wait for all threads in the thread pool to complete
   void wait();
 
-  executor_type executor() noexcept {return &queue_;}
+  executor_type executor() noexcept { return &queue_; }
 
 private:
   detail::closable_queue<unique_function<void()>> queue_;
@@ -52,9 +52,9 @@ private:
 
 void post(static_thread_pool::executor_type exec, unique_function<void()> task);
 
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 
-template<>
-struct is_executor<cxx14_v1::static_thread_pool::executor_type>: std::true_type {};
+template <>
+struct is_executor<cxx14_v1::static_thread_pool::executor_type> : std::true_type {};
 
 } // namespace portable_concurrency
