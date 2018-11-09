@@ -14,6 +14,16 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
+#if defined(__has_builtin)
+#if __has_builtin(__type_pack_element)
+#define USE_TYPE_PACK_BUILTIN
+#endif
+#endif
+
+#if defined(USE_TYPE_PACK_BUILTIN)
+template <std::size_t I, typename... T>
+using at_t = __type_pack_element<I, T...>;
+#else
 template <std::size_t I, typename... T>
 struct at;
 
@@ -27,6 +37,7 @@ struct at<I, H, T...> : at<I - 1, T...> {};
 
 template <std::size_t I, typename... T>
 using at_t = typename at<I, T...>::type;
+#endif
 
 template <std::size_t I>
 using in_place_index_t = std::integral_constant<std::size_t, I>;
