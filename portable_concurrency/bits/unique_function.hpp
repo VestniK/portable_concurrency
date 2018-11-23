@@ -32,7 +32,7 @@ unique_function<R(A...)>::unique_function(F&& f, std::false_type) {
   if (detail::is_null(f))
     return;
   func_ = [func = std::make_unique<std::decay_t<F>>(std::forward<F>(f))](A... a) {
-    return detail::invoke(*func, a...);
+    return detail::invoke(*func, std::forward<A>(a)...);
   };
 }
 
