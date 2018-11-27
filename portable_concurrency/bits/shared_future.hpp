@@ -64,12 +64,14 @@ bool shared_future<T>::is_ready() const {
 
 template <typename T>
 template <typename F>
+PC_NODISCARD
 detail::cnt_future_t<F, shared_future<T>> shared_future<T>::then(F&& f) const {
   return then(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template <typename T>
 template <typename E, typename F>
+PC_NODISCARD
 detail::cnt_future_t<F, shared_future<T>> shared_future<T>::then(E&& exec, F&& f) const {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, shared_future<T>>>;
@@ -81,12 +83,14 @@ detail::cnt_future_t<F, shared_future<T>> shared_future<T>::then(E&& exec, F&& f
 
 template <typename T>
 template <typename F>
+PC_NODISCARD
 detail::cnt_future_t<F, typename shared_future<T>::get_result_type> shared_future<T>::next(F&& f) const {
   return next(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template <typename T>
 template <typename E, typename F>
+PC_NODISCARD
 detail::cnt_future_t<F, typename shared_future<T>::get_result_type> shared_future<T>::next(E&& exec, F&& f) const {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, typename shared_future<T>::get_result_type>>;
@@ -98,6 +102,7 @@ detail::cnt_future_t<F, typename shared_future<T>::get_result_type> shared_futur
 
 template <>
 template <typename E, typename F>
+PC_NODISCARD
 detail::cnt_future_t<F, typename shared_future<void>::get_result_type> shared_future<void>::next(
     E&& exec, F&& f) const {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");

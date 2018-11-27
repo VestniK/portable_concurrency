@@ -12,6 +12,8 @@
 
 #include "concurrency_type_traits.h"
 
+#include <portable_concurrency/bits/config.h>
+
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 
@@ -98,21 +100,27 @@ public:
   bool is_ready() const;
 
   template <typename F>
+  PC_NODISCARD
   detail::cnt_future_t<F, future<T>> then(F&& f);
 
   template <typename F>
+  PC_NODISCARD
   detail::add_future_t<detail::promise_arg_t<F, T>> then(F&& f);
 
   template <typename E, typename F>
+  PC_NODISCARD
   detail::cnt_future_t<F, future<T>> then(E&& exec, F&& f);
 
   template <typename E, typename F>
+  PC_NODISCARD
   detail::add_future_t<detail::promise_arg_t<F, T>> then(E&& exec, F&& f);
 
   template <typename F>
+  PC_NODISCARD
   detail::cnt_future_t<F, T> next(F&& f);
 
   template <typename E, typename F>
+  PC_NODISCARD
   detail::cnt_future_t<F, T> next(E&& exec, F&& f);
 
   /**

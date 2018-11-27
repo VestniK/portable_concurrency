@@ -66,18 +66,21 @@ bool future<T>::is_ready() const {
 
 template <typename T>
 template <typename F>
+PC_NODISCARD
 detail::cnt_future_t<F, future<T>> future<T>::then(F&& f) {
   return then(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template <typename T>
 template <typename F>
+PC_NODISCARD
 detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(F&& f) {
   return then(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template <typename T>
 template <typename E, typename F>
+PC_NODISCARD
 detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, future<T>>>;
@@ -106,6 +109,7 @@ detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
  */
 template <typename T>
 template <typename E, typename F>
+PC_NODISCARD
 detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(E&& exec, F&& f) {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::promise_arg_t<F, T>;
@@ -126,12 +130,14 @@ detail::add_future_t<detail::promise_arg_t<F, T>> future<T>::then(E&& exec, F&& 
 
 template <typename T>
 template <typename F>
+PC_NODISCARD
 detail::cnt_future_t<F, T> future<T>::next(F&& f) {
   return next(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template <>
 template <typename E, typename F>
+PC_NODISCARD
 detail::cnt_future_t<F, void> future<void>::next(E&& exec, F&& f) {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, void>>;
@@ -144,6 +150,7 @@ detail::cnt_future_t<F, void> future<void>::next(E&& exec, F&& f) {
 
 template <typename T>
 template <typename E, typename F>
+PC_NODISCARD
 detail::cnt_future_t<F, T> future<T>::next(E&& exec, F&& f) {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, T>>;
