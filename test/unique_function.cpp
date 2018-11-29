@@ -241,7 +241,8 @@ TEST(UniqueFunction, pass_moveable_type_argument) {
 }
 
 TEST(UniqueFunction, pass_moveable_type_argument_to_big_function) {
-  pc::unique_function<int(std::unique_ptr<int>)> f = [obj = big{1,2,3,4,5,6}](std::unique_ptr<int> p) { return *p + obj.u3; };
+  pc::unique_function<int(std::unique_ptr<int>)> f = [obj = big{1, 2, 3, 4, 5, 6}](
+                                                         std::unique_ptr<int> p) { return *p + obj.u3; };
   EXPECT_EQ(f(std::make_unique<int>(42)), 46);
 }
 
