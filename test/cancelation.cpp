@@ -10,21 +10,21 @@ namespace {
 
 [[gnu::unused]] void foo(pc::promise<int>&, pc::future<std::string>) {}
 
-static_assert(std::is_same<detail::promise_arg_t<decltype(foo), std::string>, int>::value,
+static_assert(std::is_same<detail::promise_arg_t<decltype(foo), future<std::string>>, int>::value,
     "PromiseArgDeduce: should work on function reference");
 
-static_assert(std::is_same<detail::promise_arg_t<decltype(&foo), std::string>, int>::value,
+static_assert(std::is_same<detail::promise_arg_t<decltype(&foo), future<std::string>>, int>::value,
     "PromiseArgDeduce: should work on function pointer");
 
 TEST(PromiseArgDeduce, shoud_work_on_lambda) {
   auto lambda = [c = 5u](pc::promise<char>& p, pc::future<std::string> f) { p.set_value(f.get()[c]); };
-  static_assert(std::is_same<detail::promise_arg_t<decltype(lambda), std::string>, char>::value,
+  static_assert(std::is_same<detail::promise_arg_t<decltype(lambda), future<std::string>>, char>::value,
       "PromiseArgDeduce, should work on lambda");
 }
 
 TEST(PromiseArgDeduce, shoud_work_on_mutable_lambda) {
   auto lambda = [c = 5u](pc::promise<char>& p, pc::future<std::string> f) mutable { p.set_value(f.get()[c++]); };
-  static_assert(std::is_same<detail::promise_arg_t<decltype(lambda), std::string>, char>::value,
+  static_assert(std::is_same<detail::promise_arg_t<decltype(lambda), future<std::string>>, char>::value,
       "PromiseArgDeduce, should work on mutable lambda");
 }
 
@@ -240,11 +240,23 @@ TEST(InterruptableContinuation, broken_promise_delivered_if_valie_is_not_set) {
   EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
 }
 
-TEST(InterruptableContinuation, continuation_detects_if_result_is_not_awaiten) {
+TEST(InterruptableContinuation, future_continuation_detects_if_result_is_not_awaiten) {
   pc::promise<int> promise;
   pc::future<std::string> future;
   bool was_awaiten = true;
   future = promise.get_future().then([&](pc::promise<std::string>& p, pc::future<int>) {
+    future = {};
+    was_awaiten = p.is_awaiten();
+  });
+  promise.set_value(42);
+  EXPECT_EQ(was_awaiten, false);
+}
+
+TEST(InterruptableContinuation, shared_future_continuation_detects_if_result_is_not_awaiten) {
+  pc::promise<int> promise;
+  pc::future<std::string> future;
+  bool was_awaiten = true;
+  future = promise.get_future().share().then([&](pc::promise<std::string>& p, pc::shared_future<int>) {
     future = {};
     was_awaiten = p.is_awaiten();
   });

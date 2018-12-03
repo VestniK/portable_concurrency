@@ -105,7 +105,7 @@ public:
 
   template <typename F>
   PC_NODISCARD
-  detail::add_future_t<detail::promise_arg_t<F, T>> then(F&& f);
+  detail::add_future_t<detail::promise_arg_t<F, future>> then(F&& f);
 
   template <typename E, typename F>
   PC_NODISCARD
@@ -113,7 +113,7 @@ public:
 
   template <typename E, typename F>
   PC_NODISCARD
-  detail::add_future_t<detail::promise_arg_t<F, T>> then(E&& exec, F&& f);
+  detail::add_future_t<detail::promise_arg_t<F, future>> then(E&& exec, F&& f);
 
   template <typename F>
   PC_NODISCARD

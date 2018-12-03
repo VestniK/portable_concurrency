@@ -88,16 +88,18 @@ using cnt_future_t = add_future_t<cnt_result_t<Func, Arg>>;
 
 // deduce result type for interruptable continuation
 
-template <typename T>
+template <typename Future>
 struct promise_deducer {
+  static_assert (is_future<Future>::value, "Future parameter must be future<T> or shared_future<T>");
+
   template <typename R>
-  static R deduce(void (*)(promise<R>&, future<T>));
+  static R deduce(void (*)(promise<R>&, Future));
 
   template <typename R, typename C>
-  static R deduce_method(void (C::*)(promise<R>&, future<T>) const);
+  static R deduce_method(void (C::*)(promise<R>&, Future) const);
 
   template <typename R, typename C>
-  static R deduce_method(void (C::*)(promise<R>&, future<T>));
+  static R deduce_method(void (C::*)(promise<R>&, Future));
 
   template <typename F>
   static auto deduce(F) -> decltype(deduce_method(&F::operator()));
@@ -106,17 +108,16 @@ struct promise_deducer {
 template <typename F, typename T, typename = void>
 struct promise_arg {};
 
-template <typename F, typename T>
-struct promise_arg<F, T,
-    typename voidify<decltype(promise_deducer<T>::deduce(std::declval<std::decay_t<F>>()))>::type> {
-  using type = decltype(promise_deducer<T>::deduce(std::declval<std::decay_t<F>>()));
+template <typename Func, typename Future>
+struct promise_arg<Func, Future,
+    typename voidify<decltype(promise_deducer<Future>::deduce(std::declval<std::decay_t<Func>>()))>::type> {
+  using type = decltype(promise_deducer<Future>::deduce(std::declval<std::decay_t<Func>>()));
 };
 
-template <typename F, typename T>
-using promise_arg_t = typename promise_arg<F, T>::type;
+template <typename Func, typename Future>
+using promise_arg_t = typename promise_arg<Func, Future>::type;
 
 // varaidic helper swallow
-
 struct swallow {
   swallow(...) {}
 };
