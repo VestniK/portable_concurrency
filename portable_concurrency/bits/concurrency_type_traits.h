@@ -90,7 +90,7 @@ using cnt_future_t = add_future_t<cnt_result_t<Func, Arg>>;
 
 template <typename Future>
 struct promise_deducer {
-  static_assert (is_future<Future>::value, "Future parameter must be future<T> or shared_future<T>");
+  static_assert(is_future<Future>::value, "Future parameter must be future<T> or shared_future<T>");
 
   template <typename R>
   static R deduce(void (*)(promise<R>, Future));

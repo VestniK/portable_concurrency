@@ -35,8 +35,7 @@ void* align(std::size_t alignment, std::size_t size, void*& ptr, std::size_t& sp
 
 #endif
 
-[[noreturn]]
-void throw_bad_func_call() {throw std::bad_function_call{};}
+[[noreturn]] void throw_bad_func_call() { throw std::bad_function_call{}; }
 
 template class small_unique_function<void()>;
 template struct forward_list_deleter<continuation>;
@@ -44,19 +43,19 @@ template class once_consumable_stack<continuation>;
 
 waiter::waiter() = default;
 
-void waiter::operator() () {
+void waiter::operator()() {
   std::lock_guard<std::mutex>{mutex_}, notified_ = true;
   cv_.notify_one();
 }
 
 void waiter::wait() const {
   std::unique_lock<std::mutex> lock{mutex_};
-  cv_.wait(lock, [this] {return notified_;});
+  cv_.wait(lock, [this] { return notified_; });
 }
 
 bool waiter::wait_for(std::chrono::nanoseconds timeout) const {
   std::unique_lock<std::mutex> lock{mutex_};
-  return cv_.wait_for(lock, timeout, [this] {return notified_;});
+  return cv_.wait_for(lock, timeout, [this] { return notified_; });
 }
 
 void continuations_stack::push(continuation&& cnt) {
@@ -70,17 +69,13 @@ continuations_stack::~continuations_stack() = default;
 void continuations_stack::execute() {
   auto continuations = stack_.consume();
   waiter_();
-  for (auto& cnt: continuations)
+  for (auto& cnt : continuations)
     cnt();
 }
 
-bool continuations_stack::executed() const {
-  return stack_.is_consumed();
-}
+bool continuations_stack::executed() const { return stack_.is_consumed(); }
 
-const waiter& continuations_stack::get_waiter() const {
-  return waiter_;
-}
+const waiter& continuations_stack::get_waiter() const { return waiter_; }
 
 template class closable_queue<unique_function<void()>>;
 
@@ -103,7 +98,7 @@ template class unique_function<void()>;
 
 latch::~latch() {
   std::unique_lock<std::mutex> lock{mutex_};
-  cv_.wait(lock, [this] {return waiters_ == 0;});
+  cv_.wait(lock, [this] { return waiters_ == 0; });
 }
 
 void latch::count_down_and_wait() {
@@ -115,7 +110,7 @@ void latch::count_down_and_wait() {
     cv_.notify_all();
     return;
   }
-  cv_.wait(lock, [this] {return counter_ == 0;});
+  cv_.wait(lock, [this] { return counter_ == 0; });
   if (--waiters_ == 0)
     cv_.notify_one();
 }
@@ -140,12 +135,12 @@ bool latch::is_ready() const noexcept {
 void latch::wait() const {
   std::unique_lock<std::mutex> lock{mutex_};
   ++waiters_;
-  cv_.wait(lock, [this] {return counter_ == 0;});
+  cv_.wait(lock, [this] { return counter_ == 0; });
   if (--waiters_ == 0)
     cv_.notify_one();
 }
 
-template<>
+template <>
 void future<void>::get() {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
@@ -154,7 +149,7 @@ void future<void>::get() {
   state->value_ref();
 }
 
-template<>
+template <>
 typename shared_future<void>::get_result_type shared_future<void>::get() const {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
@@ -168,20 +163,15 @@ future<void> make_ready_future() {
   return promise.get_future();
 }
 
-future<std::tuple<>> when_all() {
-  return make_ready_future(std::tuple<>{});
-}
+future<std::tuple<>> when_all() { return make_ready_future(std::tuple<>{}); }
 
 future<when_any_result<std::tuple<>>> when_any() {
-  return make_ready_future(when_any_result<std::tuple<>>{
-    static_cast<std::size_t>(-1),
-    std::tuple<>{}
-  });
+  return make_ready_future(when_any_result<std::tuple<>>{static_cast<std::size_t>(-1), std::tuple<>{}});
 }
 
 static_thread_pool::static_thread_pool(std::size_t num_threads) {
   threads_.reserve(num_threads);
-  while (num_threads --> 0)
+  while (num_threads-- > 0)
     threads_.push_back(std::thread{&static_thread_pool::attach, this});
 }
 
@@ -196,27 +186,23 @@ void static_thread_pool::attach() {
   {
     std::unique_lock<std::mutex> lock{mutex_};
     --attached_threads_;
-    cv_.wait(lock, [&] {return attached_threads_ == 0;});
+    cv_.wait(lock, [&] { return attached_threads_ == 0; });
   }
   cv_.notify_all();
 }
 
-void static_thread_pool::stop() {
-  queue_.close();
-}
+void static_thread_pool::stop() { queue_.close(); }
 
 void static_thread_pool::wait() {
   queue_.close();
-  for (auto& thread: threads_) {
+  for (auto& thread : threads_) {
     if (thread.joinable())
       thread.join();
   }
   threads_.clear();
 }
 
-void post(static_thread_pool::executor_type exec, unique_function<void()> task) {
-  exec->push(std::move(task));
-}
+void post(static_thread_pool::executor_type exec, unique_function<void()> task) { exec->push(std::move(task)); }
 
-} // inline namespace cxx14_v1
+} // namespace cxx14_v1
 } // namespace portable_concurrency

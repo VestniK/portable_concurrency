@@ -100,28 +100,22 @@ public:
   bool is_ready() const;
 
   template <typename F>
-  PC_NODISCARD
-  detail::cnt_future_t<F, future<T>> then(F&& f);
+  PC_NODISCARD detail::cnt_future_t<F, future<T>> then(F&& f);
 
   template <typename F>
-  PC_NODISCARD
-  detail::add_future_t<detail::promise_arg_t<F, future>> then(F&& f);
+  PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, future>> then(F&& f);
 
   template <typename E, typename F>
-  PC_NODISCARD
-  detail::cnt_future_t<F, future<T>> then(E&& exec, F&& f);
+  PC_NODISCARD detail::cnt_future_t<F, future<T>> then(E&& exec, F&& f);
 
   template <typename E, typename F>
-  PC_NODISCARD
-  detail::add_future_t<detail::promise_arg_t<F, future>> then(E&& exec, F&& f);
+  PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, future>> then(E&& exec, F&& f);
 
   template <typename F>
-  PC_NODISCARD
-  detail::cnt_future_t<F, T> next(F&& f);
+  PC_NODISCARD detail::cnt_future_t<F, T> next(F&& f);
 
   template <typename E, typename F>
-  PC_NODISCARD
-  detail::cnt_future_t<F, T> next(E&& exec, F&& f);
+  PC_NODISCARD detail::cnt_future_t<F, T> next(E&& exec, F&& f);
 
   /**
    * Prevents cancellation of the operations of this future value calculation on its destruction.

@@ -66,22 +66,19 @@ bool future<T>::is_ready() const {
 
 template <typename T>
 template <typename F>
-PC_NODISCARD
-detail::cnt_future_t<F, future<T>> future<T>::then(F&& f) {
+PC_NODISCARD detail::cnt_future_t<F, future<T>> future<T>::then(F&& f) {
   return then(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template <typename T>
 template <typename F>
-PC_NODISCARD
-detail::add_future_t<detail::promise_arg_t<F, future<T>>> future<T>::then(F&& f) {
+PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, future<T>>> future<T>::then(F&& f) {
   return then(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template <typename T>
 template <typename E, typename F>
-PC_NODISCARD
-detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
+PC_NODISCARD detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, future<T>>>;
   if (!state_)
@@ -106,15 +103,14 @@ detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
  */
 template <typename T>
 template <typename E, typename F>
-PC_NODISCARD
-detail::add_future_t<detail::promise_arg_t<F, future<T>>> future<T>::then(E&& exec, F&& f) {
+PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, future<T>>> future<T>::then(E&& exec, F&& f) {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::promise_arg_t<F, future<T>>;
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
   detail::continuations_stack& subscriptions = state_->continuations();
   return detail::make_then_state<result_type>(subscriptions, std::forward<E>(exec),
-      [f = std::forward<F>(f), parent = std::move(state_)](
+      [ f = std::forward<F>(f), parent = std::move(state_) ](
           std::shared_ptr<detail::shared_state<result_type>> state) mutable noexcept {
         promise<result_type> p{std::exchange(state, nullptr)};
         ::portable_concurrency::detail::invoke(f, std::move(p), future<T>{std::move(parent)});
@@ -123,15 +119,13 @@ detail::add_future_t<detail::promise_arg_t<F, future<T>>> future<T>::then(E&& ex
 
 template <typename T>
 template <typename F>
-PC_NODISCARD
-detail::cnt_future_t<F, T> future<T>::next(F&& f) {
+PC_NODISCARD detail::cnt_future_t<F, T> future<T>::next(F&& f) {
   return next(detail::inplace_executor{}, std::forward<F>(f));
 }
 
 template <>
 template <typename E, typename F>
-PC_NODISCARD
-detail::cnt_future_t<F, void> future<void>::next(E&& exec, F&& f) {
+PC_NODISCARD detail::cnt_future_t<F, void> future<void>::next(E&& exec, F&& f) {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, void>>;
   if (!state_)
@@ -143,8 +137,7 @@ detail::cnt_future_t<F, void> future<void>::next(E&& exec, F&& f) {
 
 template <typename T>
 template <typename E, typename F>
-PC_NODISCARD
-detail::cnt_future_t<F, T> future<T>::next(E&& exec, F&& f) {
+PC_NODISCARD detail::cnt_future_t<F, T> future<T>::next(E&& exec, F&& f) {
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, T>>;
   if (!state_)

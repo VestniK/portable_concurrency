@@ -53,28 +53,22 @@ public:
   bool is_ready() const;
 
   template <typename F>
-  PC_NODISCARD
-  detail::cnt_future_t<F, shared_future<T>> then(F&& f) const;
+  PC_NODISCARD detail::cnt_future_t<F, shared_future<T>> then(F&& f) const;
 
   template <typename E, typename F>
-  PC_NODISCARD
-  detail::cnt_future_t<F, shared_future<T>> then(E&& exec, F&& f) const;
+  PC_NODISCARD detail::cnt_future_t<F, shared_future<T>> then(E&& exec, F&& f) const;
 
   template <typename F>
-  PC_NODISCARD
-  detail::cnt_future_t<F, get_result_type> next(F&& f) const;
+  PC_NODISCARD detail::cnt_future_t<F, get_result_type> next(F&& f) const;
 
   template <typename E, typename F>
-  PC_NODISCARD
-  detail::cnt_future_t<F, get_result_type> next(E&& exec, F&& f) const;
+  PC_NODISCARD detail::cnt_future_t<F, get_result_type> next(E&& exec, F&& f) const;
 
   template <typename F>
-  PC_NODISCARD
-  detail::add_future_t<detail::promise_arg_t<F, shared_future<T>>> then(F&& f);
+  PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, shared_future<T>>> then(F&& f);
 
   template <typename E, typename F>
-  PC_NODISCARD
-  detail::add_future_t<detail::promise_arg_t<F, shared_future<T>>> then(E&& exec, F&& f);
+  PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, shared_future<T>>> then(E&& exec, F&& f);
 
   /**
    * Prevents cancelation of the operations of this shared_future value calculation on its destruction.
