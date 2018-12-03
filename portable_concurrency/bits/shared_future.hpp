@@ -131,10 +131,7 @@ detail::add_future_t<detail::promise_arg_t<F, shared_future<T>>> shared_future<T
  *    functions
  *  * to move it into another promise which will be used to set vale or exception by some other operation
  *
- * If continuation function exits via exception it will be caut and stored in a shared state assotiated with the
- * continuation as if `promise::set_exception` is called on a promise object passed as the first argume ot `f`.
- * Note: This means that the behavior is undefined if continuation function moved promise argument to some other promise
- * object and then thrown an exception.
+ * If continuation function exits via exception std::terminate is called
  */
 template <typename T>
 template <typename E, typename F>
@@ -147,13 +144,9 @@ detail::add_future_t<detail::promise_arg_t<F, shared_future<T>>> shared_future<T
   detail::continuations_stack& subscriptions = state_->continuations();
   return detail::make_then_state<result_type>(subscriptions, std::forward<E>(exec),
       [f = std::forward<F>(f), parent = std::move(state_)](
-          std::shared_ptr<detail::shared_state<result_type>> state) mutable {
+          std::shared_ptr<detail::shared_state<result_type>> state) mutable noexcept {
         promise<result_type> p{std::exchange(state, nullptr)};
-        try {
-          ::portable_concurrency::detail::invoke(f, p, shared_future<T>{std::move(parent)});
-        } catch (...) {
-          p.set_exception(std::current_exception());
-        }
+        ::portable_concurrency::detail::invoke(f, p, shared_future<T>{std::move(parent)});
       });
 }
 
