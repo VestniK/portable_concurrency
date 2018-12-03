@@ -93,13 +93,13 @@ struct promise_deducer {
   static_assert (is_future<Future>::value, "Future parameter must be future<T> or shared_future<T>");
 
   template <typename R>
-  static R deduce(void (*)(promise<R>&, Future));
+  static R deduce(void (*)(promise<R>, Future));
 
   template <typename R, typename C>
-  static R deduce_method(void (C::*)(promise<R>&, Future) const);
+  static R deduce_method(void (C::*)(promise<R>, Future) const);
 
   template <typename R, typename C>
-  static R deduce_method(void (C::*)(promise<R>&, Future));
+  static R deduce_method(void (C::*)(promise<R>, Future));
 
   template <typename F>
   static auto deduce(F) -> decltype(deduce_method(&F::operator()));

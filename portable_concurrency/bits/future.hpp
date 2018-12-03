@@ -94,7 +94,7 @@ detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f) {
 /**
  * Attaches interruptable continuation function `f` to this future object. [EXTENSION]
  *
- * Function must be callable with signature `void(promise<R>&, future<T>)`. Promise object passed as the first parameter
+ * Function must be callable with signature `void(promise<R>, future<T>)`. Promise object passed as the first parameter
  * can be used
  *  * to test if the result of current operation is awaiten by any future or shared_future with `promise::is_awaiten`
  *    member function
@@ -117,7 +117,7 @@ detail::add_future_t<detail::promise_arg_t<F, future<T>>> future<T>::then(E&& ex
       [f = std::forward<F>(f), parent = std::move(state_)](
           std::shared_ptr<detail::shared_state<result_type>> state) mutable noexcept {
         promise<result_type> p{std::exchange(state, nullptr)};
-        ::portable_concurrency::detail::invoke(f, p, future<T>{std::move(parent)});
+        ::portable_concurrency::detail::invoke(f, std::move(p), future<T>{std::move(parent)});
       });
 }
 
