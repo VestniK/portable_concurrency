@@ -145,11 +145,12 @@ PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, shared_future<T>>> sh
 }
 
 template <typename T>
-void shared_future<T>::detach() {
+shared_future<T> shared_future<T>::detach() {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
-  auto* state_ref = state_.get();
-  state_ref->push([captured_state = std::move(state_)] {});
+  auto& state_ref = *state_;
+  state_ref.push([captured_state = state_] {});
+  return std::move(*this);
 }
 
 template <typename T>

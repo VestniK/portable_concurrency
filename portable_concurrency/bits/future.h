@@ -122,7 +122,7 @@ public:
    *
    * @post this->valid() == false
    */
-  void detach();
+  future detach();
 
   // implementation detail
   future(std::shared_ptr<detail::future_state<T>>&& state) noexcept;

@@ -165,6 +165,13 @@ TEST(Promise, is_awaiten_returns_true_after_future_detach) {
   EXPECT_TRUE(p.is_awaiten());
 }
 
+TEST(FutureDetach, do_not_prevents_tasks_cancelation_added_after_detaching) {
+    pc::promise<std::string> p;
+    bool executed = false;
+    (void)p.get_future().detach().next([&](std::string) {executed = true;});
+    EXPECT_FALSE(executed);
+}
+
 TEST(SharedFutureDetach, invalidates_future) {
   pc::promise<int> p;
   auto f = p.get_future().share();
@@ -176,6 +183,13 @@ TEST(Promise, is_awaiten_returns_true_after_shared_future_detach) {
   pc::promise<std::string> p;
   p.get_future().share().detach();
   EXPECT_TRUE(p.is_awaiten());
+}
+
+TEST(SharedFutureDetach, do_not_prevents_tasks_cancelation_added_after_detaching) {
+    pc::promise<std::string> p;
+    bool executed = false;
+    (void)p.get_future().share().detach().next([&](const std::string&) {executed = true;});
+    EXPECT_FALSE(executed);
 }
 
 TEST(Canceler, is_not_called_by_promise_constructor) {

@@ -148,11 +148,12 @@ PC_NODISCARD detail::cnt_future_t<F, T> future<T>::next(E&& exec, F&& f) {
 }
 
 template <typename T>
-void future<T>::detach() {
+future<T> future<T>::detach() {
   if (!state_)
     throw std::future_error(std::future_errc::no_state);
-  auto* state_ref = state_.get();
-  state_ref->push([captured_state = std::move(state_)] {});
+  auto& state_ref = *state_;
+  state_ref.push([captured_state = state_] {});
+  return std::move(*this);
 }
 
 template <typename T>
