@@ -70,6 +70,7 @@ target_include_directories(portable_concurrency INTERFACE
   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+target_compile_features(portable_concurrency PUBLIC cxx_std_14)
 
 install(TARGETS portable_concurrency EXPORT portable_concurrency
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

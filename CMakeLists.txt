@@ -5,7 +5,6 @@ include(GNUInstallDirs)
 include(BuildTypes)
 include(ConanDeps)
 
-set(CMAKE_CXX_STANDARD 14)
 option(PC_WARNINGS_AS_ERROR "Treat enabled warnings as errors" OFF)
 if (PC_WARNINGS_AS_ERROR AND NOT MSVC)
   add_compile_options(-Werror=all)
