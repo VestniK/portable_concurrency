@@ -6,20 +6,23 @@ include(BuildTypes)
 include(ConanDeps)
 
 set(CMAKE_CXX_STANDARD 14)
-if (MSVC)
-  set_directory_properties(PROPERTIES COMPILE_OPTIONS /bigobj)
-else()
-  set_directory_properties(PROPERTIES COMPILE_OPTIONS -Werror=all)
+option(PC_WARNINGS_AS_ERROR "Treat enabled warnings as errors" OFF)
+if (PC_WARNINGS_AS_ERROR AND NOT MSVC)
+  add_compile_options(-Werror=all)
 endif()
 
 add_subdirectory(portable_concurrency)
 
-option(BUILD_TESTS "Build library unit tests" On)
-if (BUILD_TESTS)
+option(PC_BUILD_TESTS "Build library unit tests" ON)
+if (PC_BUILD_TESTS)
   enable_testing()
   add_subdirectory(test)
 endif()
-add_subdirectory(examples EXCLUDE_FROM_ALL)
+
+option(PC_BUILD_EXAMPLES "Build examples" OFF)
+if (PC_BUILD_EXAMPLES)
+  add_subdirectory(examples)
+endif()
 
 # Installation
 include(CMakePackageConfigHelpers)
