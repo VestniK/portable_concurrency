@@ -1,5 +1,8 @@
-cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
-project(portable_concurrency VERSION 0.8.1 LANGUAGES C CXX)
+cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
+project(portable_concurrency
+  VERSION 0.8.1
+  DESCRIPTION "Lightweight future/promise C++ library"
+)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(GNUInstallDirs)
 include(BuildTypes)
