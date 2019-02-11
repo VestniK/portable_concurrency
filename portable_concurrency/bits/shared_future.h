@@ -25,7 +25,8 @@ template <typename T>
 class shared_future {
   static_assert(
       !detail::is_future<T>::value, "shared_future<future<T> and shared_future<shared_future<T>> are not allowed");
-  using get_result_type = std::add_lvalue_reference_t<std::add_const_t<T>>;
+  using get_result_type =
+      std::conditional_t<std::is_void<T>::value, void, std::add_lvalue_reference_t<std::add_const_t<T>>>;
 
 public:
   shared_future() noexcept = default;
