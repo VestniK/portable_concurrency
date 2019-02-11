@@ -56,6 +56,15 @@ TEST_F(SharedFutureNext, is_executed_for_void_future) {
   EXPECT_EQ(cnt_f.get(), 42);
 }
 
+TEST_F(SharedFutureNext, void_retruning_continuation_is_executed_for_void_future) {
+  pc::promise<void> void_promise;
+  pc::shared_future<void> void_future = void_promise.get_future();
+  bool is_executed = false;
+  pc::future<void> cnt_f = void_future.next([&is_executed] { is_executed = true; });
+  void_promise.set_value();
+  EXPECT_TRUE(is_executed);
+}
+
 TEST_F(SharedFutureNext, is_executed_for_ref_future) {
   pc::promise<int&> ref_promise;
   pc::shared_future<int&> ref_future = ref_promise.get_future();
