@@ -29,6 +29,8 @@ class shared_future {
       std::conditional_t<std::is_void<T>::value, void, std::add_lvalue_reference_t<std::add_const_t<T>>>;
 
 public:
+  using value_type = T;
+
   shared_future() noexcept = default;
   shared_future(const shared_future&) noexcept = default;
   shared_future(shared_future&&) noexcept = default;

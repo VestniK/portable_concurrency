@@ -18,8 +18,9 @@ template <typename R, typename... A>
 struct packaged_task_state {
   virtual ~packaged_task_state() = default;
 
-  virtual void run(A&&...) = 0;
+  virtual void run(std::shared_ptr<shared_state<R>>& state, A&&...) = 0;
   virtual future_state<R>* get_future_state() = 0;
+  virtual shared_state<R>* get_promise_state() = 0;
   virtual void abandon() = 0;
 };
 
@@ -27,11 +28,14 @@ template <typename F, typename R, typename... A>
 struct task_state final : packaged_task_state<R, A...> {
   task_state(F&& f) : func(std::forward<F>(f)) {}
 
-  void run(A&&... a) override {
-    ::portable_concurrency::cxx14_v1::detail::set_state_value(state, func, std::forward<A>(a)...);
+  void run(std::shared_ptr<shared_state<R>>& state_ptr, A&&... a) override {
+    assert(state_ptr.get() == &state);
+    ::portable_concurrency::cxx14_v1::detail::set_state_value(state_ptr, func, std::forward<A>(a)...);
   }
 
   future_state<R>* get_future_state() override { return &state; }
+
+  shared_state<R>* get_promise_state() override { return &state; }
 
   void abandon() override { state.abandon(); }
 
@@ -77,8 +81,10 @@ public:
   }
 
   void operator()(A... a) {
-    if (auto state = get_state())
-      state->run(std::forward<A>(a)...);
+    if (auto state = get_state()) {
+      std::shared_ptr<detail::shared_state<R>> state_ptr{state, state->get_promise_state()};
+      state->run(state_ptr, std::forward<A>(a)...);
+    }
   }
 
 private:

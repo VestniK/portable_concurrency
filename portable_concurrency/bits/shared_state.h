@@ -76,7 +76,7 @@ public:
   continuations_stack& continuations() final { return continuations_; }
 
   static void unwrap(std::shared_ptr<shared_state>& self, const std::shared_ptr<future_state<T>>& val) {
-    assert(!self->continuations().executed());
+    assert(self);
     if (!val) {
       self->set_exception(make_broken_promise());
       return;
@@ -86,6 +86,18 @@ public:
       if (auto self = wself.lock())
         self->continuations().execute();
     });
+  }
+
+  static void unwrap(std::shared_ptr<shared_state>& self, future<T>&& val) { unwrap(self, state_of(std::move(val))); }
+
+  static void unwrap(std::shared_ptr<shared_state>& self, shared_future<T>&& val) {
+    unwrap(self, state_of(std::move(val)));
+  }
+
+  template <typename U>
+  static std::enable_if_t<!std::is_same<std::decay_t<U>, std::shared_ptr<future_state<T>>>::value> unwrap(
+      std::shared_ptr<shared_state>& self, U&& val) {
+    self->emplace(std::forward<U>(val));
   }
 
 private:

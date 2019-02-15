@@ -26,6 +26,8 @@ class future {
   static_assert(!detail::is_future<T>::value, "future<future<T>> and future<shared_future<T>> are not allowed");
 
 public:
+  using value_type = T;
+
   /**
    * Constructs invalid future object
    *
