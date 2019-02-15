@@ -1,12 +1,11 @@
 #pragma once
 
-#include <future>
-
 #include "execution.h"
 #include "future.h"
 #include "future_state.h"
 #include "shared_future.h"
 #include "then.hpp"
+#include "utils.h"
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -17,7 +16,7 @@ shared_future<T>::shared_future(future<T>&& rhs) noexcept : state_(std::move(rhs
 template <typename T>
 void shared_future<T>::wait() const {
   if (!state_)
-    throw std::future_error(std::future_errc::no_state);
+    detail::throw_no_state();
   auto& continuations = state_->continuations();
   if (!continuations.executed())
     continuations.get_waiter().wait();
@@ -27,7 +26,7 @@ template <typename T>
 template <typename Rep, typename Period>
 future_status shared_future<T>::wait_for(const std::chrono::duration<Rep, Period>& rel_time) const {
   if (!state_)
-    throw std::future_error(std::future_errc::no_state);
+    detail::throw_no_state();
   auto& continuations = state_->continuations();
   if (continuations.executed())
     return future_status::ready;
@@ -50,7 +49,7 @@ bool shared_future<T>::valid() const noexcept {
 template <typename T>
 typename shared_future<T>::get_result_type shared_future<T>::get() const {
   if (!state_)
-    throw std::future_error(std::future_errc::no_state);
+    detail::throw_no_state();
   wait();
   return state_->value_ref();
 }
@@ -58,7 +57,7 @@ typename shared_future<T>::get_result_type shared_future<T>::get() const {
 template <typename T>
 bool shared_future<T>::is_ready() const {
   if (!state_)
-    throw std::future_error(std::future_errc::no_state);
+    detail::throw_no_state();
   return state_->continuations().executed();
 }
 
@@ -74,7 +73,7 @@ PC_NODISCARD detail::cnt_future_t<F, shared_future<T>> shared_future<T>::then(E&
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, shared_future<T>>>;
   if (!state_)
-    throw std::future_error(std::future_errc::no_state);
+    detail::throw_no_state();
   return detail::make_then_state<result_type>(state_->continuations(), std::forward<E>(exec),
       detail::decorate_shared_then<result_type, T, F>(std::forward<F>(f), state_));
 }
@@ -92,7 +91,7 @@ PC_NODISCARD detail::cnt_future_t<F, typename shared_future<T>::get_result_type>
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, typename shared_future<T>::get_result_type>>;
   if (!state_)
-    throw std::future_error(std::future_errc::no_state);
+    detail::throw_no_state();
   return detail::make_then_state<result_type>(state_->continuations(), std::forward<E>(exec),
       detail::decorate_shared_next<result_type, T, F>(std::forward<F>(f), state_));
 }
@@ -104,7 +103,7 @@ PC_NODISCARD detail::cnt_future_t<F, typename shared_future<void>::get_result_ty
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::remove_future_t<detail::cnt_result_t<F, void>>;
   if (!state_)
-    throw std::future_error(std::future_errc::no_state);
+    detail::throw_no_state();
   return detail::make_then_state<result_type>(state_->continuations(), std::forward<E>(exec),
       detail::decorate_void_next<result_type, F>(std::forward<F>(f), state_));
 }
@@ -134,7 +133,7 @@ PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, shared_future<T>>> sh
   static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
   using result_type = detail::promise_arg_t<F, shared_future<T>>;
   if (!state_)
-    throw std::future_error(std::future_errc::no_state);
+    detail::throw_no_state();
   detail::continuations_stack& subscriptions = state_->continuations();
   return detail::make_then_state<result_type>(subscriptions, std::forward<E>(exec),
       [ f = std::forward<F>(f), parent = std::move(state_) ](
@@ -147,7 +146,7 @@ PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, shared_future<T>>> sh
 template <typename T>
 shared_future<T> shared_future<T>::detach() {
   if (!state_)
-    throw std::future_error(std::future_errc::no_state);
+    detail::throw_no_state();
   auto& state_ref = *state_;
   state_ref.push([captured_state = state_] {});
   return std::move(*this);

@@ -1,3 +1,4 @@
+#include <future>
 #include <memory>
 #include <string>
 

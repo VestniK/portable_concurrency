@@ -70,7 +70,7 @@ public:
 
   future<R> get_future() {
     if (state_.state() == 2u)
-      throw std::future_error(std::future_errc::future_already_retrieved);
+      detail::throw_already_retrieved();
     auto state = get_state();
     state_.emplace(detail::in_place_index_t<2>{}, state);
     return {std::shared_ptr<detail::future_state<R>>{state, state->get_future_state()}};
@@ -86,7 +86,7 @@ private:
     struct {
       std::shared_ptr<detail::packaged_task_state<R, A...>> operator()(detail::monostate) {
         if (throw_no_state)
-          throw std::future_error(std::future_errc::no_state);
+          detail::throw_no_state();
         return nullptr;
       }
       std::shared_ptr<detail::packaged_task_state<R, A...>> operator()(

@@ -1,4 +1,5 @@
 #include <functional>
+#include <future>
 
 #include "align.h"
 #include "closable_queue.hpp"
@@ -78,6 +79,16 @@ bool continuations_stack::executed() const { return stack_.is_consumed(); }
 const waiter& continuations_stack::get_waiter() const { return waiter_; }
 
 template class closable_queue<unique_function<void()>>;
+
+[[noreturn]] void throw_no_state() { throw std::future_error{std::future_errc::no_state}; }
+
+[[noreturn]] void throw_already_satisfied() { throw std::future_error(std::future_errc::promise_already_satisfied); }
+
+[[noreturn]] void throw_already_retrieved() { throw std::future_error(std::future_errc::future_already_retrieved); }
+
+std::exception_ptr make_broken_promise() {
+  return std::make_exception_ptr(std::future_error{std::future_errc::broken_promise});
+}
 
 } // namespace detail
 

@@ -52,7 +52,7 @@ struct promise_common {
 
   future<T> get_future() {
     if (state_.state() == 2u)
-      throw std::future_error(std::future_errc::future_already_retrieved);
+      throw_already_retrieved();
     auto state = get_state();
     state_.emplace(in_place_index_t<2>{}, state);
     return {state};
@@ -70,7 +70,7 @@ struct promise_common {
       std::shared_ptr<shared_state<T>> operator()(const std::weak_ptr<shared_state<T>>& val) const {
         return val.lock();
       }
-      std::shared_ptr<shared_state<T>> operator()(monostate) { throw std::future_error(std::future_errc::no_state); }
+      std::shared_ptr<shared_state<T>> operator()(monostate) { throw_no_state(); }
     } visitor;
     return state_.visit(visitor);
   }
@@ -79,7 +79,7 @@ struct promise_common {
     struct {
       bool operator()(const std::shared_ptr<shared_state<T>>&) const { return true; }
       bool operator()(const std::weak_ptr<shared_state<T>>& val) const { return !val.expired(); }
-      bool operator()(monostate) const { throw std::future_error(std::future_errc::no_state); }
+      bool operator()(monostate) const { throw_no_state(); }
     } visitor;
     return state_.visit(visitor);
   }

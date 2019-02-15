@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <exception>
-#include <future>
 #include <type_traits>
 
 #include "either.h"
@@ -12,6 +11,11 @@
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
+
+[[noreturn]] void throw_no_state();
+[[noreturn]] void throw_already_satisfied();
+[[noreturn]] void throw_already_retrieved();
+std::exception_ptr make_broken_promise();
 
 template <typename T>
 class shared_state : public future_state<T> {
@@ -24,21 +28,21 @@ public:
   template <typename... U>
   void emplace(U&&... u) {
     if (!storage_.empty())
-      throw std::future_error(std::future_errc::promise_already_satisfied);
+      throw_already_satisfied();
     storage_.emplace(in_place_index_t<1>{}, std::forward<U>(u)...);
     this->continuations().execute();
   }
 
   void set_exception(std::exception_ptr error) {
     if (!storage_.empty())
-      throw std::future_error(std::future_errc::promise_already_satisfied);
+      throw_already_satisfied();
     storage_.emplace(in_place_index_t<3>{}, error);
     this->continuations().execute();
   }
 
   void abandon() {
     if (!continuations().executed())
-      set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+      set_exception(make_broken_promise());
   }
 
   state_storage_t<T>& value_ref() final {
@@ -74,7 +78,7 @@ public:
   static void unwrap(std::shared_ptr<shared_state>& self, const std::shared_ptr<future_state<T>>& val) {
     assert(!self->continuations().executed());
     if (!val) {
-      self->set_exception(std::make_exception_ptr(std::future_error{std::future_errc::broken_promise}));
+      self->set_exception(make_broken_promise());
       return;
     }
     self->storage_.emplace(in_place_index_t<2>{}, val);
