@@ -41,7 +41,9 @@ public:
   }
 
   void abandon() {
-    if (!continuations().executed())
+    // In case of unwrap state == 2 (storage holds shared_ptr<shared_state<T>>) and continuations will be executed when
+    // storesd state is fulfilled.
+    if (!continuations().executed() && storage_.state() != 2)
       set_exception(make_broken_promise());
   }
 
