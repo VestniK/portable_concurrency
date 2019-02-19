@@ -28,7 +28,7 @@ PC_NODISCARD auto async(E&& exec, F&& func, A&&... a)
     -> std::enable_if_t<is_executor<std::decay_t<E>>::value, detail::add_future_t<std::result_of_t<F(A...)>>> {
   using R = typename detail::add_future_t<std::result_of_t<F(A...)>>::value_type;
   packaged_task<R()> task{std::bind(std::forward<F>(func), std::forward<A>(a)...)};
-  auto f = task.get_future();
+  detail::add_future_t<std::result_of_t<F(A...)>> f = task.get_future();
   post(exec, std::move(task));
   return f;
 }
