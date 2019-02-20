@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <utility>
 
 namespace portable_concurrency {
 
@@ -21,6 +22,33 @@ namespace portable_concurrency {
 template <typename E>
 struct is_executor : std::false_type {};
 
+/**
+ * @headerfile portable_concurrency/execution
+ * @ingroup execution
+ * @brief Trivial executor which evaluates task immediattely in the invocation thread
+ *
+ * This executor is used by `future::then` and other continuation related family of functions by default when no
+ * executor is specified explicitly.
+ */
+struct inplace_executor_t {};
+
+/**
+ * @headerfile portable_concurrency/execution
+ * @ingroup execution
+ * @brief Global instance of trivial inplace executor type
+ *
+ * @sa inplace_executor
+ */
+constexpr inplace_executor_t inplace_executor;
+
+template <>
+struct is_executor<inplace_executor_t> : std::true_type {};
+
+template <typename Task>
+void post(inplace_executor_t, Task&& t) {
+  std::forward<Task>(t)();
+}
+
 } // namespace portable_concurrency
 
 #ifdef DOXYGEN
@@ -28,7 +56,7 @@ struct is_executor : std::false_type {};
  * @headerfile portable_concurrency/execution
  * @ingroup execution
  *
- * Function which must be ADL descoverable for user provided executor classes. This function must schedule execution of
+ * Function which must be ADL discoverable for user provided executor classes. This function must schedule execution of
  * the functor passed as second argument on the executor provided with first argument.
  *
  * Functor type meets MoveConstructable, MoveAssignable and Callable (with signature `void()`) standard library

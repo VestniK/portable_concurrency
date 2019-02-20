@@ -66,13 +66,13 @@ bool future<T>::is_ready() const {
 template <typename T>
 template <typename F>
 PC_NODISCARD detail::cnt_future_t<F, future<T>> future<T>::then(F&& f) {
-  return then(detail::inplace_executor{}, std::forward<F>(f));
+  return then(inplace_executor, std::forward<F>(f));
 }
 
 template <typename T>
 template <typename F>
 PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, future<T>>> future<T>::then(F&& f) {
-  return then(detail::inplace_executor{}, std::forward<F>(f));
+  return then(inplace_executor, std::forward<F>(f));
 }
 
 template <typename T>
@@ -119,7 +119,7 @@ PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, future<T>>> future<T>
 template <typename T>
 template <typename F>
 PC_NODISCARD detail::cnt_future_t<F, T> future<T>::next(F&& f) {
-  return next(detail::inplace_executor{}, std::forward<F>(f));
+  return next(inplace_executor, std::forward<F>(f));
 }
 
 template <>

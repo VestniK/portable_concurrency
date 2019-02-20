@@ -11,21 +11,6 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-struct inplace_executor {};
-template <typename F>
-void post(inplace_executor, F&& f) {
-  f();
-}
-
-} // namespace detail
-} // namespace cxx14_v1
-
-template <>
-struct is_executor<detail::inplace_executor> : std::true_type {};
-
-inline namespace cxx14_v1 {
-namespace detail {
-
 // Decorate different functors in order to be callable as
 // `decorated_func(shared_ptr<shared_state<R>>, shared_ptr<future_state<T>>);`
 
