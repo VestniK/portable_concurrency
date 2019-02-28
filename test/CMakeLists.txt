@@ -9,6 +9,7 @@ set(API_TESTS
   future_then.cpp
   future_then_unwrap.cpp
   packaged_task.cpp
+  packaged_task_unwrap.cpp
   promise.cpp
   small_unique_function.cpp
   shared_future.cpp

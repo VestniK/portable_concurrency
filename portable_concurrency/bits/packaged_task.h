@@ -47,6 +47,9 @@ struct task_state final : packaged_task_state<R, A...> {
 
 template <typename R, typename... A>
 class packaged_task<R(A...)> {
+private:
+  using result_type = typename detail::add_future_t<R>::value_type;
+
 public:
   packaged_task() noexcept = default;
   ~packaged_task() {
@@ -56,7 +59,8 @@ public:
 
   template <typename F>
   explicit packaged_task(F&& f)
-      : state_{detail::in_place_index_t<1>{}, std::make_shared<detail::task_state<F, R, A...>>(std::forward<F>(f))} {}
+      : state_{detail::in_place_index_t<1>{},
+            std::make_shared<detail::task_state<F, result_type, A...>>(std::forward<F>(f))} {}
 
   packaged_task(const packaged_task&) = delete;
   packaged_task(packaged_task&&) noexcept = default;
@@ -72,35 +76,35 @@ public:
     other.state_ = std::move(tmp);
   }
 
-  future<R> get_future() {
+  detail::add_future_t<R> get_future() {
     if (state_.state() == 2u)
       detail::throw_already_retrieved();
     auto state = get_state();
     state_.emplace(detail::in_place_index_t<2>{}, state);
-    return {std::shared_ptr<detail::future_state<R>>{state, state->get_future_state()}};
+    return {std::shared_ptr<detail::future_state<result_type>>{state, state->get_future_state()}};
   }
 
   void operator()(A... a) {
     if (auto state = get_state()) {
-      std::shared_ptr<detail::shared_state<R>> state_ptr{state, state->get_promise_state()};
+      std::shared_ptr<detail::shared_state<result_type>> state_ptr{state, state->get_promise_state()};
       state->run(state_ptr, std::forward<A>(a)...);
     }
   }
 
 private:
-  std::shared_ptr<detail::packaged_task_state<R, A...>> get_state(bool throw_no_state = true) {
+  std::shared_ptr<detail::packaged_task_state<result_type, A...>> get_state(bool throw_no_state = true) {
     struct {
-      std::shared_ptr<detail::packaged_task_state<R, A...>> operator()(detail::monostate) {
+      std::shared_ptr<detail::packaged_task_state<result_type, A...>> operator()(detail::monostate) {
         if (throw_no_state)
           detail::throw_no_state();
         return nullptr;
       }
-      std::shared_ptr<detail::packaged_task_state<R, A...>> operator()(
-          const std::shared_ptr<detail::packaged_task_state<R, A...>>& state) {
+      std::shared_ptr<detail::packaged_task_state<result_type, A...>> operator()(
+          const std::shared_ptr<detail::packaged_task_state<result_type, A...>>& state) {
         return state;
       }
-      std::shared_ptr<detail::packaged_task_state<R, A...>> operator()(
-          const std::weak_ptr<detail::packaged_task_state<R, A...>>& state) {
+      std::shared_ptr<detail::packaged_task_state<result_type, A...>> operator()(
+          const std::weak_ptr<detail::packaged_task_state<result_type, A...>>& state) {
         return state.lock();
       }
 
@@ -110,8 +114,8 @@ private:
   }
 
 private:
-  detail::either<detail::monostate, std::shared_ptr<detail::packaged_task_state<R, A...>>,
-      std::weak_ptr<detail::packaged_task_state<R, A...>>>
+  detail::either<detail::monostate, std::shared_ptr<detail::packaged_task_state<result_type, A...>>,
+      std::weak_ptr<detail::packaged_task_state<result_type, A...>>>
       state_;
 };
 
