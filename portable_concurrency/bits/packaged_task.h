@@ -76,7 +76,7 @@ public:
     other.state_ = std::move(tmp);
   }
 
-  detail::add_future_t<R> get_future() {
+  PC_NODISCARD detail::add_future_t<R> get_future() {
     if (state_.state() == 2u)
       detail::throw_already_retrieved();
     auto state = get_state();
