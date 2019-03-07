@@ -55,26 +55,26 @@ TEST(PackagedTaskCancelation, function_object_is_destroyed_on_cancel) {
   auto val = std::make_shared<int>(42);
   std::weak_ptr<int> weak = val;
   pc::packaged_task<void()> task{[val = std::move(val)] {}};
-  task.get_future();
+  (void)task.get_future();
   EXPECT_FALSE(weak.lock());
 }
 
 TEST(PackagedTaskCancelation, canceled_task_remain_valid) {
   pc::packaged_task<void()> task{[] {}};
-  task.get_future();
+  (void)task.get_future();
   EXPECT_TRUE(task.valid());
 }
 
 TEST(PackagedTaskCancelation, run_canceled_task_do_not_throw) {
   pc::packaged_task<void()> task{[] {}};
-  task.get_future();
+  (void)task.get_future();
   EXPECT_NO_THROW(task());
 }
 
 TEST(PackagedTaskCancelation, run_canceled_task_do_not_execute_stored_function) {
   bool executed = false;
   pc::packaged_task<void()> task{[&executed] { executed = true; }};
-  task.get_future();
+  (void)task.get_future();
   task();
   EXPECT_FALSE(executed);
 }

@@ -279,7 +279,7 @@ TYPED_TEST(PackagedTaskTest, two_param_task) { tests::two_param_task<TypeParam>(
 
 TYPED_TEST(PackagedTaskTest, get_future_on_invalid_throws_no_state) {
   pc::packaged_task<TypeParam()> task;
-  EXPECT_FUTURE_ERROR(task.get_future(), std::future_errc::no_state);
+  EXPECT_FUTURE_ERROR((void)task.get_future(), std::future_errc::no_state);
 }
 
 TYPED_TEST(PackagedTaskTest, run_invalid_throws_no_state) {
