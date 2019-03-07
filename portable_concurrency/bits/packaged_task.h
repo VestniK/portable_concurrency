@@ -60,7 +60,10 @@ public:
   template <typename F>
   explicit packaged_task(F&& f)
       : state_{detail::in_place_index_t<1>{},
-            std::make_shared<detail::task_state<F, result_type, A...>>(std::forward<F>(f))} {}
+            std::make_shared<detail::task_state<F, result_type, A...>>(std::forward<F>(f))} {
+    static_assert(
+        std::is_convertible<std::result_of_t<F(A...)>, R>::value, "F must be Callable with signature R(A...)");
+  }
 
   packaged_task(const packaged_task&) = delete;
   packaged_task(packaged_task&&) noexcept = default;
