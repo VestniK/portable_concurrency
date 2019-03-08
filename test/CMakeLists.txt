@@ -30,7 +30,6 @@ set(DETAILS_TESTS
 )
 
 set(TEST_TOOLS
-  task.h
   test_helpers.h
   test_tools.h
   test_tools.cpp

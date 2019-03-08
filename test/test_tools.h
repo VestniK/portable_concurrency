@@ -10,8 +10,6 @@
 #include <portable_concurrency/future>
 #include <portable_concurrency/thread_pool>
 
-#include "task.h"
-
 #define EXPECT_FUTURE_ERROR(statement, errc)                                                                           \
   try {                                                                                                                \
     statement;                                                                                                         \
@@ -32,7 +30,7 @@ public:
 
   template <typename F, typename... A>
   void run_async(F&& f, A&&... a) {
-    post(pool_.executor(), make_task(std::forward<F>(f), std::forward<A>(a)...));
+    post(pool_.executor(), pc::detail::make_task(std::forward<F>(f), std::forward<A>(a)...));
   }
 
   size_t threads_count() const { return tids_.size(); }
