@@ -8,6 +8,14 @@
 
 using namespace std::literals;
 
+struct get_promise_future_t {
+  template <typename T>
+  pc::future<T> operator()(pc::promise<T>& promise) {
+    return promise.get_future();
+  }
+};
+constexpr get_promise_future_t get_promise_future{};
+
 using TestTypes = ::testing::Types<void, int, std::string, std::unique_ptr<int>, future_tests_env&>;
 
 // Clang don't want to eat the code bellow:
