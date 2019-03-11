@@ -65,6 +65,25 @@ bool future<T>::is_ready() const {
 
 template <typename T>
 template <typename F>
+void future<T>::notify(F&& notification) {
+  if (!state_)
+    detail::throw_no_state();
+  state_->continuations().push(std::forward<F>(notification));
+}
+
+template <typename T>
+template <typename E, typename F>
+void future<T>::notify(E&& exec, F&& notification) {
+  static_assert(is_executor<std::decay_t<E>>::value, "E must be an executor");
+  if (!state_)
+    detail::throw_no_state();
+  state_->continuations().push([exec = std::forward<E>(exec), notification = std::forward<F>(notification)]() mutable {
+    post(exec, std::move(notification));
+  });
+}
+
+template <typename T>
+template <typename F>
 PC_NODISCARD detail::cnt_future_t<F, future<T>> future<T>::then(F&& f) {
   return then(inplace_executor, std::forward<F>(f));
 }

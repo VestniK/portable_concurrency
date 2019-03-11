@@ -101,6 +101,30 @@ public:
    */
   bool is_ready() const;
 
+  /**
+   * Adds notification function to be called when this future object becomes ready.
+   *
+   * Equivalent to `this->notify(inplace_executor, notification)`.
+   *
+   * @note Thread of `notification` execution is unspecified.
+   */
+  template <typename F>
+  void notify(F&& notification);
+
+  /**
+   * Adds notification function to be called when this future object becomes ready.
+   *
+   * Notification function must meet `MoveConstructable`, `MoveAssignable` and `Callable` (with signature `void()`)
+   * standard library requirements.
+   *
+   * Both `exec` and `notification` objects are decay copied on the caller thread. Once this future object becomes ready
+   * `post(exec, std::move(notification))` is executed on unspecified thread. Implementation provide strict guaranty
+   * that `notification` is scheduled for execution at most once. If `this->is_ready() == true` then `notification` is
+   * scheduled for execution immediatelly.
+   */
+  template <typename E, typename F>
+  void notify(E&& exec, F&& notification);
+
   template <typename F>
   PC_NODISCARD detail::cnt_future_t<F, future<T>> then(F&& f);
 
