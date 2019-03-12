@@ -69,7 +69,12 @@ public:
   packaged_task(packaged_task&&) noexcept = default;
 
   packaged_task& operator=(const packaged_task&) = delete;
-  packaged_task& operator=(packaged_task&&) noexcept = default;
+  packaged_task& operator=(packaged_task&& rhs) noexcept {
+    if (auto state = get_state(false))
+      state->abandon();
+    state_ = std::move(rhs.state_);
+    return *this;
+  }
 
   bool valid() const noexcept { return !state_.empty(); }
 

@@ -35,7 +35,16 @@ struct promise_common {
 
   promise_common(std::weak_ptr<detail::shared_state<T>>&& state) : state_{in_place_index_t<2>{}, std::move(state)} {}
 
-  ~promise_common() {
+  ~promise_common() { abandon(); }
+
+  promise_common(promise_common&&) noexcept = default;
+  promise_common& operator=(promise_common&& rhs) noexcept {
+    abandon();
+    state_ = std::move(rhs.state_);
+    return *this;
+  }
+
+  void abandon() {
     struct {
       void operator()(const std::weak_ptr<shared_state<T>>& wstate) {
         if (auto state = wstate.lock())
@@ -46,9 +55,6 @@ struct promise_common {
     } visitor;
     state_.visit(visitor);
   }
-
-  promise_common(promise_common&&) noexcept = default;
-  promise_common& operator=(promise_common&&) noexcept = default;
 
   future<T> get_future() {
     if (state_.state() == 2u)
