@@ -6,9 +6,9 @@ set(API_TESTS
   cancelation.cpp
   future.cpp
   future_next.cpp
-  future_notify.cpp
   future_then.cpp
   future_then_unwrap.cpp
+  notify.cpp
   packaged_task.cpp
   packaged_task_unwrap.cpp
   promise.cpp
