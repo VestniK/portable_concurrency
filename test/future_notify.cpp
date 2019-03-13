@@ -77,6 +77,14 @@ TEST_F(future_notify, is_called_for_task_running_asyncroniusly) {
   EXPECT_TRUE(called.load());
 }
 
+TEST_F(future_notify, schedules_notification_with_specified_executor) {
+  std::thread::id notification_thread;
+  future.notify(g_future_tests_env, [&] { notification_thread = std::this_thread::get_id(); });
+  promise.set_value(100500);
+  g_future_tests_env->wait_current_tasks();
+  EXPECT_TRUE(g_future_tests_env->uses_thread(notification_thread));
+}
+
 } // namespace test
 } // anonymous namespace
 } // namespace portable_concurrency
