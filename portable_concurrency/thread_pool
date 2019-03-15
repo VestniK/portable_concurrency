@@ -2,7 +2,7 @@
 #pragma once
 
 /**
- * @defgroup latch <portable_concurrency/thread_pool>
+ * @defgroup thread_pool <portable_concurrency/thread_pool>
  * @headerfile portable_concurrency/thread_pool
  *
  * statically sized thread pool implementation
