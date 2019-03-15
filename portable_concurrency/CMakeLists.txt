@@ -10,6 +10,7 @@ set(PUBLIC_HEADERS
   future
   future_fwd
   latch
+  timed_waiter
   thread_pool
 )
 set(INSTALL_HEADERS
@@ -37,6 +38,7 @@ set(INSTALL_HEADERS
   bits/shared_state.h
   bits/small_unique_function.h
   bits/small_unique_function.hpp
+  bits/timed_waiter.h
   bits/then.hpp
   bits/thread_pool.h
   bits/unique_function.h

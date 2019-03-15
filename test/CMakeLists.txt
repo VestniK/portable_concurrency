@@ -18,6 +18,7 @@ set(API_TESTS
   shared_future_then.cpp
   shared_future_then_unwrap.cpp
   thread_pool.cpp
+  timed_waiter.cpp
   unique_function.cpp
   when_all_tuple.cpp
   when_all_vector.cpp
