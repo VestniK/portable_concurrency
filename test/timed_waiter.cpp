@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <portable_concurrency/future>
+#include <portable_concurrency/latch>
 #include <portable_concurrency/timed_waiter>
 
 #include "test_tools.h"
@@ -11,12 +12,50 @@ namespace test {
 
 using namespace std::literals;
 
-TEST(timed_waiter, can_be_used_for_poling) {
-  pc::future<void> future = pc::async(g_future_tests_env, [] { std::this_thread::sleep_for(25ms); });
-  pc::timed_waiter waiter{future};
-  while (waiter.wait_for(500us) == pc::future_status::timeout)
+template <typename Future>
+struct timed_waiter_poling : ::testing::Test {
+  Future future = pc::async(g_future_tests_env, [] {
+    std::this_thread::sleep_for(25ms);
+    return 100500;
+  });
+  pc::timed_waiter waiter{this->future};
+};
+using poling_futures = ::testing::Types<pc::future<int>, pc::shared_future<int>>;
+TYPED_TEST_CASE(timed_waiter_poling, poling_futures);
+
+TYPED_TEST(timed_waiter_poling, future_is_ready_after_waiter_returns_ready) {
+  while (this->waiter.wait_for(500us) == pc::future_status::timeout)
     ;
-  EXPECT_TRUE(future.is_ready());
+  EXPECT_TRUE(this->future.is_ready());
+}
+
+template <typename Future>
+struct timed_waiter : ::testing::Test {
+  pc::latch latch{2};
+  Future future = pc::async(g_future_tests_env, [this] { this->latch.count_down_and_wait(); });
+  pc::timed_waiter waiter{this->future};
+};
+using futures = ::testing::Types<pc::future<void>, pc::shared_future<void>>;
+TYPED_TEST_CASE(timed_waiter, futures);
+
+TYPED_TEST(timed_waiter, wait_for_returns_when_future_becomes_ready) {
+  this->latch.count_down();
+  EXPECT_EQ(this->waiter.wait_for(30min), pc::future_status::ready);
+}
+
+TYPED_TEST(timed_waiter, wait_until_returns_when_future_becomes_ready) {
+  this->latch.count_down();
+  EXPECT_EQ(this->waiter.wait_until(std::chrono::system_clock::now() + 30min), pc::future_status::ready);
+}
+
+TYPED_TEST(timed_waiter, wait_for_returns_with_timeout_if_future_not_ready) {
+  EXPECT_EQ(this->waiter.wait_for(5ms), pc::future_status::timeout);
+  this->latch.count_down();
+}
+
+TYPED_TEST(timed_waiter, wait_until_returns_with_timeout_if_future_not_ready) {
+  EXPECT_EQ(this->waiter.wait_until(std::chrono::steady_clock::now() + 5ms), pc::future_status::timeout);
+  this->latch.count_down();
 }
 
 } // namespace test
