@@ -44,10 +44,12 @@ public:
   void wait() const;
 
   template <typename Rep, typename Period>
-  future_status wait_for(const std::chrono::duration<Rep, Period>& rel_time) const;
+  [[deprecated("Use pc::timed_waiter instead")]] future_status wait_for(
+      const std::chrono::duration<Rep, Period>& rel_time) const;
 
   template <typename Clock, typename Duration>
-  future_status wait_until(const std::chrono::time_point<Clock, Duration>& abs_time) const;
+  [[deprecated("Use pc::timed_waiter instead")]] future_status wait_until(
+      const std::chrono::time_point<Clock, Duration>& abs_time) const;
 
   bool valid() const noexcept;
 
