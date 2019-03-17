@@ -14,11 +14,16 @@ using namespace std::literals;
 
 template <typename Future>
 struct timed_waiter_poling : ::testing::Test {
-  Future future = pc::async(g_future_tests_env, [] {
-    std::this_thread::sleep_for(25ms);
-    return 100500;
-  });
-  pc::timed_waiter waiter{this->future};
+  Future future;
+  pc::timed_waiter waiter;
+
+  timed_waiter_poling() {
+    future = pc::async(g_future_tests_env, [] {
+      std::this_thread::sleep_for(25ms);
+      return 100500;
+    });
+    waiter = pc::timed_waiter{future};
+  }
 };
 using poling_futures = ::testing::Types<pc::future<int>, pc::shared_future<int>>;
 TYPED_TEST_CASE(timed_waiter_poling, poling_futures);
@@ -31,9 +36,14 @@ TYPED_TEST(timed_waiter_poling, future_is_ready_after_waiter_returns_ready) {
 
 template <typename Future>
 struct timed_waiter : ::testing::Test {
-  pc::latch latch{2};
-  Future future = pc::async(g_future_tests_env, [this] { this->latch.count_down_and_wait(); });
-  pc::timed_waiter waiter{this->future};
+  pc::latch latch;
+  Future future;
+  pc::timed_waiter waiter;
+
+  timed_waiter() : latch{2} {
+    future = pc::async(g_future_tests_env, [this] { latch.count_down_and_wait(); });
+    waiter = pc::timed_waiter{future};
+  }
 };
 using futures = ::testing::Types<pc::future<void>, pc::shared_future<void>>;
 TYPED_TEST_CASE(timed_waiter, futures);
