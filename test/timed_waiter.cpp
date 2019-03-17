@@ -36,12 +36,12 @@ TYPED_TEST(timed_waiter_poling, future_is_ready_after_waiter_returns_ready) {
 
 template <typename Future>
 struct timed_waiter : ::testing::Test {
-  pc::latch latch;
+  pc::latch task_latch;
   Future future;
   pc::timed_waiter waiter;
 
-  timed_waiter() : latch{2} {
-    future = pc::async(g_future_tests_env, [this] { latch.count_down_and_wait(); });
+  timed_waiter() : task_latch{2} {
+    future = pc::async(g_future_tests_env, [this] { task_latch.count_down_and_wait(); });
     waiter = pc::timed_waiter{future};
   }
 };
@@ -49,23 +49,23 @@ using futures = ::testing::Types<pc::future<void>, pc::shared_future<void>>;
 TYPED_TEST_CASE(timed_waiter, futures);
 
 TYPED_TEST(timed_waiter, wait_for_returns_when_future_becomes_ready) {
-  this->latch.count_down();
+  this->task_latch.count_down();
   EXPECT_EQ(this->waiter.wait_for(30min), pc::future_status::ready);
 }
 
 TYPED_TEST(timed_waiter, wait_until_returns_when_future_becomes_ready) {
-  this->latch.count_down();
+  this->task_latch.count_down();
   EXPECT_EQ(this->waiter.wait_until(std::chrono::system_clock::now() + 30min), pc::future_status::ready);
 }
 
 TYPED_TEST(timed_waiter, wait_for_returns_with_timeout_if_future_not_ready) {
   EXPECT_EQ(this->waiter.wait_for(5ms), pc::future_status::timeout);
-  this->latch.count_down();
+  this->task_latch.count_down();
 }
 
 TYPED_TEST(timed_waiter, wait_until_returns_with_timeout_if_future_not_ready) {
   EXPECT_EQ(this->waiter.wait_until(std::chrono::steady_clock::now() + 5ms), pc::future_status::timeout);
-  this->latch.count_down();
+  this->task_latch.count_down();
 }
 
 } // namespace test
