@@ -68,6 +68,22 @@ TYPED_TEST(timed_waiter, wait_until_returns_with_timeout_if_future_not_ready) {
   this->task_latch.count_down();
 }
 
+template <typename Future>
+struct timed_waiter_on_ready : ::testing::Test {
+  Future future = pc::make_ready_future();
+  pc::timed_waiter waiter;
+
+  timed_waiter_on_ready() { waiter = pc::timed_waiter{future}; }
+};
+TYPED_TEST_CASE(timed_waiter_on_ready, futures);
+
+TYPED_TEST(timed_waiter_on_ready, wait_until_returns_ready) {
+  EXPECT_EQ(this->waiter.wait_until(std::chrono::steady_clock::now() + 30min), pc::future_status::ready);
+}
+TYPED_TEST(timed_waiter_on_ready, wait_for_returns_ready) {
+  EXPECT_EQ(this->waiter.wait_for(2h), pc::future_status::ready);
+}
+
 } // namespace test
 } // anonymous namespace
 } // namespace portable_concurrency
