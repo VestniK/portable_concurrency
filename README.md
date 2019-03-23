@@ -51,20 +51,19 @@
  * `future<shared_future<T>>` transparently unwrapped to `shred_future<T>`
  * Automatic task cancelation:
    * Not yet started functions passed to `pc::async`/`pc::packaged_task` or attached to intermediate futures as continuations
-     may not be executed at all if `future` or all `shared_future`'s on the result of continuations chain is destroyed.
+     may not be executed at all if `future` or all `shared_future`'s on the result of continuations chain are destroyed.
    * `future::detach()` and `shared_future::detach()` functions allows to destroy future without cancelation of any tasks.
-   ```cpp
-   auto future = pc::async(pool.executor(), important_calculation)
-     .next(io.get_executor(), important_io)
-     .detach()
-     .next(pool.executor(), not_so_important_calculations);
-   ```
-   `important_calculation` and `important_io` are guarantied to be executed even in case of premature future destruction.
-   * `promise::is_awaiten()` allows to check if `future` or the last `shared_future` refferensing shared state associated
-     with this `promise` is already destroyed.
-   * `promise::promise(canceler_arg_t, CancelAction)` constructor allows to specify action which is called in `future`
-     or the last `shared_future` refferensing shared state associated with this `promise` is destroyed before value or
-     exception was set.
+     ```cpp
+     auto future = pc::async(pool.executor(), important_calculation)
+       .next(io.get_executor(), important_io)
+       .detach()
+       .next(pool.executor(), not_so_important_calculations);
+     ```
+     `important_calculation` and `important_io` are guarantied to be executed even in case of premature future destruction.
+   * `promise::is_awaiten()` allows to check if there is a `future` or `shared_future` waiting for value to be set on this 
+     `promise` object.
+   * `promise::promise(canceler_arg_t, CancelAction)` constructor allows to specify action which is called in case of cancelation 
+     via future destruction.
    * Additional `then` overload to check if task is canceled from the continuations function
      ```cpp
      pc::future<std::string> res = pc::async(pool.executor(), [] {return 42;})
