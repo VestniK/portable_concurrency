@@ -5,7 +5,7 @@
  * @defgroup thread_pool <portable_concurrency/thread_pool>
  * @headerfile portable_concurrency/thread_pool
  *
- * statically sized thread pool implementation
+ * Statically sized thread pool implementation
  */
 
 #include "bits/alias_namespace.h"

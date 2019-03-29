@@ -2,10 +2,10 @@
 #pragma once
 
 /**
- * @defgroup timed_waiter <portable_concurrency/timed_waiter>
+ * @defgroup timed_waiter_hdr <portable_concurrency/timed_waiter>
  * @headerfile portable_concurrency/timed_waiter
  *
- * Class allowing to wait for future with timeout
+ * Class allowing to wait for futures with timeout
  */
 
 #include "bits/alias_namespace.h"

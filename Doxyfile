@@ -795,6 +795,8 @@ INPUT                  = portable_concurrency \
                          portable_concurrency/functional \
                          portable_concurrency/future \
                          portable_concurrency/latch \
+                         portable_concurrency/thread_pool \
+                         portable_concurrency/timed_waiter \
                          README.md
 
 # This tag can be used to specify the character encoding of the source files
