@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['_7efuture',['~future',['../classportable__concurrency_1_1cxx14__v1_1_1future.html#a31c6177a5f898101d08615157f94c3ae',1,'portable_concurrency::cxx14_v1::future']]]
+  ['share',['share',['../classportable__concurrency_1_1cxx14__v1_1_1future.html#aa42895cf5b3ecbc7b67ae14d94ddfd72',1,'portable_concurrency::cxx14_v1::future']]],
+  ['shared_5ffuture',['shared_future',['../classportable__concurrency_1_1cxx14__v1_1_1shared__future.html',1,'portable_concurrency::cxx14_v1']]]
 ];

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['operator_3d',['operator=',['../classportable__concurrency_1_1cxx14__v1_1_1future.html#ab6f9a6646d94e298b3a03749f1bc19d2',1,'portable_concurrency::cxx14_v1::future']]]
+  ['get',['get',['../classportable__concurrency_1_1cxx14__v1_1_1future.html#af6ea056c8af82f08af9fd0d857967f9b',1,'portable_concurrency::cxx14_v1::future']]]
 ];
