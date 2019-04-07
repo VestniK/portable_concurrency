@@ -42,41 +42,34 @@ template class small_unique_function<void()>;
 template struct forward_list_deleter<continuation>;
 template class once_consumable_stack<continuation>;
 
-waiter::waiter() = default;
-
-void waiter::operator()() {
-  std::lock_guard<std::mutex>{mutex_}, notified_ = true;
-  cv_.notify_one();
-}
-
-void waiter::wait() const {
-  std::unique_lock<std::mutex> lock{mutex_};
-  cv_.wait(lock, [this] { return notified_; });
-}
-
-bool waiter::wait_for(std::chrono::nanoseconds timeout) const {
-  std::unique_lock<std::mutex> lock{mutex_};
-  return cv_.wait_for(lock, timeout, [this] { return notified_; });
-}
-
 void continuations_stack::push(continuation&& cnt) {
   if (!stack_.push(cnt))
     cnt();
 }
 
-continuations_stack::continuations_stack() = default;
-continuations_stack::~continuations_stack() = default;
-
 void continuations_stack::execute() {
   auto continuations = stack_.consume();
-  waiter_();
   for (auto& cnt : continuations)
     cnt();
 }
 
 bool continuations_stack::executed() const { return stack_.is_consumed(); }
 
-const waiter& continuations_stack::get_waiter() const { return waiter_; }
+void continuations_stack::wait() {
+  std::mutex mtx;
+  std::condition_variable cv;
+  bool ready = false;
+  continuation notify = [&] {
+    std::lock_guard<std::mutex> guard{mtx};
+    ready = true;
+    cv.notify_one();
+  };
+  if (!stack_.push(notify))
+    return;
+
+  std::unique_lock<std::mutex> lk{mtx};
+  cv.wait(lk, [&] { return ready; });
+}
 
 template class closable_queue<unique_function<void()>>;
 

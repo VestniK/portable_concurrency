@@ -21,7 +21,7 @@ class shared_future;
 
 namespace detail {
 template <typename T>
-class future_state;
+struct future_state;
 
 template <typename T>
 std::shared_ptr<future_state<T>>& state_of(future<T>&);

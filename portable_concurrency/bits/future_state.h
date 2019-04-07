@@ -18,19 +18,21 @@ using state_storage_t = std::conditional_t<std::is_void<T>::value, void_val,
     std::conditional_t<std::is_reference<T>::value, std::reference_wrapper<std::remove_reference_t<T>>,
         std::remove_const_t<T>>>;
 
-template <typename T>
-class future_state {
-public:
-  virtual ~future_state() = default;
+struct future_state_base {
+  virtual ~future_state_base() = default;
 
   virtual continuations_stack& continuations() = 0;
   // May be overloaded by shared_state with custom allocator in order to allocate continuation_stack node properly
   virtual void push(continuation&& cnt) { this->continuations().push(std::move(cnt)); }
 
-  // throws stored exception if there is no value. UB if called before continuations are executed.
-  virtual state_storage_t<T>& value_ref() = 0;
   // returns nullptr if there is no error. UB if called before continuations are executed.
   virtual std::exception_ptr exception() = 0;
+};
+
+template <typename T>
+struct future_state : future_state_base {
+  // throws stored exception if there is no value. UB if called before continuations are executed.
+  virtual state_storage_t<T>& value_ref() = 0;
 };
 
 } // namespace detail

@@ -5,6 +5,7 @@
 #include "future_state.h"
 #include "shared_future.h"
 #include "then.hpp"
+#include "timed_waiter.h"
 #include "utils.h"
 
 namespace portable_concurrency {
@@ -17,9 +18,7 @@ template <typename T>
 void shared_future<T>::wait() const {
   if (!state_)
     detail::throw_no_state();
-  auto& continuations = state_->continuations();
-  if (!continuations.executed())
-    continuations.get_waiter().wait();
+  state_->continuations().wait();
 }
 
 template <typename T>
@@ -27,18 +26,29 @@ template <typename Rep, typename Period>
 future_status shared_future<T>::wait_for(const std::chrono::duration<Rep, Period>& rel_time) const {
   if (!state_)
     detail::throw_no_state();
-  auto& continuations = state_->continuations();
-  if (continuations.executed())
-    return future_status::ready;
-  return continuations.get_waiter().wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time))
-             ? future_status::ready
-             : future_status::timeout;
+  // const_cast below:
+  //  * can't introduce thread safety issues since adding notification is thread safe
+  //  * can't lead to UB since the only object which s modified is shared_state which is always non const object
+  //    even if future owning it is const.
+  // This implementation is provided for compatibility only and will be removed in future versions. No stinky const
+  // cast are going to survive.
+  timed_waiter waiter{const_cast<shared_future<T>&>(*this)};
+  return waiter.wait_for(rel_time);
 }
 
 template <typename T>
 template <typename Clock, typename Duration>
 future_status shared_future<T>::wait_until(const std::chrono::time_point<Clock, Duration>& abs_time) const {
-  return wait_for(abs_time - Clock::now());
+  if (!state_)
+    detail::throw_no_state();
+  // const_cast below:
+  //  * can't introduce thread safety issues since adding notification is thread safe
+  //  * can't lead to UB since the only object which s modified is shared_state which is always non const object
+  //    even if future owning it is const.
+  // This implementation is provided for compatibility only and will be removed in future versions. No stinky const
+  // cast are going to survive.
+  timed_waiter waiter{const_cast<shared_future<T>&>(*this)};
+  return waiter.wait_until(abs_time);
 }
 
 template <typename T>
@@ -154,9 +164,9 @@ PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, shared_future<T>>> sh
   if (!state_)
     detail::throw_no_state();
   detail::continuations_stack& subscriptions = state_->continuations();
-  return detail::make_then_state<result_type>(subscriptions, std::forward<E>(exec),
-      [ f = std::forward<F>(f), parent = std::move(state_) ](
-          std::shared_ptr<detail::shared_state<result_type>> state) mutable noexcept {
+  return detail::make_then_state<result_type>(
+      subscriptions, std::forward<E>(exec), [ f = std::forward<F>(f),
+        parent = std::move(state_) ](std::shared_ptr<detail::shared_state<result_type>> state) mutable noexcept {
         promise<result_type> p{std::exchange(state, nullptr)};
         ::portable_concurrency::detail::invoke(f, std::move(p), shared_future<T>{std::move(parent)});
       });
