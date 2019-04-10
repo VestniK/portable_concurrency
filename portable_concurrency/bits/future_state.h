@@ -23,11 +23,13 @@ struct future_state_base {
 
   virtual continuations_stack& continuations() = 0;
   // May be overloaded by shared_state with custom allocator in order to allocate continuation_stack node properly
-  virtual void push(continuation&& cnt) { this->continuations().push(std::move(cnt)); }
+  virtual void push(continuation&& cnt);
 
   // returns nullptr if there is no error. UB if called before continuations are executed.
   virtual std::exception_ptr exception() = 0;
 };
+
+void wait(future_state_base& state);
 
 template <typename T>
 struct future_state : future_state_base {

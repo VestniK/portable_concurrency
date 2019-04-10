@@ -28,7 +28,7 @@ template <typename T>
 void future<T>::wait() const {
   if (!state_)
     detail::throw_no_state();
-  state_->continuations().wait();
+  detail::wait(*state_);
 }
 
 template <typename T>

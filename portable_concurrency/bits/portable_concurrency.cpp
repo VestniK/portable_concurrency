@@ -55,17 +55,15 @@ void continuations_stack::execute() {
 
 bool continuations_stack::executed() const { return stack_.is_consumed(); }
 
-void continuations_stack::wait() {
+void wait(future_state_base& state) {
   std::mutex mtx;
   std::condition_variable cv;
   bool ready = false;
-  continuation notify = [&] {
+  state.push([&] {
     std::lock_guard<std::mutex> guard{mtx};
     ready = true;
     cv.notify_one();
-  };
-  if (!stack_.push(notify))
-    return;
+  });
 
   std::unique_lock<std::mutex> lk{mtx};
   cv.wait(lk, [&] { return ready; });
@@ -82,6 +80,8 @@ template class closable_queue<unique_function<void()>>;
 std::exception_ptr make_broken_promise() {
   return std::make_exception_ptr(std::future_error{std::future_errc::broken_promise});
 }
+
+void future_state_base::push(continuation&& cnt) { this->continuations().push(std::move(cnt)); }
 
 } // namespace detail
 

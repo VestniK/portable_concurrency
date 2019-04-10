@@ -22,7 +22,6 @@ public:
 
   void execute();
   bool executed() const;
-  void wait();
 
 private:
   once_consumable_stack<continuation> stack_;
