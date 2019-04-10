@@ -49,5 +49,5 @@ public:
     return result;
   }
 
-  std::size_t used() const { return data_.size() - offset_; }
+  std::size_t used() const { return offset_; }
 };
