@@ -30,7 +30,7 @@ cmake -G Ninja ${SRCDIR} \
   -DCONAN_LIBCXX=${LIBCXX} \
   -DCONAN_COMPILER=$(conan profile get settings.compiler default) \
   -DCONAN_COMPILER_VERSION=$(conan profile get settings.compiler.version default) \
-  -DPC_WARNINGS_AS_ERROR=ON
+  -DPC_DEV_BUILD=ON
 time ninja
 
 ./bin/unit_tests

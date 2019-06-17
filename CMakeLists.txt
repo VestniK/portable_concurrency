@@ -8,8 +8,8 @@ include(GNUInstallDirs)
 include(BuildTypes)
 include(ConanDeps)
 
-option(PC_WARNINGS_AS_ERROR "Treat enabled warnings as errors" OFF)
-if (PC_WARNINGS_AS_ERROR AND NOT MSVC)
+option(PC_DEV_BUILD "Build mode for library developers. Important warnings are treated as errors." OFF)
+if (PC_DEV_BUILD AND NOT MSVC)
   add_compile_options(-Werror=all)
 endif()
 
