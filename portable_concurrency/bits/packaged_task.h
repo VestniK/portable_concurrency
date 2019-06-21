@@ -78,11 +78,7 @@ public:
 
   bool valid() const noexcept { return !state_.empty(); }
 
-  void swap(packaged_task& other) noexcept {
-    auto tmp = std::move(state_);
-    state_ = std::move(other.state_);
-    other.state_ = std::move(tmp);
-  }
+  void swap(packaged_task& other) noexcept { std::swap(state_, other.state_); }
 
   PC_NODISCARD detail::add_future_t<R> get_future() {
     if (state_.state() == 2u)
