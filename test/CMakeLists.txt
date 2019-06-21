@@ -2,6 +2,7 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
 set(API_TESTS
+  algo_adapters.cpp
   async.cpp
   cancelation.cpp
   future.cpp

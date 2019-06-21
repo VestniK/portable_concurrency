@@ -8,6 +8,7 @@
  * `future` API imlementation with continuations and executors support
  */
 
+#include "bits/algo_adapters.h"
 #include "bits/alias_namespace.h"
 #include "bits/async.h"
 #include "bits/future.hpp"

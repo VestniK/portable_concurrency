@@ -14,6 +14,7 @@ set(PUBLIC_HEADERS
   thread_pool
 )
 set(INSTALL_HEADERS
+  bits/algo_adapters.h
   bits/alias_namespace.h
   bits/align.h
   bits/async.h
