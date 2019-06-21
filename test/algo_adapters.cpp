@@ -7,7 +7,7 @@
 
 namespace {
 
-template <template <class...> typename Future>
+template <template <class...> class Future>
 std::vector<Future<int>> make_test_futures(std::initializer_list<int> values) {
   std::vector<Future<int>> futures;
   for (int val : values)
