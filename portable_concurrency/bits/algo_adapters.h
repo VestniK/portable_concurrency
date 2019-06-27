@@ -26,7 +26,8 @@ struct future_get_t {
  * The main use case for this function object is to transform collection of futures into collection of values. For
  * example:
  * ```
- * pc::future<std::vector<int>> = pc::when_all(run_many_tasks())
+ * auto tasks = run_many_tasks();
+ * pc::future<std::vector<int>> = pc::when_all(tasks.begin(), tasks.end())
  *   .next([](std::vector<pc::future<int>> futures){
  *     std::vector<int> results;
  *     results.reserve(futuers.size());
