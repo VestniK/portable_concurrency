@@ -56,7 +56,7 @@ public:
   /**
    * Move @a rhs into newlly created object.
    */
-  unique_function(unique_function&& rhs) noexcept;
+  unique_function(unique_function&&) noexcept;
 
   unique_function(const unique_function&) = delete;
   unique_function& operator=(const unique_function&) = delete;
