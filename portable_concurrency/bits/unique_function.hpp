@@ -38,10 +38,10 @@ template <typename R, typename... A>
 unique_function<R(A...)>::~unique_function() = default;
 
 template <typename R, typename... A>
-unique_function<R(A...)>::unique_function(unique_function<R(A...)>&& rhs) noexcept = default;
+unique_function<R(A...)>::unique_function(unique_function<R(A...)>&&) noexcept = default;
 
 template <typename R, typename... A>
-unique_function<R(A...)>& unique_function<R(A...)>::operator=(unique_function<R(A...)>&& rhs) noexcept = default;
+unique_function<R(A...)>& unique_function<R(A...)>::operator=(unique_function<R(A...)>&&) noexcept = default;
 
 template <typename R, typename... A>
 R unique_function<R(A...)>::operator()(A... args) const {
