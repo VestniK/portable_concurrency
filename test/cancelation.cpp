@@ -55,26 +55,26 @@ TEST(PackagedTaskCancelation, function_object_is_destroyed_on_cancel) {
   auto val = std::make_shared<int>(42);
   std::weak_ptr<int> weak = val;
   pc::packaged_task<void()> task{[val = std::move(val)] {}};
-  (void)task.get_future();
+  { auto f = task.get_future(); }
   EXPECT_FALSE(weak.lock());
 }
 
 TEST(PackagedTaskCancelation, canceled_task_remain_valid) {
   pc::packaged_task<void()> task{[] {}};
-  (void)task.get_future();
+  { auto f = task.get_future(); }
   EXPECT_TRUE(task.valid());
 }
 
 TEST(PackagedTaskCancelation, run_canceled_task_do_not_throw) {
   pc::packaged_task<void()> task{[] {}};
-  (void)task.get_future();
+  { auto f = task.get_future(); }
   EXPECT_NO_THROW(task());
 }
 
 TEST(PackagedTaskCancelation, run_canceled_task_do_not_execute_stored_function) {
   bool executed = false;
   pc::packaged_task<void()> task{[&executed] { executed = true; }};
-  (void)task.get_future();
+  { auto f = task.get_future(); }
   task();
   EXPECT_FALSE(executed);
 }
@@ -82,7 +82,9 @@ TEST(PackagedTaskCancelation, run_canceled_task_do_not_execute_stored_function) 
 TEST(ContinuationCancelation, then_continuation_is_not_executed_afeter_future_destruction) {
   pc::promise<int> promise;
   bool executed = false;
-  (void)promise.get_future().then([&executed](pc::future<int>) { executed = true; });
+  {
+    auto f = promise.get_future().then([&executed](pc::future<int>) { executed = true; });
+  }
   promise.set_value(42);
   EXPECT_FALSE(executed);
 }
@@ -90,10 +92,12 @@ TEST(ContinuationCancelation, then_continuation_is_not_executed_afeter_future_de
 TEST(ContinuationCancelation, then_unwrapped_continuation_is_not_executed_afeter_future_destruction) {
   pc::promise<int> promise;
   bool executed = false;
-  (void)promise.get_future().then([&executed](pc::future<int>) {
-    executed = true;
-    return pc::make_ready_future();
-  });
+  {
+    auto f = promise.get_future().then([&executed](pc::future<int>) {
+      executed = true;
+      return pc::make_ready_future();
+    });
+  }
   promise.set_value(42);
   EXPECT_FALSE(executed);
 }
@@ -101,7 +105,9 @@ TEST(ContinuationCancelation, then_unwrapped_continuation_is_not_executed_afeter
 TEST(ContinuationCancelation, then_continuation_with_executor_is_not_executed_afeter_future_destruction) {
   pc::promise<int> promise;
   std::atomic<bool> executed{false};
-  (void)promise.get_future().then(g_future_tests_env, [&executed](pc::future<int>) { executed = true; });
+  {
+    auto f = promise.get_future().then(g_future_tests_env, [&executed](pc::future<int>) { executed = true; });
+  }
   promise.set_value(42);
   g_future_tests_env->wait_current_tasks();
   EXPECT_FALSE(executed);
@@ -110,7 +116,9 @@ TEST(ContinuationCancelation, then_continuation_with_executor_is_not_executed_af
 TEST(ContinuationCancelation, next_continuation_is_not_executed_afeter_future_destruction) {
   pc::promise<int> promise;
   bool executed = false;
-  (void)promise.get_future().next([&executed](int) { executed = true; });
+  {
+    auto f = promise.get_future().next([&executed](int) { executed = true; });
+  }
   promise.set_value(42);
   EXPECT_FALSE(executed);
 }
@@ -118,7 +126,9 @@ TEST(ContinuationCancelation, next_continuation_is_not_executed_afeter_future_de
 TEST(ContinuationCancelation, next_continuation_with_executor_is_not_executed_afeter_future_destruction) {
   pc::promise<int> promise;
   std::atomic<bool> executed{false};
-  (void)promise.get_future().next(g_future_tests_env, [&executed](int) { executed = true; });
+  {
+    auto f = promise.get_future().next(g_future_tests_env, [&executed](int) { executed = true; });
+  }
   promise.set_value(42);
   g_future_tests_env->wait_current_tasks();
   EXPECT_FALSE(executed);
@@ -150,7 +160,9 @@ TEST(Promise, is_awaiten_returns_true_after_attaching_continuation) {
 
 TEST(Promise, is_awaiten_returns_false_after_continuation_future_abandoned) {
   pc::promise<int> p;
-  (void)p.get_future().next([](int val) { return 5 * val; });
+  {
+    auto f = p.get_future().next([](int val) { return 5 * val; });
+  }
   EXPECT_FALSE(p.is_awaiten());
 }
 
@@ -170,7 +182,9 @@ TEST(Promise, is_awaiten_returns_true_after_future_detach) {
 TEST(FutureDetach, do_not_prevents_tasks_cancelation_added_after_detaching) {
   pc::promise<std::string> p;
   bool executed = false;
-  (void)p.get_future().detach().next([&](std::string) { executed = true; });
+  {
+    auto f = p.get_future().detach().next([&](std::string) { executed = true; });
+  }
   EXPECT_FALSE(executed);
 }
 
@@ -190,7 +204,9 @@ TEST(Promise, is_awaiten_returns_true_after_shared_future_detach) {
 TEST(SharedFutureDetach, do_not_prevents_tasks_cancelation_added_after_detaching) {
   pc::promise<std::string> p;
   bool executed = false;
-  (void)p.get_future().share().detach().next([&](const std::string&) { executed = true; });
+  {
+    auto f = p.get_future().share().detach().next([&](const std::string&) { executed = true; });
+  }
   EXPECT_FALSE(executed);
 }
 
