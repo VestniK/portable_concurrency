@@ -158,12 +158,6 @@ TEST_F(FutureThen, run_continuation_on_specific_executor) {
   EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
 }
 
-TEST_F(FutureThen, then_with_executor_supportds_state_abandon) {
-  pc::future<std::string> cnt_f = future.then(null_executor, stringify);
-  promise.set_value(42);
-  EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
-}
-
 } // namespace test
 } // anonymous namespace
 } // namespace portable_concurrency

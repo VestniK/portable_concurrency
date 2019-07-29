@@ -44,12 +44,6 @@ TEST_F(FutureThenUnwrap, result_is_ready_after_continuation_result_becomes_ready
   EXPECT_TRUE(cnt_f.is_ready());
 }
 
-TEST_F(FutureThenUnwrap, result_carries_broken_promise_for_invalid_result_of_continuation) {
-  pc::future<std::string> cnt_f = future.then([](pc::future<int>) { return pc::future<std::string>{}; });
-  promise.set_value(42);
-  EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
-}
-
 TEST_F(FutureThenUnwrap, result_propagates_inner_future_error) {
   pc::promise<void> inner_promise;
   pc::future<void> cnt_f = future.then([&](pc::future<int>) { return inner_promise.get_future(); });

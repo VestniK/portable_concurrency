@@ -158,7 +158,7 @@ TEST(Promise, is_awaiten_returns_true_after_attaching_continuation) {
   EXPECT_TRUE(p.is_awaiten());
 }
 
-TEST(Promise, is_awaiten_returns_false_after_continuation_future_abandoned) {
+TEST(Promise, is_awaiten_returns_false_after_continuation_future_destroyed) {
   pc::promise<int> p;
   {
     auto f = p.get_future().next([](int val) { return 5 * val; });

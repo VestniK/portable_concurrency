@@ -29,11 +29,6 @@ TEST_F(Async, executes_functor_on_specified_executor) {
   EXPECT_TRUE(g_future_tests_env->uses_thread(future.get()));
 }
 
-TEST_F(Async, support_abandon_operation) {
-  pc::future<void> future = pc::async(null_executor, [] {});
-  EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
-}
-
 TEST_F(Async, unwraps_future) {
   auto future = pc::async(g_future_tests_env, [] { return pc::async(g_future_tests_env, [] { return 100500; }); });
   static_assert(std::is_same<decltype(future), pc::future<int>>::value, "");

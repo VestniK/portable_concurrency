@@ -113,26 +113,6 @@ TEST(packaged_task, invoke_with_mutable_reference_argument) {
   EXPECT_EQ(f.get(), &the_val);
 }
 
-// Abandon
-
-TEST(packaged_task, abandoned_task_sets_proper_error) {
-  pc::future<size_t> future;
-  {
-    pc::packaged_task<size_t(size_t, const std::string&)> task{
-        [](size_t a, const std::string& b) { return a + b.size(); }};
-    future = task.get_future();
-  }
-  EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
-}
-
-TEST(packaged_task, move_asignment_abandones_task) {
-  pc::packaged_task<size_t(size_t, const std::string&)> task{
-      [](size_t a, const std::string& b) { return a + b.size(); }};
-  pc::future<size_t> future = task.get_future();
-  task = {};
-  EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
-}
-
 // Old tests to refactor
 
 template <typename T>
