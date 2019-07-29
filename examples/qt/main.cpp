@@ -14,7 +14,7 @@
 namespace portable_concurrency {
 template <>
 struct is_executor<QThreadPool*> : std::true_type {};
-}; // namespace portable_concurrency
+} // namespace portable_concurrency
 
 void post(QThreadPool* exec, pc::unique_function<void()> func) {
   struct PCRunnable : QRunnable {
