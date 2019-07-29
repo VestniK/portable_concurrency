@@ -159,6 +159,9 @@ public:
   promise(std::allocator_arg_t, const Alloc& allocator = Alloc()) : common_(allocator) {}
   template <typename F>
   promise(canceler_arg_t tag, F&& f) : common_{tag, std::forward<F>(f)} {}
+
+  promise(std::weak_ptr<detail::shared_state<T&>>&& state) : common_(std::move(state)) {}
+
   promise(promise&&) noexcept = default;
   promise(const promise&) = delete;
 
@@ -198,6 +201,9 @@ public:
   promise(std::allocator_arg_t, const Alloc& allocator = Alloc()) : common_(allocator) {}
   template <typename F>
   promise(canceler_arg_t tag, F&& f) : common_{tag, std::forward<F>(f)} {}
+
+  promise(std::weak_ptr<detail::shared_state<void>>&& state) : common_(std::move(state)) {}
+
   promise(promise&&) noexcept = default;
   promise(const promise&) = delete;
 

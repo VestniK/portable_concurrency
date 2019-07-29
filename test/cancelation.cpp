@@ -258,9 +258,9 @@ TEST(InterruptableContinuation, broken_promise_delivered_if_valie_is_not_set) {
 
 TEST(InterruptableContinuation, future_continuation_detects_if_result_is_not_awaiten) {
   pc::promise<int> promise;
-  pc::future<std::string> future;
+  pc::future<std::string&> future;
   bool was_awaiten = true;
-  future = promise.get_future().then([&](pc::promise<std::string> p, pc::future<int>) {
+  future = promise.get_future().then([&](pc::promise<std::string&> p, pc::future<int>) {
     future = {};
     was_awaiten = p.is_awaiten();
   });
@@ -270,9 +270,9 @@ TEST(InterruptableContinuation, future_continuation_detects_if_result_is_not_awa
 
 TEST(InterruptableContinuation, shared_future_continuation_detects_if_result_is_not_awaiten) {
   pc::promise<int> promise;
-  pc::future<std::string> future;
+  pc::future<void> future;
   bool was_awaiten = true;
-  future = promise.get_future().share().then([&](pc::promise<std::string> p, pc::shared_future<int>) {
+  future = promise.get_future().share().then([&](pc::promise<void> p, pc::shared_future<int>) {
     future = {};
     was_awaiten = p.is_awaiten();
   });
