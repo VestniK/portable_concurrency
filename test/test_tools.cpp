@@ -5,8 +5,6 @@
 future_tests_env* g_future_tests_env = static_cast<future_tests_env*>(
     ::testing::AddGlobalTestEnvironment(new future_tests_env{std::max(3u, std::thread::hardware_concurrency())}));
 
-null_executor_t null_executor;
-
 future_tests_env::future_tests_env(size_t threads_num) : pool_{threads_num} {
   tids_.reserve(threads_num);
   pc::latch latch{static_cast<ptrdiff_t>(threads_num)};

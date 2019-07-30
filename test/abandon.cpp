@@ -9,6 +9,16 @@
 using namespace std::literals;
 
 namespace portable_concurrency {
+
+struct null_executor_t {};
+constexpr null_executor_t null_executor{};
+
+template <typename F>
+void post(null_executor_t, F&&) {}
+
+template <>
+struct is_executor<null_executor_t> : std::true_type {};
+
 namespace {
 namespace test {
 
@@ -46,7 +56,8 @@ TEST(abandon_task_passed_to_shared_future_next, fulfils_future_with_broken_promi
 TEST(abandon_task_passed_to_shared_future_then, fulfils_future_with_broken_promise_error) {
   pc::promise<int> promise;
   pc::shared_future<int> future = promise.get_future();
-  pc::future<std::string> cnt_f = future.then(null_executor, [](pc::shared_future<int> f) { return std::to_string(f.get()); });
+  pc::future<std::string> cnt_f =
+      future.then(null_executor, [](pc::shared_future<int> f) { return std::to_string(f.get()); });
   promise.set_value(42);
   EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
 }

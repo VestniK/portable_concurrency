@@ -58,16 +58,6 @@ struct future_test : ::testing::Test {
   ~future_test();
 };
 
-struct null_executor_t {};
-template <typename F>
-void post(null_executor_t, F&&) {}
-
-namespace portable_concurrency {
-template <>
-struct is_executor<null_executor_t> : std::true_type {};
-} // namespace portable_concurrency
-extern null_executor_t null_executor;
-
 template <typename T>
 struct printable {
   const T& value;
