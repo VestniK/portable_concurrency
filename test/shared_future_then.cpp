@@ -148,12 +148,6 @@ TEST_F(SharedFutureThen, run_continuation_on_specific_executor) {
   EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
 }
 
-TEST_F(SharedFutureThen, then_with_executor_supportds_state_abandon) {
-  pc::future<std::string> cnt_f = future.then(null_executor, stringify);
-  promise.set_value(42);
-  EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
-}
-
 TEST_F(SharedFutureThen, all_of_multiple_continuations_are_invoked) {
   bool executed1 = false, executed2 = false;
   pc::future<void> cnt_f1 = future.then([&executed1](pc::shared_future<int>) { executed1 = true; });

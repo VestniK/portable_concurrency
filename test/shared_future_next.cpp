@@ -81,12 +81,6 @@ TEST_F(SharedFutureNext, continuation_executed_on_specified_executor) {
   EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
 }
 
-TEST_F(SharedFutureNext, executor_version_supports_state_abandon) {
-  pc::future<std::string> cnt_f = future.next(null_executor, [](int val) { return to_string(val); });
-  promise.set_value(42);
-  EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
-}
-
 TEST_F(SharedFutureNext, multiple_continuations) {
   pc::future<int> cnt_f1 = future.next([](int arg) { return 2 * arg; });
   pc::future<int> cnt_f2 = future.next([](int arg) { return 3 * arg; });

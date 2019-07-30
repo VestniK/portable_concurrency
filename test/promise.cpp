@@ -177,22 +177,6 @@ TYPED_TEST(PromiseTest, can_retreive_value_set_before_get_future) {
   EXPECT_SOME_VALUE(future);
 }
 
-TYPED_TEST(PromiseTest, abandon_promise_set_proper_error) {
-  pc::future<TypeParam> future;
-  {
-    pc::promise<TypeParam> promise;
-    future = promise.get_future();
-  }
-  EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
-}
-
-TYPED_TEST(PromiseTest, move_asignment_abandones_promise) {
-  pc::promise<TypeParam> promise;
-  pc::future<TypeParam> future = promise.get_future();
-  promise = {};
-  EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
-}
-
 TYPED_TEST(PromiseTest, moved_from_throws_no_state_on_get_future) {
   pc::promise<TypeParam> promise;
   pc::promise<TypeParam> another_promise{std::move(promise)};
