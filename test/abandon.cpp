@@ -81,6 +81,17 @@ TEST(assignment_to_not_yet_called_packaged_task, fulfils_future_with_broken_prom
   EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
 }
 
+TEST(premature_destruction_of_packaged_task, destroys_stored_function_object) {
+  auto sp{std::make_shared<int>(42)};
+  std::weak_ptr<int> wp{sp};
+  pc::future<void> future;
+  {
+    pc::packaged_task<void()> task{[sp = std::exchange(sp, nullptr)] {}};
+    future = task.get_future();
+  }
+  EXPECT_TRUE(wp.expired());
+}
+
 // Abandon promise
 TEST(premature_destruction_of_promise, fulfils_future_with_broken_promise_error) {
   pc::future<size_t> future;

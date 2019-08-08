@@ -26,20 +26,27 @@ struct packaged_task_state {
 
 template <typename F, typename R, typename... A>
 struct task_state final : packaged_task_state<R, A...> {
-  task_state(F&& f) : func(std::forward<F>(f)) {}
+  task_state(F&& f) : func(detail::in_place_index_t<1>{}, std::forward<F>(f)) {}
 
   void run(std::shared_ptr<shared_state<R>>& state_ptr, A&&... a) override {
     assert(state_ptr.get() == &state);
-    ::portable_concurrency::cxx14_v1::detail::set_state_value(state_ptr, func, std::forward<A>(a)...);
+    if (func.state() == 0)
+      throw_already_satisfied();
+    scope_either_cleaner<decltype(func)> claner{func};
+    ::portable_concurrency::cxx14_v1::detail::set_state_value(
+          state_ptr, func.get(detail::in_place_index_t<1>{}), std::forward<A>(a)...);
   }
 
   future_state<R>* get_future_state() override { return &state; }
 
   shared_state<R>* get_promise_state() override { return &state; }
 
-  void abandon() override { state.abandon(); }
+  void abandon() override {
+    func.clean();
+    state.abandon();
+  }
 
-  std::decay_t<F> func;
+  detail::either<detail::monostate, std::decay_t<F>> func;
   shared_state<R> state;
 };
 

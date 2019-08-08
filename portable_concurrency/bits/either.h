@@ -164,6 +164,16 @@ private:
   std::size_t state_ = empty_state;
 };
 
+template<typename T>
+struct scope_either_cleaner;
+
+template<typename... T>
+struct scope_either_cleaner<either<monostate, T...>>{
+  either<monostate, T...>& target;
+
+  ~scope_either_cleaner() {target.clean();}
+};
+
 } // namespace detail
 } // namespace cxx14_v1
 } // namespace portable_concurrency
