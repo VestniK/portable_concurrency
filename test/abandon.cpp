@@ -82,8 +82,8 @@ TEST(assignment_to_not_yet_called_packaged_task, fulfils_future_with_broken_prom
 }
 
 TEST(premature_destruction_of_packaged_task, destroys_stored_function_object) {
-  auto sp{std::make_shared<int>(42)};
-  std::weak_ptr<int> wp{sp};
+  auto sp = std::make_shared<int>(42);
+  std::weak_ptr<int> wp = sp;
   pc::future<void> future;
   {
     pc::packaged_task<void()> task{[sp = std::exchange(sp, nullptr)] {}};
