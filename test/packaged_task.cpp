@@ -113,6 +113,15 @@ TEST(packaged_task, invoke_with_mutable_reference_argument) {
   EXPECT_EQ(f.get(), &the_val);
 }
 
+TEST(packaged_task, destroys_stored_function_after_invocation) {
+  auto sp = std::make_shared<int>(42);
+  std::weak_ptr<int> wp = sp;
+  pc::packaged_task<int(int)> task{[sp = std::exchange(sp, nullptr)](int val) { return val + *sp; }};
+  pc::future<int> future = task.get_future();
+  task(100500);
+  EXPECT_TRUE(wp.expired());
+}
+
 // Old tests to refactor
 
 template <typename T>
