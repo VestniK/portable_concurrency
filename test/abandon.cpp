@@ -44,12 +44,36 @@ TEST(abandon_task_passed_to_future_next, fulfils_future_with_broken_promise_erro
   EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
 }
 
+TEST(abandon_task_passed_to_future_next, destroys_stored_function_object) {
+  auto sp = std::make_shared<int>(42);
+  std::weak_ptr<int> wp = sp;
+
+  pc::promise<int> promise;
+  pc::future<int> future = promise.get_future();
+  pc::future<std::string> cnt_f =
+      future.next(null_executor, [sp = std::exchange(sp, nullptr)](int val) { return std::to_string(val); });
+  promise.set_value(42);
+  EXPECT_TRUE(wp.expired());
+}
+
 TEST(abandon_task_passed_to_future_then, fulfils_future_with_broken_promise_error) {
   pc::promise<int> promise;
   pc::future<int> future = promise.get_future();
   pc::future<std::string> cnt_f = future.then(null_executor, [](pc::future<int> f) { return std::to_string(f.get()); });
   promise.set_value(42);
   EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
+}
+
+TEST(abandon_task_passed_to_future_then, destroys_stored_function_object) {
+  auto sp = std::make_shared<int>(42);
+  std::weak_ptr<int> wp = sp;
+
+  pc::promise<int> promise;
+  pc::future<int> future = promise.get_future();
+  pc::future<std::string> cnt_f = future.then(
+      null_executor, [sp = std::exchange(sp, nullptr)](pc::future<int> val) { return std::to_string(val.get()); });
+  promise.set_value(42);
+  EXPECT_TRUE(wp.expired());
 }
 
 TEST(abandon_task_passed_to_shared_future_next, fulfils_future_with_broken_promise_error) {
@@ -60,6 +84,18 @@ TEST(abandon_task_passed_to_shared_future_next, fulfils_future_with_broken_promi
   EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
 }
 
+TEST(abandon_task_passed_to_shared_future_next, destroys_stored_function_object) {
+  auto sp = std::make_shared<int>(42);
+  std::weak_ptr<int> wp = sp;
+
+  pc::promise<int> promise;
+  pc::shared_future<int> future = promise.get_future();
+  pc::future<std::string> cnt_f =
+      future.next(null_executor, [sp = std::exchange(sp, nullptr)](int val) { return std::to_string(val); });
+  promise.set_value(42);
+  EXPECT_TRUE(wp.expired());
+}
+
 TEST(abandon_task_passed_to_shared_future_then, fulfils_future_with_broken_promise_error) {
   pc::promise<int> promise;
   pc::shared_future<int> future = promise.get_future();
@@ -67,6 +103,18 @@ TEST(abandon_task_passed_to_shared_future_then, fulfils_future_with_broken_promi
       future.then(null_executor, [](pc::shared_future<int> f) { return std::to_string(f.get()); });
   promise.set_value(42);
   EXPECT_FUTURE_ERROR(cnt_f.get(), std::future_errc::broken_promise);
+}
+
+TEST(abandon_task_passed_to_shared_future_then, destroys_stored_function_object) {
+  auto sp = std::make_shared<int>(42);
+  std::weak_ptr<int> wp = sp;
+
+  pc::promise<int> promise;
+  pc::shared_future<int> future = promise.get_future();
+  pc::future<std::string> cnt_f = future.then(null_executor,
+      [sp = std::exchange(sp, nullptr)](pc::shared_future<int> val) { return std::to_string(val.get()); });
+  promise.set_value(42);
+  EXPECT_TRUE(wp.expired());
 }
 
 // Abandon packaged_task
