@@ -28,6 +28,13 @@ TEST(abandon_task_scheduled_by_async, fulfils_future_with_broken_promise_error) 
   EXPECT_FUTURE_ERROR(future.get(), std::future_errc::broken_promise);
 }
 
+TEST(abandon_task_scheduled_by_async, destroys_stored_function_object) {
+  auto sp = std::make_shared<int>(42);
+  std::weak_ptr<int> wp = sp;
+  pc::future<void> future = pc::async(null_executor, [sp = std::exchange(sp, nullptr)] {});
+  EXPECT_TRUE(wp.expired());
+}
+
 // Abandon continuation
 TEST(abandon_task_passed_to_future_next, fulfils_future_with_broken_promise_error) {
   pc::promise<int> promise;
