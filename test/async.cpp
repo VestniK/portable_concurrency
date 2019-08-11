@@ -47,6 +47,14 @@ TEST_F(Async, captures_parameters) {
   EXPECT_EQ(future.get(), std::hash<std::string>{}("qwe"));
 }
 
+TEST_F(Async, destroys_function_object_after_invocation) {
+  auto sp = std::make_shared<int>(42);
+  std::weak_ptr<int> wp = sp;
+  pc::future<int> future = pc::async(g_future_tests_env, [sp = std::exchange(sp, nullptr)] { return *sp; });
+  future.wait();
+  EXPECT_TRUE(wp.expired());
+}
+
 } // namespace test
 } // anonymous namespace
 } // namespace portable_concurrency
