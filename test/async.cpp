@@ -51,7 +51,7 @@ TEST_F(Async, destroys_function_object_after_invocation) {
   auto sp = std::make_shared<int>(42);
   std::weak_ptr<int> wp = sp;
   pc::future<int> future = pc::async(g_future_tests_env, [sp = std::exchange(sp, nullptr)] { return *sp; });
-  future.wait();
+  g_future_tests_env->wait_current_tasks();
   EXPECT_TRUE(wp.expired());
 }
 
