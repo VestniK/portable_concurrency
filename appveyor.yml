@@ -1,6 +1,8 @@
 version: 1.0.{build}
 
 environment:
+  global:
+    CTEST_OUTPUT_ON_FAILURE: True
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
       CONAN_CMAKE_GENERATOR: Visual Studio 14 2015 Win64
@@ -28,4 +30,4 @@ build_script:
     cmake --build . --config ReleaseStatic
 
 test_script:
-  - cmd: .\bin\ReleaseStatic\unit_tests.exe
+  - cmake --build . --config ReleaseStatic --target RUN_TESTS
