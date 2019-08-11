@@ -5,6 +5,7 @@ SRCDIR=$(dirname $(dirname $0))
 export LIBCXX=$1
 export BUILD_TYPE=$2
 export DEPS_BUILD_TYPE=${BUILD_TYPE}
+export CTEST_OUTPUT_ON_FAILURE=True
 
 export LSAN_OPTIONS=verbosity=1:log_threads=1
 
@@ -32,5 +33,4 @@ cmake -G Ninja ${SRCDIR} \
   -DCONAN_COMPILER_VERSION=$(conan profile get settings.compiler.version default) \
   -DPC_DEV_BUILD=ON
 time ninja
-
-./bin/unit_tests
+ninja test
