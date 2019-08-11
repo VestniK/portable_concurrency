@@ -85,6 +85,14 @@ TEST_F(FutureNext, upwraps_shared_future) {
   static_assert(std::is_same<decltype(cnt_f), pc::shared_future<int>>::value, "");
 }
 
+TEST_F(FutureNext, desroys_continuation_after_invocation) {
+  auto sp = std::make_shared<int>(42);
+  std::weak_ptr<int> wp = sp;
+  auto cnt_f = future.next([sp = std::exchange(sp, nullptr)](int val) { return val + *sp; });
+  promise.set_value(100);
+  EXPECT_TRUE(wp.expired());
+}
+
 } // namespace test
 } // anonymous namespace
 } // namespace portable_concurrency

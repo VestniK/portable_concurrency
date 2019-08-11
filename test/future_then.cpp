@@ -158,6 +158,14 @@ TEST_F(FutureThen, run_continuation_on_specific_executor) {
   EXPECT_TRUE(g_future_tests_env->uses_thread(cnt_f.get()));
 }
 
+TEST_F(FutureThen, desroys_continuation_after_invocation) {
+  auto sp = std::make_shared<int>(42);
+  std::weak_ptr<int> wp = sp;
+  auto cnt_f = future.then([sp = std::exchange(sp, nullptr)](pc::future<int> val) { return val.get() + *sp; });
+  promise.set_value(100);
+  EXPECT_TRUE(wp.expired());
+}
+
 } // namespace test
 } // anonymous namespace
 } // namespace portable_concurrency
