@@ -7,7 +7,6 @@
 
 #include <portable_concurrency/bits/config.h>
 
-#include "align.h"
 #include "concurrency_type_traits.h"
 
 namespace portable_concurrency {
@@ -160,18 +159,18 @@ private:
   }
 
 private:
-  aligned_union_t<T...> storage_;
+  std::aligned_union_t<1, T...> storage_;
   std::size_t state_ = empty_state;
 };
 
-template<typename T>
+template <typename T>
 struct scope_either_cleaner;
 
-template<typename... T>
-struct scope_either_cleaner<either<monostate, T...>>{
+template <typename... T>
+struct scope_either_cleaner<either<monostate, T...>> {
   either<monostate, T...>& target;
 
-  ~scope_either_cleaner() {target.clean();}
+  ~scope_either_cleaner() { target.clean(); }
 };
 
 } // namespace detail

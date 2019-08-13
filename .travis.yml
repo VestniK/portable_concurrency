@@ -5,7 +5,6 @@ services:
   - docker
 
 env:
-  - IMG=cxx-conan-gcc-4.9 LIBCXX=libstdc++ TYPE=Release
   - IMG=cxx-conan-gcc-5 LIBCXX=libstdc++11 TYPE=Release
   - IMG=cxx-conan-gcc-8 LIBCXX=libstdc++11 TYPE=UBsan
   - IMG=cxx-conan-clang-3.9 LIBCXX=libc++ TYPE=Release

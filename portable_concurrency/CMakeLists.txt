@@ -1,7 +1,4 @@
 find_package(Threads REQUIRED)
-include(PreciseCxxFeatures)
-
-configure_file(bits/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/bits/config.h @ONLY)
 
 set(PUBLIC_HEADERS
   execution
@@ -16,10 +13,10 @@ set(PUBLIC_HEADERS
 set(INSTALL_HEADERS
   bits/algo_adapters.h
   bits/alias_namespace.h
-  bits/align.h
   bits/async.h
   bits/closable_queue.h
   bits/concurrency_type_traits.h
+  bits/config.h
   bits/continuations_stack.h
   bits/either.h
   bits/execution.h
@@ -48,8 +45,6 @@ set(INSTALL_HEADERS
   bits/voidify.h
   bits/when_any.h
   bits/when_all.h
-
-  ${CMAKE_CURRENT_BINARY_DIR}/bits/config.h
 )
 
 set(HEADERS
@@ -65,12 +60,10 @@ set(SRC
 )
 
 add_library(portable_concurrency ${SRC})
-target_sources(portable_concurrency PRIVATE ${HEADERS} bits/config.h.in)
+target_sources(portable_concurrency PRIVATE ${HEADERS})
 target_link_libraries(portable_concurrency Threads::Threads)
-target_include_directories(portable_concurrency PRIVATE ${PROJECT_BINARY_DIR})
-target_include_directories(portable_concurrency INTERFACE
+target_include_directories(portable_concurrency PUBLIC
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-  $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_compile_features(portable_concurrency PUBLIC cxx_std_14)
