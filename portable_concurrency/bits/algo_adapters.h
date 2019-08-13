@@ -36,7 +36,7 @@ struct future_get_t {
  *   })
  * ```
  */
-constexpr future_get_t future_get;
+constexpr future_get_t future_get{};
 
 } // namespace cxx14_v1
 } // namespace portable_concurrency

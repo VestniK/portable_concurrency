@@ -34,7 +34,7 @@ struct task_state final : packaged_task_state<R, A...> {
       throw_already_satisfied();
     scope_either_cleaner<decltype(func)> claner{func};
     ::portable_concurrency::cxx14_v1::detail::set_state_value(
-          state_ptr, func.get(detail::in_place_index_t<1>{}), std::forward<A>(a)...);
+        state_ptr, func.get(detail::in_place_index_t<1>{}), std::forward<A>(a)...);
   }
 
   future_state<R>* get_future_state() override { return &state; }
