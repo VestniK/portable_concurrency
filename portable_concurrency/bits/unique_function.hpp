@@ -58,17 +58,10 @@ unique_function<R(A...)>& unique_function<R(A...)>::operator=(detail::small_uniq
   return *this;
 }
 
-#if defined(__GNUC__) && __GNUC__ < 5 && !defined(__clang__)
-template <typename R, typename... A>
-unique_function<R(A...)>::operator detail::small_unique_function<R(A...)>&() noexcept {
-  return func_;
-}
-#else
 template <typename R, typename... A>
     unique_function<R(A...)>::operator detail::small_unique_function<R(A...)> &&() && noexcept {
   return std::move(func_);
 }
-#endif
 
 } // namespace cxx14_v1
 } // namespace portable_concurrency

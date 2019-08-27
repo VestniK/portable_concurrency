@@ -69,11 +69,8 @@ public:
 
   unique_function(detail::small_unique_function<R(A...)>&& rhs) noexcept;
   unique_function& operator=(detail::small_unique_function<R(A...)>&& rhs) noexcept;
-#if defined(__GNUC__) && __GNUC__ < 5 && !defined(__clang__)
-  operator detail::small_unique_function<R(A...)>&() noexcept;
-#else
+
   operator detail::small_unique_function<R(A...)> &&() && noexcept;
-#endif
 
   /**
    * Calls stored function object with parameters @a args and returns result of the operation. If `this` object is empty
