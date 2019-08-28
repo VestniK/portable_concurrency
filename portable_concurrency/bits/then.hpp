@@ -149,17 +149,16 @@ template <typename CntState>
 struct cnt_action {
   std::weak_ptr<CntState> wdata;
 
-#if defined(__GNUC__) && __GNUC__ < 5 && !defined(__clang__)
   cnt_action(std::weak_ptr<CntState> wdata) : wdata(std::move(wdata)) {}
+
+  cnt_action(const cnt_action&) = delete;
+  cnt_action& operator=(const cnt_action&) = delete;
+
   cnt_action(cnt_action&& rhs) noexcept : wdata(std::exchange(rhs.wdata, {})) {}
   cnt_action& operator=(cnt_action&& rhs) noexcept {
     wdata = std::exchange(rhs.wdata, {});
     return *this;
   }
-#else
-  cnt_action(cnt_action&&) noexcept = default;
-  cnt_action& operator=(cnt_action&&) noexcept = default;
-#endif
 
   void operator()() { CntState::run(std::exchange(wdata, {})); }
 
