@@ -16,6 +16,8 @@ class PortableconCurrencyConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
+        if self.develop:
+            cmake.definitions['PC_DEV_BUILD'] = True
         cmake.configure(source_folder="./")
         cmake.build()
         if not tools.cross_building(self.settings):
