@@ -14,7 +14,9 @@ matrix:
   include:
     -
      if: tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$
-     env: IMG=cxx-conan-gcc:9 LIBCXX=libstdc++11 TYPE=UBsan
+     env:
+       - IMG=cxx-conan-gcc-8 LIBCXX=libstdc++11 TYPE=Release
+       - IMG=cxx-conan-clang-7 LIBCXX=libstdc++11 TYPE=Release
 
 before_install:
   - docker pull sirvestnik/${IMG}
