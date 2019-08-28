@@ -14,7 +14,7 @@ env:
 matrix:
   include:
     -
-     if tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$
+     if: tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$
      env: IMG=cxx-conan-gcc:9 LIBCXX=libstdc++11 TYPE=UBsan
 
 before_install:
