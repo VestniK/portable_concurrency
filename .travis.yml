@@ -10,6 +10,12 @@ env:
   - IMG=cxx-conan-clang-3.9 LIBCXX=libc++ TYPE=Release
   - IMG=cxx-conan-clang:8 LIBCXX=libc++ TYPE=Release
 
+matrix:
+  include:
+    -
+     if: tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$
+     env: IMG=cxx-conan-gcc:9 LIBCXX=libstdc++11 TYPE=UBsan
+
 before_install:
   - docker pull sirvestnik/${IMG}
 
