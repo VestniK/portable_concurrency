@@ -315,4 +315,14 @@ TEST(WhenAllVectorTest, futures_becomes_ready_concurrently) {
   }
 }
 
+TEST(when_all_on_vector, is_immediatelly_ready_on_empty_arg) {
+  EXPECT_TRUE(pc::when_all(std::vector<pc::future<int>>{}).is_ready());
+}
+
+TEST(when_all_on_vector, is_immediatelly_ready_on_vector_of_ready_futures) {
+  EXPECT_TRUE(
+      pc::when_all(std::vector<pc::shared_future<int>>{{pc::make_ready_future(42), pc::make_ready_future(100500)}})
+          .is_ready());
+}
+
 } // anonymous namespace
