@@ -120,5 +120,28 @@ auto when_all(InputIt first, InputIt last)
 }
 #endif
 
+#ifdef DOXYGEN
+/**
+ * @ingroup future_hdr
+ *
+ * Create a future object that becomes ready when all of the input futures and shared_futures become ready. The behavior
+ * is undefined if any input future or shared_future is invalid. Effectively equivalent to
+ * `when_all(futures.begin(), futures.end())` but this overload reuses vector passed as argument instead of making new
+ * one saving one extra allocation, and supports vectors with user provided allocators.
+ *
+ * This function template participates in overload resolution only if `Future` is either `future<T>` or
+ * `shared_future<T>`.
+ */
+template <typename Future, typename Alloc>
+future<std::vector<Future, Alloc>> when_all(std::vector<Future, Alloc> futures);
+#else
+template <typename Future, typename Alloc>
+auto when_all(std::vector<Future, Alloc> futures)
+    -> std::enable_if_t<detail::is_future<Future>::value, future<std::vector<Future, Alloc>>> {
+  using Sequence = std::vector<Future, Alloc>;
+  return {detail::when_all_state<Sequence>::make(std::move(futures))};
+}
+#endif
+
 } // namespace cxx14_v1
 } // namespace portable_concurrency
