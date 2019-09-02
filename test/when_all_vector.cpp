@@ -6,6 +6,7 @@
 #include <portable_concurrency/future>
 #include <portable_concurrency/latch>
 
+#include "simple_arena_allocator.h"
 #include "test_helpers.h"
 
 namespace {
@@ -323,6 +324,64 @@ TEST(when_all_on_vector, is_immediatelly_ready_on_vector_of_ready_futures) {
   EXPECT_TRUE(
       pc::when_all(std::vector<pc::shared_future<int>>{{pc::make_ready_future(42), pc::make_ready_future(100500)}})
           .is_ready());
+}
+
+TEST(when_all_on_vector, is_not_ready_on_vector_with_not_ready_futures) {
+  pc::promise<int> p;
+  std::vector<pc::future<int>> futures;
+  futures.push_back(pc::make_ready_future(42));
+  futures.push_back(p.get_future());
+  EXPECT_FALSE(pc::when_all(std::move(futures)).is_ready());
+}
+
+TEST(when_all_on_vector, contains_vector_of_ready_futures_when_becomes_ready) {
+  std::vector<pc::future<int>> futures;
+  futures.push_back(pc::async(g_future_tests_env, [] { return 42; }));
+  futures.push_back(pc::async(g_future_tests_env, [] { return 100500; }));
+  EXPECT_TRUE(pc::when_all(std::move(futures))
+                  .next([](std::vector<pc::future<int>> futures) {
+                    return std::all_of(futures.begin(), futures.end(), pc::future_ready);
+                  })
+                  .get());
+}
+
+TEST(when_all_on_vector, reuses_buffer_of_passed_argument) {
+  std::vector<pc::future<int>> futures;
+  futures.reserve(2);
+  const auto* buf_ptr = futures.data();
+  futures.push_back(pc::async(g_future_tests_env, [] { return 42; }));
+  futures.push_back(pc::async(g_future_tests_env, [] { return 100500; }));
+  EXPECT_TRUE(pc::when_all(std::move(futures))
+                  .next([buf_ptr](std::vector<pc::future<int>> futures) { return futures.data() == buf_ptr; })
+                  .get());
+}
+
+TEST(when_all_on_vector, works_with_vector_using_custom_allocator) {
+  static_arena<> arena;
+  arena_vector<pc::future<int>> futures{{arena}};
+  futures.reserve(2);
+  const auto* buf_ptr = futures.data();
+  futures.push_back(pc::async(g_future_tests_env, [] { return 42; }));
+  futures.push_back(pc::async(g_future_tests_env, [] { return 100500; }));
+  EXPECT_TRUE(pc::when_all(std::move(futures))
+                  .next([buf_ptr](arena_vector<pc::future<int>> futures) { return futures.data() == buf_ptr; })
+                  .get());
+}
+
+TEST(when_all_on_vector, preserves_order_of_futures) {
+  static_arena<> arena;
+  arena_vector<pc::future<int>> futures{{arena}};
+  futures.reserve(2);
+  futures.push_back(pc::async(g_future_tests_env, [] { return 42; }));
+  futures.push_back(pc::async(g_future_tests_env, [] { return 100500; }));
+  auto results = pc::when_all(std::move(futures))
+                     .next([](arena_vector<pc::future<int>> futures) {
+                       arena_vector<int> res{futures.get_allocator()};
+                       std::transform(futures.begin(), futures.end(), std::back_inserter(res), pc::future_get);
+                       return res;
+                     })
+                     .get();
+  EXPECT_EQ(results, (arena_vector<int>{{42, 100500}, {arena}}));
 }
 
 } // anonymous namespace

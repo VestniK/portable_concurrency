@@ -1,12 +1,13 @@
 #pragma once
 
 #include <array>
+#include <vector>
 
 #include <portable_concurrency/bits/alias_namespace.h>
 
 template <typename T, typename Arena>
 struct arena_allocator {
-  Arena& arena;
+  std::reference_wrapper<Arena> arena;
 
   using value_type = T;
 
@@ -15,7 +16,7 @@ struct arena_allocator {
   template <typename U>
   arena_allocator(const arena_allocator<U, Arena>& other) : arena(other.arena) {}
 
-  T* allocate(std::size_t count) { return reinterpret_cast<T*>(arena.allocate(sizeof(T) * count, alignof(T))); }
+  T* allocate(std::size_t count) { return reinterpret_cast<T*>(arena.get().allocate(sizeof(T) * count, alignof(T))); }
 
   void deallocate(void*, std::size_t) {}
 
@@ -30,7 +31,7 @@ bool operator==(const arena_allocator<T, Arena>& lhs, const arena_allocator<T, A
   return &lhs.arena == &rhs.arena;
 }
 
-template <size_t Size>
+template <size_t Size = 512>
 class static_arena {
   std::array<uint8_t, Size> data_;
   std::size_t offset_ = 0;
@@ -50,3 +51,6 @@ public:
 
   std::size_t used() const { return offset_; }
 };
+
+template <typename T, size_t N = 512>
+using arena_vector = std::vector<T, arena_allocator<T, static_arena<N>>>;

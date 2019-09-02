@@ -38,5 +38,30 @@ struct future_get_t {
  */
 constexpr future_get_t future_get{};
 
+struct future_ready_t {
+  template <typename T>
+  bool operator()(const future<T>& f) const {
+    return f.is_ready();
+  }
+
+  template <typename T>
+  bool operator()(const shared_future<T>& f) const {
+    return f.is_ready();
+  }
+};
+
+/**
+ * @headerfile portable_concurrency/future
+ * @ingroup future_hdr
+ * @brief Unary predicate which takes a future and returns if this future os ready
+ *
+ * This predocate can be used with variaty of std algorithms including:
+ *  * `std::partition` family
+ *  * `std::all_of`, `std::any_of`, `std::none_of`
+ *  * `std::find_if`
+ *  * `std::count_if`
+ */
+constexpr future_ready_t future_ready{};
+
 } // namespace cxx14_v1
 } // namespace portable_concurrency
