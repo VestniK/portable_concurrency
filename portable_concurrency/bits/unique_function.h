@@ -17,6 +17,10 @@ class unique_function;
  * @brief Move-only type erasure for arbitrary callable object.
  *
  * Implementation of http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4543.pdf proposal.
+ *
+ * @a portable_concurrency/functional_fwd header provides lightweight forward declarations of this
+ * class template public interface allowing to use this class as parameters or return type of
+ * function declarations or as member of classes.
  */
 template <typename R, typename... A>
 class unique_function<R(A...)> {
@@ -58,7 +62,9 @@ public:
    */
   unique_function(unique_function&&) noexcept;
 
+  /// Unique function is not CopyConstructible
   unique_function(const unique_function&) = delete;
+  /// Unique function is not CopyAssignable
   unique_function& operator=(const unique_function&) = delete;
 
   /**

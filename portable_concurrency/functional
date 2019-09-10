@@ -5,7 +5,7 @@
  * @defgroup functional <portable_concurrency/functional>
  * @headerfile portable_concurrency/functional
  *
- * Extra functional types proposed for standartization in future C++ versions
+ * Extra functional types usefull for writing concurrent code.
  */
 
 #include "bits/alias_namespace.h"

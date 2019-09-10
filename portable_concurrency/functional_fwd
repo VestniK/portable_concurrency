@@ -2,10 +2,10 @@
 #pragma once
 
 /**
- * @defgroup functional <portable_concurrency/functional_fwd>
- * @headerfile portable_concurrency/functional_fwd
+ * @ingroup functional <portable_concurrency/functional>
+ * @file portable_concurrency/functional_fwd
  *
- * Forward declarations for extra functional types proposed for standartization in future C++ versions
+ * Forward declarations for extra functional types usefull for writing concurrent code
  */
 
 #include "bits/alias_namespace.h"

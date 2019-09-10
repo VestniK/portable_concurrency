@@ -53,7 +53,7 @@ struct future_ready_t {
 /**
  * @headerfile portable_concurrency/future
  * @ingroup future_hdr
- * @brief Unary predicate which takes a future and returns if this future os ready
+ * @brief Unary predicate which takes a future and returns if this future is ready
  *
  * This predocate can be used with variaty of std algorithms including:
  *  * `std::partition` family
