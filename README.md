@@ -1,9 +1,11 @@
 # portable_concurrency
 
-[![Build Status](https://travis-ci.org/VestniK/portable_concurrency.svg?branch=master)](https://travis-ci.org/VestniK/portable_concurrency)
+[![Build status](https://travis-ci.org/VestniK/portable_concurrency.svg?branch=master)](https://travis-ci.org/VestniK/portable_concurrency)
 [![Build status](https://ci.appveyor.com/api/projects/status/r2d3py3ioae5bv7u?svg=true)](https://ci.appveyor.com/project/VestniK/portable-concurrency)
 
 [![CC0 licensed](http://i.creativecommons.org/p/zero/1.0/88x31.png)](https://creativecommons.org/publicdomain/zero/1.0/)
+
+[![Code documented](https://codedocs.xyz/doxygen/doxygen.svg)](https://vestnik.github.io/portable_concurrency/)
 
 `std::future` done right. Simple to use portable implementation of the future/promise API inspired by the 
 [C++ Extensions for Concurrency TS](https://wg21.link/p0159) and some parts of [A Unified Executors Proposal for C++](https://wg21.link/p0443).
