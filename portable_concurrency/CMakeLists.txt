@@ -67,6 +67,9 @@ target_include_directories(portable_concurrency PUBLIC
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_compile_features(portable_concurrency PUBLIC cxx_std_14)
+if (PC_NO_DEPRECATED)
+  target_compile_definitions(portable_concurrency PUBLIC PC_NO_DEPRECATED)
+endif()
 
 install(TARGETS portable_concurrency EXPORT portable_concurrency
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

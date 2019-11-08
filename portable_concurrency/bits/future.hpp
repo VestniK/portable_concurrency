@@ -31,6 +31,7 @@ void future<T>::wait() const {
   detail::wait(*state_);
 }
 
+#if !defined(PC_NO_DEPRECATED)
 template <typename T>
 template <typename Rep, typename Period>
 future_status future<T>::wait_for(const std::chrono::duration<Rep, Period>& rel_time) const {
@@ -60,6 +61,7 @@ future_status future<T>::wait_until(const std::chrono::time_point<Clock, Duratio
   timed_waiter waiter{const_cast<future<T>&>(*this)};
   return waiter.wait_until(abs_time);
 }
+#endif
 
 template <typename T>
 bool future<T>::valid() const noexcept {
@@ -137,9 +139,9 @@ PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, future<T>>> future<T>
   if (!state_)
     detail::throw_no_state();
   detail::continuations_stack& subscriptions = state_->continuations();
-  return detail::make_then_state<result_type>(
-      subscriptions, std::forward<E>(exec), [ f = std::forward<F>(f),
-        parent = std::move(state_) ](std::shared_ptr<detail::shared_state<result_type>> state) mutable noexcept {
+  return detail::make_then_state<result_type>(subscriptions, std::forward<E>(exec),
+      [f = std::forward<F>(f), parent = std::move(state_)](
+          std::shared_ptr<detail::shared_state<result_type>> state) mutable noexcept {
         promise<result_type> p{std::exchange(state, nullptr)};
         ::portable_concurrency::detail::invoke(f, std::move(p), future<T>{std::move(parent)});
       });

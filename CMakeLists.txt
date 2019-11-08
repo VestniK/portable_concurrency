@@ -8,6 +8,7 @@ include(GNUInstallDirs)
 include(BuildTypes)
 include(ConanDeps)
 
+option(PC_NO_DEPRECATED "Remove deprecated API from the build and installation." OFF)
 option(PC_DEV_BUILD "Build mode for library developers. Important warnings are treated as errors." OFF)
 if (PC_DEV_BUILD AND NOT MSVC)
   add_compile_options(-Werror=all)

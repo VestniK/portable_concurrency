@@ -173,6 +173,7 @@ TYPED_TEST(FutureTests, wait_on_invalid) {
   EXPECT_FUTURE_ERROR(future.wait(), std::future_errc::no_state);
 }
 
+#if !defined(PC_NO_DEPRECATED)
 TYPED_TEST(FutureTests, wait_for_on_invalid) {
   pc::future<TypeParam> future;
   ASSERT_FALSE(future.valid());
@@ -186,6 +187,7 @@ TYPED_TEST(FutureTests, wait_until_on_invalid) {
 
   EXPECT_FUTURE_ERROR(future.wait_until(sys_clock::now() + 5s), std::future_errc::no_state);
 }
+#endif
 
 TYPED_TEST(FutureTests, wait_on_ready_value) {
   auto future = this->promise[0].get_future();
@@ -197,6 +199,7 @@ TYPED_TEST(FutureTests, wait_on_ready_value) {
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
 
+#if !defined(PC_NO_DEPRECATED)
   EXPECT_EQ(pc::future_status::ready, future.wait_for(5s));
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
@@ -204,6 +207,7 @@ TYPED_TEST(FutureTests, wait_on_ready_value) {
   EXPECT_EQ(pc::future_status::ready, future.wait_until(sys_clock::now() + 5s));
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
+#endif
 }
 
 TYPED_TEST(FutureTests, wait_on_ready_error) {
@@ -216,6 +220,7 @@ TYPED_TEST(FutureTests, wait_on_ready_error) {
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
 
+#if !defined(PC_NO_DEPRECATED)
   EXPECT_EQ(pc::future_status::ready, future.wait_for(5s));
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
@@ -223,8 +228,10 @@ TYPED_TEST(FutureTests, wait_on_ready_error) {
   EXPECT_EQ(pc::future_status::ready, future.wait_until(sys_clock::now() + 5s));
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
+#endif
 }
 
+#if !defined(PC_NO_DEPRECATED)
 TYPED_TEST(FutureTests, wait_timeout) {
   auto future = this->promise[0].get_future();
   ASSERT_TRUE(future.valid());
@@ -238,6 +245,7 @@ TYPED_TEST(FutureTests, wait_timeout) {
   EXPECT_TRUE(future.valid());
   EXPECT_FALSE(future.is_ready());
 }
+#endif
 
 TYPED_TEST(FutureTests, wait_awakes_on_value) {
   auto future = set_value_in_other_thread<TypeParam>(25ms);
@@ -249,6 +257,7 @@ TYPED_TEST(FutureTests, wait_awakes_on_value) {
   EXPECT_TRUE(future.is_ready());
 }
 
+#if !defined(PC_NO_DEPRECATED)
 TYPED_TEST(FutureTests, wait_for_awakes_on_value) {
   auto future = set_value_in_other_thread<TypeParam>(25ms);
   ASSERT_TRUE(future.valid());
@@ -268,6 +277,7 @@ TYPED_TEST(FutureTests, wait_until_awakes_on_value) {
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
 }
+#endif
 
 TYPED_TEST(FutureTests, wait_awakes_on_error) {
   auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
@@ -279,6 +289,7 @@ TYPED_TEST(FutureTests, wait_awakes_on_error) {
   EXPECT_TRUE(future.is_ready());
 }
 
+#if !defined(PC_NO_DEPRECATED)
 TYPED_TEST(FutureTests, wait_for_awakes_on_error) {
   auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
@@ -288,7 +299,9 @@ TYPED_TEST(FutureTests, wait_for_awakes_on_error) {
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
 }
+#endif
 
+#if !defined(PC_NO_DEPRECATED)
 TYPED_TEST(FutureTests, wait_until_awakes_on_error) {
   auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
   ASSERT_TRUE(future.valid());
@@ -298,6 +311,7 @@ TYPED_TEST(FutureTests, wait_until_awakes_on_error) {
   EXPECT_TRUE(future.valid());
   EXPECT_TRUE(future.is_ready());
 }
+#endif
 
 template <typename T>
 void test_ready_future_maker() {
