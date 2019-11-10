@@ -39,9 +39,12 @@ public:
 
   static std::shared_ptr<future_state<when_any_result<Sequence>>> make(Sequence&& seq) {
     auto state = std::make_shared<when_any_state<Sequence>>(std::move(seq));
-    sequence_traits<Sequence>::for_each(state->result_.futures, [state, idx = std::size_t(0)](auto& f) mutable {
+    std::size_t idx = 0;
+    sequence_traits<Sequence>::for_each(state->result_.futures, [state, &idx](auto& f) mutable {
       state_of(f)->continuations().push([state, pos = idx++] { state->notify(pos); });
     });
+    if (idx == 0)
+      state->continuations_.execute();
     return state;
   }
 
@@ -80,8 +83,6 @@ auto when_any(InputIt first, InputIt last)
     -> std::enable_if_t<detail::is_unique_future<typename std::iterator_traits<InputIt>::value_type>::value,
         future<when_any_result<std::vector<typename std::iterator_traits<InputIt>::value_type>>>> {
   using Sequence = std::vector<typename std::iterator_traits<InputIt>::value_type>;
-  if (first == last)
-    return make_ready_future(when_any_result<Sequence>{static_cast<std::size_t>(-1), {}});
   return future<when_any_result<Sequence>>{
       detail::when_any_state<Sequence>::make(Sequence{std::make_move_iterator(first), std::make_move_iterator(last)})};
 }
@@ -91,9 +92,14 @@ auto when_any(InputIt first, InputIt last)
     -> std::enable_if_t<detail::is_shared_future<typename std::iterator_traits<InputIt>::value_type>::value,
         future<when_any_result<std::vector<typename std::iterator_traits<InputIt>::value_type>>>> {
   using Sequence = std::vector<typename std::iterator_traits<InputIt>::value_type>;
-  if (first == last)
-    return make_ready_future(when_any_result<Sequence>{static_cast<std::size_t>(-1), {}});
   return future<when_any_result<Sequence>>{detail::when_any_state<Sequence>::make(Sequence{first, last})};
+}
+
+template <typename Future, typename Alloc>
+auto when_any(std::vector<Future, Alloc> futures)
+    -> std::enable_if_t<detail::is_future<Future>::value, future<when_any_result<std::vector<Future, Alloc>>>> {
+  using Sequence = std::vector<Future, Alloc>;
+  return {detail::when_any_state<Sequence>::make(std::move(futures))};
 }
 
 } // namespace cxx14_v1

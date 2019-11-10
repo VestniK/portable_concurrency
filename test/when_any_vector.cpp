@@ -6,6 +6,7 @@
 #include <portable_concurrency/future>
 #include <portable_concurrency/latch>
 
+#include "simple_arena_allocator.h"
 #include "test_helpers.h"
 
 namespace {
@@ -333,6 +334,85 @@ TEST(WhenAnyVectorTest, futures_becomes_ready_concurrently) {
   latch.count_down_and_wait();
   auto res = f.get();
   EXPECT_TRUE(res.index == 1 || res.index == 2) << "unexpected index: " << res.index;
+}
+
+TEST(when_any_on_vector, is_immediatelly_ready_on_empty_arg) {
+  EXPECT_TRUE(pc::when_any(std::vector<pc::future<int>>{}).is_ready());
+}
+
+TEST(when_any_on_vector, is_immediatelly_ready_on_vector_of_ready_futures) {
+  EXPECT_TRUE(
+      pc::when_any(std::vector<pc::shared_future<int>>{{pc::make_ready_future(42), pc::make_ready_future(100500)}})
+          .is_ready());
+}
+
+TEST(when_any_on_vector, is_ready_on_vector_with_ready_futures) {
+  pc::promise<int> p;
+  std::vector<pc::future<int>> futures;
+  futures.push_back(pc::make_ready_future(42));
+  futures.push_back(p.get_future());
+  EXPECT_TRUE(pc::when_any(std::move(futures)).is_ready());
+}
+
+TEST(when_any_on_vector, is_not_ready_on_vector_of_not_ready_futures) {
+  pc::promise<int> p[2];
+  std::vector<pc::future<int>> futures;
+  futures.push_back(p[0].get_future());
+  futures.push_back(p[1].get_future());
+  EXPECT_FALSE(pc::when_any(std::move(futures)).is_ready());
+}
+
+TEST(when_any_on_vector, contains_ready_future_at_returned_index_when_becomes_ready) {
+  std::vector<pc::future<int>> futures;
+  futures.push_back(pc::async(g_future_tests_env, [] { return 42; }));
+  futures.push_back(pc::async(g_future_tests_env, [] { return 100500; }));
+  EXPECT_TRUE(
+      pc::when_any(std::move(futures))
+          .next([](pc::when_any_result<std::vector<pc::future<int>>> res) { return res.futures[res.index].is_ready(); })
+          .get());
+}
+
+TEST(when_any_on_vector, reuses_buffer_of_passed_argument) {
+  std::vector<pc::future<int>> futures;
+  futures.reserve(2);
+  const auto* buf_ptr = futures.data();
+  futures.push_back(pc::async(g_future_tests_env, [] { return 42; }));
+  futures.push_back(pc::async(g_future_tests_env, [] { return 100500; }));
+  EXPECT_TRUE(pc::when_any(std::move(futures))
+                  .next([buf_ptr](pc::when_any_result<std::vector<pc::future<int>>> res) {
+                    return res.futures.data() == buf_ptr;
+                  })
+                  .get());
+}
+
+TEST(when_any_on_vector, works_with_vector_using_custom_allocator) {
+  static_arena<> arena;
+  arena_vector<pc::future<int>> futures{{arena}};
+  futures.reserve(2);
+  const auto* buf_ptr = futures.data();
+  futures.push_back(pc::async(g_future_tests_env, [] { return 42; }));
+  futures.push_back(pc::async(g_future_tests_env, [] { return 100500; }));
+  EXPECT_TRUE(pc::when_any(std::move(futures))
+                  .next([buf_ptr](pc::when_any_result<arena_vector<pc::future<int>>> res) {
+                    return res.futures.data() == buf_ptr;
+                  })
+                  .get());
+}
+
+TEST(when_any_on_vector, preserves_order_of_futures) {
+  static_arena<> arena;
+  arena_vector<pc::future<int>> futures{{arena}};
+  futures.reserve(2);
+  futures.push_back(pc::async(g_future_tests_env, [] { return 42; }));
+  futures.push_back(pc::async(g_future_tests_env, [] { return 100500; }));
+  auto results = pc::when_any(std::move(futures))
+                     .next([](pc::when_any_result<arena_vector<pc::future<int>>> res) {
+                       std::vector<int> vals;
+                       std::transform(res.futures.begin(), res.futures.end(), std::back_inserter(vals), pc::future_get);
+                       return vals;
+                     })
+                     .get();
+  EXPECT_EQ(results, (std::vector<int>{{42, 100500}}));
 }
 
 } // anonymous namespace
