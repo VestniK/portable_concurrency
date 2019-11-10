@@ -4,7 +4,9 @@
 #include "future.h"
 #include "future_state.h"
 #include "then.hpp"
+#if !defined(PC_NO_DEPRECATED)
 #include "timed_waiter.h"
+#endif
 #include "utils.h"
 
 namespace portable_concurrency {
