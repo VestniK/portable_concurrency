@@ -58,9 +58,8 @@ private:
 
 } // namespace detail
 
-future<std::tuple<>> when_all();
+PC_NODISCARD future<std::tuple<>> when_all();
 
-#ifdef DOXYGEN
 /**
  * @ingroup future_hdr
  *
@@ -71,18 +70,18 @@ future<std::tuple<>> when_all();
  * This function template participates in overload resolution only if all of the arguments are either `future<T>` or
  * `shared_future<T>`.
  */
+#ifdef DOXYGEN
 template <typename... Futures>
 future<std::tuple<Futures...>> when_all(Futures&&...);
 #else
 template <typename... Futures>
-auto when_all(Futures&&... futures) -> std::enable_if_t<detail::are_futures<std::decay_t<Futures>...>::value,
+PC_NODISCARD auto when_all(Futures&&... futures) -> std::enable_if_t<detail::are_futures<std::decay_t<Futures>...>::value,
     future<std::tuple<std::decay_t<Futures>...>>> {
   using Sequence = std::tuple<std::decay_t<Futures>...>;
   return {detail::when_all_state<Sequence>::make(Sequence{std::forward<Futures>(futures)...})};
 }
 #endif
 
-#ifdef DOXYGEN
 /**
  * @ingroup future_hdr
  *
@@ -95,11 +94,12 @@ auto when_all(Futures&&... futures) -> std::enable_if_t<detail::are_futures<std:
  * This function template participates in overload resolution only if value type of the InputIt is either `future<T>` or
  * `shared_future<T>`.
  */
+#ifdef DOXYGEN
 template <typename InputIt>
 future<std::vector<typename std::iterator_traits<InputIt>::value_type>> when_all(InputIt first, InputIt last);
 #else
 template <typename InputIt>
-auto when_all(InputIt first, InputIt last)
+PC_NODISCARD auto when_all(InputIt first, InputIt last)
     -> std::enable_if_t<detail::is_unique_future<typename std::iterator_traits<InputIt>::value_type>::value,
         future<std::vector<typename std::iterator_traits<InputIt>::value_type>>> {
   using Sequence = std::vector<typename std::iterator_traits<InputIt>::value_type>;
@@ -110,7 +110,7 @@ auto when_all(InputIt first, InputIt last)
 }
 
 template <typename InputIt>
-auto when_all(InputIt first, InputIt last)
+PC_NODISCARD auto when_all(InputIt first, InputIt last)
     -> std::enable_if_t<detail::is_shared_future<typename std::iterator_traits<InputIt>::value_type>::value,
         future<std::vector<typename std::iterator_traits<InputIt>::value_type>>> {
   using Sequence = std::vector<typename std::iterator_traits<InputIt>::value_type>;
@@ -120,7 +120,6 @@ auto when_all(InputIt first, InputIt last)
 }
 #endif
 
-#ifdef DOXYGEN
 /**
  * @ingroup future_hdr
  *
@@ -132,11 +131,12 @@ auto when_all(InputIt first, InputIt last)
  * This function template participates in overload resolution only if `Future` is either `future<T>` or
  * `shared_future<T>`.
  */
+#ifdef DOXYGEN
 template <typename Future, typename Alloc>
 future<std::vector<Future, Alloc>> when_all(std::vector<Future, Alloc> futures);
 #else
 template <typename Future, typename Alloc>
-auto when_all(std::vector<Future, Alloc> futures)
+PC_NODISCARD auto when_all(std::vector<Future, Alloc> futures)
     -> std::enable_if_t<detail::is_future<Future>::value, future<std::vector<Future, Alloc>>> {
   using Sequence = std::vector<Future, Alloc>;
   return {detail::when_all_state<Sequence>::make(std::move(futures))};

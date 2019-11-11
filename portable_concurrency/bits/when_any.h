@@ -76,7 +76,7 @@ private:
 
 } // namespace detail
 
-future<when_any_result<std::tuple<>>> when_any();
+PC_NODISCARD future<when_any_result<std::tuple<>>> when_any();
 
 /**
  * @ingroup future_hdr
@@ -97,7 +97,7 @@ template <typename... Futures>
 future<when_any_result<std::tuple<Futures...>>> when_any(Futures&&...);
 #else
 template <typename... Futures>
-auto when_any(Futures&&... futures) -> std::enable_if_t<detail::are_futures<std::decay_t<Futures>...>::value,
+PC_NODISCARD auto when_any(Futures&&... futures) -> std::enable_if_t<detail::are_futures<std::decay_t<Futures>...>::value,
     future<when_any_result<std::tuple<std::decay_t<Futures>...>>>> {
   using Sequence = std::tuple<std::decay_t<Futures>...>;
   return future<when_any_result<Sequence>>{
@@ -129,7 +129,7 @@ template <typename InputIt>
     when_any(InputIt first, InputIt last);
 #else
 template <typename InputIt>
-auto when_any(InputIt first, InputIt last)
+PC_NODISCARD auto when_any(InputIt first, InputIt last)
     -> std::enable_if_t<detail::is_unique_future<typename std::iterator_traits<InputIt>::value_type>::value,
         future<when_any_result<std::vector<typename std::iterator_traits<InputIt>::value_type>>>> {
   using Sequence = std::vector<typename std::iterator_traits<InputIt>::value_type>;
@@ -139,7 +139,7 @@ auto when_any(InputIt first, InputIt last)
 #endif
 
 template <typename InputIt>
-auto when_any(InputIt first, InputIt last)
+PC_NODISCARD auto when_any(InputIt first, InputIt last)
     -> std::enable_if_t<detail::is_shared_future<typename std::iterator_traits<InputIt>::value_type>::value,
         future<when_any_result<std::vector<typename std::iterator_traits<InputIt>::value_type>>>> {
   using Sequence = std::vector<typename std::iterator_traits<InputIt>::value_type>;
@@ -162,7 +162,7 @@ template <typename Future, typename Alloc>
 future<when_any_result<std::vector<Future, Alloc>>> when_any(std::vector<Future, Alloc> futures);
 #else
 template <typename Future, typename Alloc>
-auto when_any(std::vector<Future, Alloc> futures)
+PC_NODISCARD auto when_any(std::vector<Future, Alloc> futures)
     -> std::enable_if_t<detail::is_future<Future>::value, future<when_any_result<std::vector<Future, Alloc>>>> {
   using Sequence = std::vector<Future, Alloc>;
   return {detail::when_any_state<Sequence>::make(std::move(futures))};
