@@ -51,17 +51,31 @@ task<F, A...> make_task(F&& f, A&&... a) {
  * eventually hold the result of that function call. The `func` and `a` parameters are decay-copied before sending
  * to executor.
  *
- * The function participates in overload resolution only if `is_executor<E>::value` is `true`
+ * If `std::result_of_t<F(A...)>` is either `future<T>` or `shared_future<T>` then @ref unwrap "unwrapped" `future<T>`
+ * or `shared_future<T>` is returned.
+ *
+ * The function participates in overload resolution only if `is_executor<E>::value` is `true`.
  */
+#if defined(DOXYGEN)
+template <typename E, typename F, typename... A>
+future<std::result_of_t<F(A...)>> async(E&& exec, F&& func, A&&... a) {
+#else
 template <typename E, typename F, typename... A>
 PC_NODISCARD auto async(E&& exec, F&& func, A&&... a)
     -> std::enable_if_t<is_executor<std::decay_t<E>>::value, detail::add_future_t<std::result_of_t<F(A...)>>> {
+#endif
   using R = std::result_of_t<F(A...)>;
   packaged_task<R()> task{detail::make_task(std::forward<F>(func), std::forward<A>(a)...)};
   detail::add_future_t<R> f = task.get_future();
   post(exec, std::move(task));
   return f;
 }
+
+/**
+ * @page unwrap Implicit unwrap
+ *
+ *
+ */
 
 } // namespace cxx14_v1
 } // namespace portable_concurrency
