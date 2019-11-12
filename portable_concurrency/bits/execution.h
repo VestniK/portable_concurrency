@@ -57,10 +57,10 @@ void post(inplace_executor_t, Task&& t) {
  * @ingroup execution
  *
  * Function which must be ADL discoverable for user provided executor classes. This function must schedule execution of
- * the functor passed as second argument on the executor provided with first argument.
+ * the function object from the second argument on the executor provided with the first argument.
  *
- * Functor type meets MoveConstructable, MoveAssignable and Callable (with signature `void()`) standard library
- * requirements.
+ * Function object type meets MoveConstructable, MoveAssignable and Callable (with signature `void()`) standard library
+ * named requirements.
  *
  * @sa portable_concurrency::is_executor
  */
