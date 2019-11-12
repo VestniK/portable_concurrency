@@ -75,8 +75,9 @@ template <typename... Futures>
 future<std::tuple<Futures...>> when_all(Futures&&...);
 #else
 template <typename... Futures>
-PC_NODISCARD auto when_all(Futures&&... futures) -> std::enable_if_t<detail::are_futures<std::decay_t<Futures>...>::value,
-    future<std::tuple<std::decay_t<Futures>...>>> {
+PC_NODISCARD auto when_all(Futures&&... futures)
+    -> std::enable_if_t<detail::are_futures<std::decay_t<Futures>...>::value,
+        future<std::tuple<std::decay_t<Futures>...>>> {
   using Sequence = std::tuple<std::decay_t<Futures>...>;
   return {detail::when_all_state<Sequence>::make(Sequence{std::forward<Futures>(futures)...})};
 }
