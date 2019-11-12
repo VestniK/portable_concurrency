@@ -265,6 +265,14 @@ TEST(Canceller, non_const_operation_is_supported) {
   EXPECT_TRUE(weak.expired());
 }
 
+TEST(Cancelleer, is_destroyed_after_being_called) {
+  std::shared_ptr<int> resource = std::make_shared<int>(42);
+  std::weak_ptr<int> weak = resource;
+  pc::promise<int> promise{pc::canceler_arg, [resource = std::move(resource)] {}};
+  promise.get_future();
+  EXPECT_TRUE(weak.expired());
+}
+
 TEST(InterruptableContinuation, broken_promise_delivered_if_valie_is_not_set) {
   pc::promise<int> promise;
   pc::future<std::string> future = promise.get_future().then([](pc::promise<std::string>, pc::future<int>) {});
