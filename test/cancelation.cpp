@@ -273,6 +273,18 @@ TEST(Cancelleer, is_destroyed_after_being_called) {
   EXPECT_TRUE(weak.expired());
 }
 
+TEST(Canceller, non_copyable_operation_is_supported) {
+  bool called = false;
+  auto deleter = [&called] (int* p) {called = true; delete p;};
+  std::unique_ptr<int, decltype(deleter)> resource{new int{42}, deleter};
+  pc::promise<int> promise{
+    pc::canceler_arg,
+    [resource = std::move(resource)] () mutable {resource.reset();}
+  };
+  promise.get_future();
+  EXPECT_TRUE(called);
+}
+
 TEST(InterruptableContinuation, broken_promise_delivered_if_valie_is_not_set) {
   pc::promise<int> promise;
   pc::future<std::string> future = promise.get_future().then([](pc::promise<std::string>, pc::future<int>) {});
