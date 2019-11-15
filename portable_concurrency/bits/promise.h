@@ -16,6 +16,26 @@ inline namespace cxx14_v1 {
 
 namespace detail {
 
+template <typename T, typename F>
+class cancellable_state final : public shared_state<T> {
+public:
+  cancellable_state(const cancellable_state&) = delete;
+  cancellable_state& operator=(const cancellable_state&) = delete;
+  cancellable_state(cancellable_state&&) = delete;
+  cancellable_state& operator=(cancellable_state&&) = delete;
+
+  ~cancellable_state() noexcept {
+    if (!this->continuations().executed())
+      cancel_action();
+  }
+
+  cancellable_state(const F& action) : shared_state<T>{}, cancel_action{action} {}
+  cancellable_state(F&& action) : shared_state<T>{}, cancel_action{std::move(action)} {}
+
+private:
+  F cancel_action;
+};
+
 template <typename T>
 struct promise_common {
   either<detail::monostate, std::shared_ptr<shared_state<T>>, std::weak_ptr<shared_state<T>>> state_;
@@ -26,12 +46,7 @@ struct promise_common {
       : state_{in_place_index_t<1>{}, std::allocate_shared<allocated_state<T, Alloc>>(allocator, allocator)} {}
   template <typename F>
   promise_common(canceler_arg_t, F&& f)
-      : state_{in_place_index_t<1>{}, std::shared_ptr<shared_state<T>>(
-                                          new shared_state<T>, [f = std::forward<F>(f)](shared_state<T>* ptr) mutable {
-                                            std::unique_ptr<shared_state<T>> holder{ptr};
-                                            if (!ptr->continuations().executed())
-                                              f();
-                                          })} {}
+      : state_{in_place_index_t<1>{}, std::make_shared<cancellable_state<T, std::decay_t<F>>>(std::forward<F>(f))} {}
 
   promise_common(std::weak_ptr<detail::shared_state<T>>&& state) : state_{in_place_index_t<2>{}, std::move(state)} {}
 
