@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['portable_5fconcurrency',['portable_concurrency',['../index.html',1,'']]]
+  ['implicit_20unwrapping_78',['Implicit unwrapping',['../unwrap.html',1,'']]]
 ];
