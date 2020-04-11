@@ -23,6 +23,7 @@ template <typename E>
 struct is_executor : std::false_type {};
 
 #if !defined(PC_NO_DEPRECATED)
+inline namespace cxx14_v1 {
 namespace detail {
 class inplace_executor_t {
 private:
@@ -32,10 +33,11 @@ private:
   }
 };
 } // namespace detail
+} // namespace cxx14_v1
 #endif
 
 #if !defined(PC_NO_DEPRECATED)
-using inplace_executor_t = detail::inplace_executor_t;
+using inplace_executor_t = cxx14_v1::detail::inplace_executor_t;
 #else
 /**
  * @headerfile portable_concurrency/execution
