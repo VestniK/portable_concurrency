@@ -8,13 +8,14 @@
 
 using namespace std::literals;
 
-namespace portable_concurrency {
-
-struct null_executor_t {};
+class null_executor_t {
+private:
+  template <typename F>
+  friend void post(null_executor_t, F&&) {}
+};
 constexpr null_executor_t null_executor{};
 
-template <typename F>
-void post(null_executor_t, F&&) {}
+namespace portable_concurrency {
 
 template <>
 struct is_executor<null_executor_t> : std::true_type {};

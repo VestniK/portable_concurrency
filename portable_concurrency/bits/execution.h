@@ -3,23 +3,6 @@
 #include <type_traits>
 #include <utility>
 
-#if !defined(PC_NO_DEPRECATED)
-namespace pc_adl_trampoline {
-template <typename E, typename F>
-void do_post(E&& e, F&& f) {
-  post(std::forward<E>(e), std::forward<F>(f));
-}
-
-namespace detail {
-template <typename E, typename F>
-[[deprecated("Use `post(my_exec, foo)` instedad of `pc::post(my_exec, foo)`")]] void post(E&& e, F&& f) {
-  do_post(std::forward<E>(e), std::forward<F>(f));
-}
-
-} // namespace detail
-} // namespace pc_adl_trampoline
-#endif
-
 namespace portable_concurrency {
 
 /**
@@ -39,6 +22,21 @@ namespace portable_concurrency {
 template <typename E>
 struct is_executor : std::false_type {};
 
+#if !defined(PC_NO_DEPRECATED)
+namespace detail {
+class inplace_executor_t {
+private:
+  template <typename Task>
+  friend void post(inplace_executor_t, Task&& task) {
+    std::forward<Task>(task)();
+  }
+};
+} // namespace detail
+#endif
+
+#if !defined(PC_NO_DEPRECATED)
+using inplace_executor_t = detail::inplace_executor_t;
+#else
 /**
  * @headerfile portable_concurrency/execution
  * @ingroup execution
@@ -54,6 +52,7 @@ private:
     std::forward<Task>(task)();
   }
 };
+#endif
 
 /**
  * @headerfile portable_concurrency/execution
@@ -66,10 +65,6 @@ constexpr inplace_executor_t inplace_executor;
 
 template <>
 struct is_executor<inplace_executor_t> : std::true_type {};
-
-#if !defined(PC_NO_DEPRECATED)
-using namespace ::pc_adl_trampoline::detail;
-#endif
 
 } // namespace portable_concurrency
 
