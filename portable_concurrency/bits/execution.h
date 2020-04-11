@@ -3,6 +3,23 @@
 #include <type_traits>
 #include <utility>
 
+#if !defined(PC_NO_DEPRECATED)
+namespace pc_adl_trampoline {
+template <typename E, typename F>
+void do_post(E&& e, F&& f) {
+  post(std::forward<E>(e), std::forward<F>(f));
+}
+
+namespace detail {
+template <typename E, typename F>
+[[deprecated("Use `post(my_exec, foo)` instedad of `pc::post(my_exec, foo)`")]] void post(E&& e, F&& f) {
+  do_post(std::forward<E>(e), std::forward<F>(f));
+}
+
+} // namespace detail
+} // namespace pc_adl_trampoline
+#endif
+
 namespace portable_concurrency {
 
 /**
@@ -30,7 +47,13 @@ struct is_executor : std::false_type {};
  * This executor is used by `future::then` and other continuation related family of functions by default when no
  * executor is specified explicitly.
  */
-struct inplace_executor_t {};
+class inplace_executor_t {
+private:
+  template <typename Task>
+  friend void post(inplace_executor_t, Task&& task) {
+    std::forward<Task>(task)();
+  }
+};
 
 /**
  * @headerfile portable_concurrency/execution
@@ -44,10 +67,9 @@ constexpr inplace_executor_t inplace_executor;
 template <>
 struct is_executor<inplace_executor_t> : std::true_type {};
 
-template <typename Task>
-void post(inplace_executor_t, Task&& t) {
-  std::forward<Task>(t)();
-}
+#if !defined(PC_NO_DEPRECATED)
+using namespace ::pc_adl_trampoline::detail;
+#endif
 
 } // namespace portable_concurrency
 

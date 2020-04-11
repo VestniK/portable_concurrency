@@ -13,6 +13,18 @@ inline namespace cxx14_v1 {
 
 namespace detail {
 extern template class closable_queue<unique_function<void()>>;
+
+class queue_executor {
+public:
+  queue_executor(closable_queue<unique_function<void()>>* queue) noexcept : queue_{queue} {}
+
+private:
+  friend void post(queue_executor exec, unique_function<void()> fun) { exec.queue_->push(std::move(fun)); }
+
+private:
+  closable_queue<unique_function<void()>>* queue_;
+};
+
 } // namespace detail
 
 /**
@@ -21,7 +33,7 @@ extern template class closable_queue<unique_function<void()>>;
  */
 class static_thread_pool {
 public:
-  using executor_type = detail::closable_queue<unique_function<void()>>*;
+  using executor_type = detail::queue_executor;
 
   explicit static_thread_pool(std::size_t num_threads);
 
@@ -40,7 +52,7 @@ public:
   /// wait for all threads in the thread pool to complete
   void wait();
 
-  executor_type executor() noexcept { return &queue_; }
+  executor_type executor() noexcept { return {&queue_}; }
 
 private:
   detail::closable_queue<unique_function<void()>> queue_;
@@ -49,8 +61,6 @@ private:
   std::mutex mutex_;
   std::condition_variable cv_;
 };
-
-void post(static_thread_pool::executor_type exec, unique_function<void()> task);
 
 } // namespace cxx14_v1
 

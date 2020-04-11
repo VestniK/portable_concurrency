@@ -190,7 +190,5 @@ void static_thread_pool::wait() {
   threads_.clear();
 }
 
-void post(static_thread_pool::executor_type exec, unique_function<void()> task) { exec->push(std::move(task)); }
-
 } // namespace cxx14_v1
 } // namespace portable_concurrency
