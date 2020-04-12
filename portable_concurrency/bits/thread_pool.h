@@ -19,19 +19,11 @@ public:
   queue_executor(closable_queue<unique_function<void()>>* queue) noexcept : queue_{queue} {}
 
 private:
-#if !defined(PC_NO_DEPRECATED)
-  friend void post(queue_executor exec, unique_function<void()> fun);
-#else
   friend void post(queue_executor exec, unique_function<void()> fun) { exec.queue_->push(std::move(fun)); }
-#endif
 
 private:
   closable_queue<unique_function<void()>>* queue_;
 };
-
-#if !defined(PC_NO_DEPRECATED)
-inline void post(queue_executor exec, unique_function<void()> fun) { exec.queue_->push(std::move(fun)); }
-#endif
 
 } // namespace detail
 
@@ -74,19 +66,5 @@ private:
 
 template <>
 struct is_executor<cxx14_v1::static_thread_pool::executor_type> : std::true_type {};
-
-#if !defined(PC_NO_DEPRECATED)
-struct deprrecated_post_t {
-  void operator()(cxx14_v1::detail::queue_executor exec, unique_function<void()> fun) const {
-    cxx14_v1::detail::post(exec, std::move(fun));
-  }
-
-  template <typename Task>
-  void operator()(cxx14_v1::detail::inplace_executor_t, Task&& task) {
-    std::forward<Task>(task)();
-  }
-};
-[[deprecated("Use `post(my_exec, foo)` instedad of `pc::post(my_exec, foo)`")]] constexpr deprrecated_post_t post{};
-#endif
 
 } // namespace portable_concurrency
