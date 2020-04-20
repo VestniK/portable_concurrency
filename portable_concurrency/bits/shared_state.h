@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <exception>
+#include <stdexcept>
 #include <type_traits>
 
 #include "either.h"
