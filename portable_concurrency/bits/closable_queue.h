@@ -15,7 +15,7 @@ public:
   void push(T&& val);
   void close();
 
-private:
+protected:
   std::mutex mutex_;
   std::condition_variable cv_;
   std::queue<T> queue_;
