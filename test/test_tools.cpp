@@ -1,5 +1,7 @@
 #include <portable_concurrency/latch>
 
+#include <algorithm>
+
 #include "test_tools.h"
 
 future_tests_env* g_future_tests_env = static_cast<future_tests_env*>(
