@@ -25,7 +25,7 @@ void set_state_value(std::shared_ptr<shared_state<R>>& state, F&& f, A&&... a) {
 }
 
 template <typename R, typename F, typename... A>
-std::enable_if_t<!is_future<std::result_of_t<F(A...)>>::value> set_state_value(
+std::enable_if_t<!is_future<invoke_result_t<F, A...>>::value> set_state_value(
     std::shared_ptr<shared_state<R&>>& state, F&& f, A&&... a) {
   assert(state);
   bool executed = false;
@@ -41,7 +41,7 @@ std::enable_if_t<!is_future<std::result_of_t<F(A...)>>::value> set_state_value(
 }
 
 template <typename R, typename F, typename... A>
-std::enable_if_t<is_future<std::result_of_t<F(A...)>>::value> set_state_value(
+std::enable_if_t<is_future<invoke_result_t<F, A...>>::value> set_state_value(
     std::shared_ptr<shared_state<R&>>& state, F&& f, A&&... a) try {
   shared_state<R&>::unwrap(
       state, ::portable_concurrency::cxx14_v1::detail::invoke(std::forward<F>(f), std::forward<A>(a)...));
@@ -50,7 +50,7 @@ std::enable_if_t<is_future<std::result_of_t<F(A...)>>::value> set_state_value(
 }
 
 template <typename F, typename... A>
-std::enable_if_t<std::is_void<std::result_of_t<F(A...)>>::value> set_state_value(
+std::enable_if_t<std::is_void<invoke_result_t<F, A...>>::value> set_state_value(
     std::shared_ptr<shared_state<void>>& state, F&& f, A&&... a) {
   assert(state);
   bool executed = false;
@@ -66,7 +66,7 @@ std::enable_if_t<std::is_void<std::result_of_t<F(A...)>>::value> set_state_value
 }
 
 template <typename F, typename... A>
-std::enable_if_t<!std::is_void<std::result_of_t<F(A...)>>::value> set_state_value(
+std::enable_if_t<!std::is_void<invoke_result_t<F, A...>>::value> set_state_value(
     std::shared_ptr<shared_state<void>>& state, F&& f, A&&... a) {
   bool executed = false;
   try {

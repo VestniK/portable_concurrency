@@ -9,6 +9,16 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
+#if defined(__cpp_lib_is_invocable)
+template <typename F, typename... A>
+using invoke_result = std::invoke_result<F, A...>;
+#else
+template <typename F, typename... A>
+using invoke_result = std::result_of<F(A...)>;
+#endif
+template <typename F, typename... A>
+using invoke_result_t = typename invoke_result<F, A...>::type;
+
 template <template <typename...> class T, typename U>
 struct is_instantiation_of : std::false_type {};
 template <template <typename...> class T, typename... U>
@@ -75,10 +85,10 @@ using add_future_t = typename add_future<T>::type;
 // cnt_future_t
 
 template <typename Func, typename Arg>
-struct cnt_result : std::result_of<Func(Arg)> {};
+struct cnt_result : invoke_result<Func, Arg> {};
 
 template <typename Func>
-struct cnt_result<Func, void> : std::result_of<Func()> {};
+struct cnt_result<Func, void> : invoke_result<Func> {};
 
 template <typename Func, typename Arg>
 using cnt_result_t = typename cnt_result<Func, Arg>::type;

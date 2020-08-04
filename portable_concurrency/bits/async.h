@@ -62,9 +62,9 @@ future<std::result_of_t<F(A...)>> async(E&& exec, F&& func, A&&... a) {
 #else
 template <typename E, typename F, typename... A>
 PC_NODISCARD auto async(E&& exec, F&& func, A&&... a)
-    -> std::enable_if_t<is_executor<std::decay_t<E>>::value, detail::add_future_t<std::result_of_t<F(A...)>>> {
+    -> std::enable_if_t<is_executor<std::decay_t<E>>::value, detail::add_future_t<detail::invoke_result_t<F, A...>>> {
 #endif
-  using R = std::result_of_t<F(A...)>;
+  using R = detail::invoke_result_t<F, A...>;
   packaged_task<R()> task{detail::make_task(std::forward<F>(func), std::forward<A>(a)...)};
   detail::add_future_t<R> f = task.get_future();
   post(exec, std::move(task));

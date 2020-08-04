@@ -69,7 +69,7 @@ public:
       : state_{detail::in_place_index_t<1>{},
             std::make_shared<detail::task_state<F, result_type, A...>>(std::forward<F>(f))} {
     static_assert(
-        std::is_convertible<std::result_of_t<F(A...)>, R>::value, "F must be Callable with signature R(A...)");
+        std::is_convertible<detail::invoke_result_t<F, A...>, R>::value, "F must be Callable with signature R(A...)");
   }
 
   packaged_task(const packaged_task&) = delete;
