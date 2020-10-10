@@ -72,13 +72,13 @@ public:
   /**
    * Adds notification function to be called when this future object becomes ready.
    *
-   * Notification function must meet `MoveConstructable`, `MoveAssignable` and `Callable` (with signature `void()`)
+   * Notification function must meet `MoveConstructible`, `MoveAssignable` and `Callable` (with signature `void()`)
    * standard library requirements.
    *
    * Both `exec` and `notification` objects are decay copied on the caller thread. Once this future object becomes ready
-   * `post(exec, std::move(notification))` is executed on unspecified thread. Implementation provide strict guaranty
+   * `post(exec, std::move(notification))` is executed on unspecified thread. Implementation provides strict guarantee
    * that `notification` is scheduled for execution at most once. If `this->is_ready() == true` then `notification` is
-   * scheduled for execution immediatelly.
+   * scheduled for execution immediately.
    */
   template <typename E, typename F>
   void notify(E&& exec, F&& notification);
@@ -102,7 +102,7 @@ public:
   PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, shared_future<T>>> then(E&& exec, F&& f);
 
   /**
-   * Prevents cancelation of the operations of this shared_future value calculation on its destruction.
+   * Prevents cancellation of the operations of this shared_future value calculation on its destruction.
    *
    * @post this->valid() == false
    */
@@ -112,7 +112,7 @@ public:
   shared_future(std::shared_ptr<detail::future_state<T>>&& state) noexcept;
 
 #if defined(__cpp_coroutines)
-  // Corouttines TS support
+  // Coroutines TS support
   using promise_type = promise<T>;
   bool await_ready() const noexcept;
   get_result_type await_resume() const;

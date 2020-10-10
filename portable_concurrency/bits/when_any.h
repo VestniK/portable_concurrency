@@ -19,7 +19,7 @@ inline namespace cxx14_v1 {
 /*!
  * @ingroup future_hdr
  *
- * Structure hoding sequence of futures passed as arguments to one of the `when_any` function overload and the index of
+ * Structure holding sequence of futures passed as arguments to one of the `when_any` function overloads and the index of
  * a future in this sequence which is ready.
  */
 template <typename Sequence>
@@ -37,7 +37,7 @@ class when_any_state final : public future_state<when_any_result<Sequence>> {
 public:
   when_any_state(Sequence&& futures) : result_{static_cast<std::size_t>(-1), std::move(futures)} {}
 
-  // threadsafe
+  // thread-safe
   void notify(std::size_t pos) {
     if (ready_flag_.test_and_set())
       return;
@@ -81,12 +81,12 @@ PC_NODISCARD future<when_any_result<std::tuple<>>> when_any();
 /**
  * @ingroup future_hdr
  *
- * Create a future object that becomes ready when at least one of the input futures and shared_futures become ready. The
+ * Create a future object that becomes ready when at least one of the input futures and shared_futures becomes ready. The
  * behavior is undefined if any input future or shared_future is invalid. Ready `future<when_any_result<std::tuple<>>>`
- * immediatelly returned if input futures is empty and the `index` field is `size_t(-1)`.
+ * is immediately returned if input futures are empty and the `index` field is `size_t(-1)`.
  *
  * The returned future is always `valid()`, and it becomes ready when at least one of the input futures and
- * shared_futures the call are ready. The `index member` of the `when_any_result` contains the position of the ready
+ * shared_futures of the call is ready. The `index member` of the `when_any_result` contains the position of the ready
  * future or shared_future in the `futures` member.
  *
  * This function template participates in overload resolution only if all of the arguments are either `future<T>` or
@@ -109,17 +109,15 @@ PC_NODISCARD auto when_any(Futures&&... futures)
 /**
  * @ingroup future_hdr
  *
- * Create a future object that becomes ready when at least one of the input futures and shared_futures become ready. The
+ * Create a future object that becomes ready when at least one of the input futures and shared_futures becomes ready. The
  * behavior is undefined if any input future or shared_future is invalid. Ready future immediatelly returned if input
  * futures is empty range (`first == last`) and the `index` field is `size_t(-1)`. Every input `future<T>` object is
  * moved into corresponding object of the returned future shared state, and every `shared_future<T>` object is copied.
  * The order of the objects in the returned `future` object matches the order of arguments.
  *
  * The returned future is always `valid()`, and it becomes ready when at least one of the input futures and
- * shared_futures the call are ready. The `index member` of the `when_any_result` contains the position of the ready
+ * shared_futures of the call is ready. The `index member` of the `when_any_result` contains the position of the ready
  * future or shared_future in the `futures` member.
- *
- *
  *
  * This function template participates in overload resolution only if value type of the InputIt is either `future<T>` or
  * `shared_future<T>`.
@@ -151,10 +149,10 @@ PC_NODISCARD auto when_any(InputIt first, InputIt last)
 /**
  * @ingroup future_hdr
  *
- * Create a future object that becomes ready when at least one of the input futures and shared_futures become ready. The
+ * Create a future object that becomes ready when at least one of the input futures and shared_futures becomes ready. The
  * behavior is undefined if any input future or shared_future is invalid. Effectively equivalent to
  * `when_any(futures.begin(), futures.end())` but this overload reuses vector passed as argument instead of making new
- * one saving one extra allocation, and supports vectors with user provided allocators.
+ * one saving one extra allocation, and supports vectors with user-provided allocators.
  *
  * This function template participates in overload resolution only if `Future` is either `future<T>` or
  * `shared_future<T>`.

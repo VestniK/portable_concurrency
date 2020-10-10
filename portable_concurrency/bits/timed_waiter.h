@@ -31,7 +31,7 @@ public:
   /**
    * @brief Constructs `timed_waiter` in some unspecified state.
    *
-   * No operations are allowed on the default constructed object except copy/move asignment and destruction.
+   * No operations are allowed on the default constructed object except copy/move assignment and destruction.
    */
   timed_waiter() noexcept = default;
 
