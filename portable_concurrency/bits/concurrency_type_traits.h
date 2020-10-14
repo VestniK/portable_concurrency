@@ -96,7 +96,7 @@ using cnt_result_t = typename cnt_result<Func, Arg>::type;
 template <typename Func, typename Arg>
 using cnt_future_t = add_future_t<cnt_result_t<Func, Arg>>;
 
-// deduce result type for interruptable continuation
+// deduce result type for interruptible continuation
 
 template <typename Future>
 struct promise_deducer {
@@ -127,7 +127,7 @@ struct promise_arg<Func, Future,
 template <typename Func, typename Future>
 using promise_arg_t = typename promise_arg<Func, Future>::type;
 
-// varaidic helper swallow
+// variadic helper swallow
 struct swallow {
   swallow(...) {}
 };

@@ -110,7 +110,7 @@ struct promise_common {
 
 /**
  * @ingroup future_hdr
- * @brief The class template promise is a simpliest write end of a future.
+ * @brief The class template promise is a simplest write end of a future.
  */
 template <typename T>
 class promise {
@@ -148,7 +148,7 @@ public:
 
   /**
    * Checks if there is a @ref future or @ref shared_future awaiting for the result from this promise object. This
-   * method returns `false` only if there is absolutelly no way to get a @ref future or @ref shared_future object which
+   * method returns `false` only if there is absolutely no way to get a @ref future or @ref shared_future object which
    * can be used to retreive a value or exception set by this promise object.
    */
   bool is_awaiten() const { return common_.is_awaiten(); }

@@ -11,7 +11,7 @@ namespace portable_concurrency {
  * @brief Trait which can be specialized for user provided types to enable using them as executors.
  *
  * Some functions in the portable_concurrency library allow to specify executor to perform requested actions. Those
- * function are only participate in overload resolution if this trait is specialized for the executor argument and
+ * function only participate in overload resolution if this trait is specialized for the executor argument and
  * `is_executor<E>::value` is `true`.
  *
  * In addition to this trait specialization there should be @ref post function provided in order to use executor type
@@ -25,9 +25,9 @@ struct is_executor : std::false_type {};
 /**
  * @headerfile portable_concurrency/execution
  * @ingroup execution
- * @brief Trivial executor which evaluates task immediattely in the invocation thread
+ * @brief Trivial executor which evaluates task immediately in the invocation thread
  *
- * This executor is used by `future::then` and other continuation related family of functions by default when no
+ * This executor is used by `future::then` and other continuation-related family of functions by default when no
  * executor is specified explicitly.
  */
 class inplace_executor_t {
@@ -41,7 +41,7 @@ private:
 /**
  * @headerfile portable_concurrency/execution
  * @ingroup execution
- * @brief Global instance of trivial inplace executor type
+ * @brief Global instance of trivial in-place executor type
  *
  * @sa inplace_executor
  */
@@ -57,10 +57,10 @@ struct is_executor<inplace_executor_t> : std::true_type {};
  * @headerfile portable_concurrency/execution
  * @ingroup execution
  *
- * Function which must be ADL discoverable for user provided executor classes. This function must schedule execution of
+ * Function which must be ADL discoverable for user-provided executor classes. This function must schedule execution of
  * the function object from the second argument on the executor provided with the first argument.
  *
- * Function object type meets MoveConstructable, MoveAssignable and Callable (with signature `void()`) standard library
+ * Function object type meets MoveConstructible, MoveAssignable and Callable (with signature `void()`) standard library
  * named requirements.
  *
  * @sa portable_concurrency::is_executor

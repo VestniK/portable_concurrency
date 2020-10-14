@@ -50,7 +50,7 @@ public:
    */
   future& operator=(const future&) = delete;
   /**
-   * Move assignmet
+   * Move assignment
    *
    * @post rhs.valid() == false
    */
@@ -69,7 +69,7 @@ public:
   shared_future<T> share() noexcept;
 
   /**
-   * @brief Get the result of asynchronyous operation stored in this future object.
+   * @brief Get the result of asynchronous operation stored in this future object.
    *
    * If the value is not yet set block current thread and wait for it. The value stored in the future is moved to the
    * caller.
@@ -79,7 +79,7 @@ public:
   T get();
 
   /**
-   * Blocks curent thread until this future object becomes ready.
+   * Blocks current thread until this future object becomes ready.
    */
   void wait() const;
 
@@ -122,9 +122,9 @@ public:
    * standard library requirements.
    *
    * Both `exec` and `notification` objects are decay copied on the caller thread. Once this future object becomes ready
-   * `post(exec, std::move(notification))` is executed on unspecified thread. Implementation provide strict guaranty
+   * `post(exec, std::move(notification))` is executed on unspecified thread. Implementation provides strict guarantee
    * that `notification` is scheduled for execution at most once. If `this->is_ready() == true` then `notification` is
-   * scheduled for execution immediatelly.
+   * scheduled for execution immediately.
    */
   template <typename E, typename F>
   void notify(E&& exec, F&& notification);
@@ -158,7 +158,7 @@ public:
   future(std::shared_ptr<detail::future_state<T>>&& state) noexcept;
 
 #if defined(__cpp_coroutines)
-  // Corouttines TS support
+  // Coroutines TS support
   using promise_type = promise<T>;
   bool await_ready() const noexcept;
   T await_resume();

@@ -12,8 +12,8 @@ namespace detail {
 
 [[noreturn]] void throw_bad_func_call();
 
-// R(A...) is incomplete type so it is illegal to use sizeof(F)/alignof(F) for decayed function refference
-// turn it into function pointer which is implecitly constructable from function refference
+// R(A...) is incomplete type so it is illegal to use sizeof(F)/alignof(F) for decayed function reference
+// to turn it into function pointer which is implicitly constructible from function reference
 template <typename F>
 using is_storable_helper = std::conditional_t<std::is_function<F>::value, F*, F>;
 

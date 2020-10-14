@@ -121,15 +121,15 @@ PC_NODISCARD detail::cnt_future_t<F, future<T>> future<T>::then(E&& exec, F&& f)
 }
 
 /**
- * Attaches interruptable continuation function `f` to this future object. [EXTENSION]
+ * Attaches interruptible continuation function `f` to this future object. [EXTENSION]
  *
  * Function must be callable with signature `void(promise<R>, future<T>)`. Promise object passed as the first parameter
  * can be used
- *  * to test if the result of current operation is awaiten by any future or shared_future with `promise::is_awaiten`
+ *  * to test if the result of current operation is awaited by any future or shared_future with `promise::is_awaiten`
  *    member function
  *  * to set the result or failure of the current operation with `promise::set_value` or `promise::set_exception` member
  *    functions
- *  * to move it into another promise which will be used to set vale or exception by some other operation
+ *  * to move it into another promise which will be used to set value or exception by some other operation
  *
  * If continuation function exits via exception std::terminate is called.
  */

@@ -64,8 +64,8 @@ PC_NODISCARD future<std::tuple<>> when_all();
  * @ingroup future_hdr
  *
  * Create a future object that becomes ready when all of the input futures and shared_futures become ready. The behavior
- * is undefined if any input future or shared_future is invalid. Ready `future<std::tuple<>>` immediatelly returned if
- * input futures is empty.
+ * is undefined if any input future or shared_future is invalid. Ready `future<std::tuple<>>` is immediately returned if
+ * input futures are empty.
  *
  * This function template participates in overload resolution only if all of the arguments are either `future<T>` or
  * `shared_future<T>`.
@@ -87,7 +87,7 @@ PC_NODISCARD auto when_all(Futures&&... futures)
  * @ingroup future_hdr
  *
  * Create a future object that becomes ready when all of the input futures and shared_futures become ready. The
- * behavior is undefined if any input future or shared_future is invalid. Ready `future<std::tuple<>>` immediatelly
+ * behavior is undefined if any input future or shared_future is invalid. Ready `future<std::tuple<>>` is immediately
  * returned if input futures is empty range (`first == last`). Every input `future<T>` object is moved into
  * corresponding object of the returned future shared state, and every `shared_future<T>` object is copied. The order of
  * the objects in the returned `future` object matches the order of arguments.
@@ -127,7 +127,7 @@ PC_NODISCARD auto when_all(InputIt first, InputIt last)
  * Create a future object that becomes ready when all of the input futures and shared_futures become ready. The behavior
  * is undefined if any input future or shared_future is invalid. Effectively equivalent to
  * `when_all(futures.begin(), futures.end())` but this overload reuses vector passed as argument instead of making new
- * one saving one extra allocation, and supports vectors with user provided allocators.
+ * one saving one extra allocation, and supports vectors with user-provided allocators.
  *
  * This function template participates in overload resolution only if `Future` is either `future<T>` or
  * `shared_future<T>`.

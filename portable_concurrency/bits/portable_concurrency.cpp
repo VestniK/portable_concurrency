@@ -72,7 +72,7 @@ void future_state_base::push(continuation&& cnt) { this->continuations().push(st
 namespace {
 
 // P0443R7 states that if task submitted to static_thread_pool exits via exception
-// then std::terminate is called. This behavior established by marking this function
+// then std::terminate is called. This behavior is established by marking this function
 // noexcept.
 void process_queue(detail::closable_queue<unique_function<void()>>& queue) noexcept {
   unique_function<void()> task;
