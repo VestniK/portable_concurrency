@@ -25,6 +25,9 @@ jobs:
     - name: Get Conan
       uses: turtlebrowser/get-conan@v1.0
       
+    - name: Setup Ninja
+      uses: ashutoshvarma/setup-ninja@v1.1
+      
     - name: Install deps
       run: conan install -g cmake -if ${{github.workspace}}/build --build=missing -s build_type=Release -s compiler.libcxx=libstdc++11 .
 
