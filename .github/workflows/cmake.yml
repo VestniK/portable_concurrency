@@ -9,6 +9,7 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
+  CONAN_CMAKE_GENERATOR: Ninja
 
 jobs:
   build:
@@ -25,12 +26,12 @@ jobs:
       uses: turtlebrowser/get-conan@v1.0
       
     - name: Install deps
-      run: conan install -g cmake -if ${{github.workspace}}/build --build=missing -s build_type=Release .
+      run: conan install -g cmake -if ${{github.workspace}}/build --build=missing -s build_type=Release -s compiler.libcxx=libstdc++11 .
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
       # Build your program with the given configuration
