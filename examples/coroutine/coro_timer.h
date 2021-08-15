@@ -25,7 +25,7 @@ private:
     time_point time;
     coroutine_handle handle;
 
-    bool operator<(const value& rhs) const { return time > rhs.time; }
+    bool operator<(const value &rhs) const { return time > rhs.time; }
   };
 
   std::priority_queue<value> queue_;
@@ -43,11 +43,13 @@ public:
 
   struct timer {
     time_point time;
-    timer_executor* executor;
+    timer_executor *executor;
 
     bool await_ready() const { return time <= clock::now(); }
     void await_resume() {}
-    void await_suspend(std::experimental::coroutine_handle<> h) { executor->queue_.push_at(time, std::move(h)); }
+    void await_suspend(std::experimental::coroutine_handle<> h) {
+      executor->queue_.push_at(time, std::move(h));
+    }
   };
 
   template <typename Rep, typename Period>
@@ -55,7 +57,7 @@ public:
     return {clock::now() + timeout, this};
   }
 
-  static timer_executor& instance();
+  static timer_executor &instance();
 
 private:
   void schedule_timers();

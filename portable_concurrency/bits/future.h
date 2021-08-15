@@ -19,11 +19,13 @@ inline namespace cxx14_v1 {
 
 /**
  * @ingroup future_hdr
- * @brief The class template future provides a mechanism to access the result of asynchronous operations.
+ * @brief The class template future provides a mechanism to access the result of
+ * asynchronous operations.
  */
-template <typename T>
-class future {
-  static_assert(!detail::is_future<T>::value, "future<future<T>> and future<shared_future<T>> are not allowed");
+template <typename T> class future {
+  static_assert(
+      !detail::is_future<T>::value,
+      "future<future<T>> and future<shared_future<T>> are not allowed");
 
 public:
   using value_type = T;
@@ -39,22 +41,23 @@ public:
    *
    * @post rhs.valid() == false
    */
-  future(future&& rhs) noexcept = default;
+  future(future &&rhs) noexcept = default;
   /**
    * Copy constructor is explicitly deleted. Future object is not copyable.
    */
-  future(const future&) = delete;
+  future(const future &) = delete;
 
   /**
-   * Copy assignment operator is explicitly deleted. Future object is not copyable.
+   * Copy assignment operator is explicitly deleted. Future object is not
+   * copyable.
    */
-  future& operator=(const future&) = delete;
+  future &operator=(const future &) = delete;
   /**
    * Move assignment
    *
    * @post rhs.valid() == false
    */
-  future& operator=(future&& rhs) noexcept = default;
+  future &operator=(future &&rhs) noexcept = default;
 
   /**
    * Destroys associated shared state and cancel not yet started operations.
@@ -62,17 +65,19 @@ public:
   ~future() = default;
 
   /**
-   * Creates shared_future object and move ownership on the shared state associated to this object to it
+   * Creates shared_future object and move ownership on the shared state
+   * associated to this object to it
    *
    * @post this->valid() == false
    */
   shared_future<T> share() noexcept;
 
   /**
-   * @brief Get the result of asynchronous operation stored in this future object.
+   * @brief Get the result of asynchronous operation stored in this future
+   * object.
    *
-   * If the value is not yet set block current thread and wait for it. The value stored in the future is moved to the
-   * caller.
+   * If the value is not yet set block current thread and wait for it. The value
+   * stored in the future is moved to the caller.
    *
    * @post this->valid() == false
    */
@@ -85,18 +90,19 @@ public:
 
 #if !defined(PC_NO_DEPRECATED)
   template <typename Rep, typename Period>
-  [[deprecated("Use pc::timed_waiter instead")]] future_status wait_for(
-      const std::chrono::duration<Rep, Period>& rel_time) const;
+  [[deprecated("Use pc::timed_waiter instead")]] future_status
+  wait_for(const std::chrono::duration<Rep, Period> &rel_time) const;
 
   template <typename Clock, typename Duration>
-  [[deprecated("Use pc::timed_waiter instead")]] future_status wait_until(
-      const std::chrono::time_point<Clock, Duration>& abs_time) const;
+  [[deprecated("Use pc::timed_waiter instead")]] future_status
+  wait_until(const std::chrono::time_point<Clock, Duration> &abs_time) const;
 #endif
 
   /**
    * Checks if future has associated shared state
    *
-   * @note All operations except this method, move assignment and destructor on an invalid future are UB.
+   * @note All operations except this method, move assignment and destructor on
+   * an invalid future are UB.
    */
   bool valid() const noexcept;
 
@@ -106,56 +112,60 @@ public:
   bool is_ready() const;
 
   /**
-   * Adds notification function to be called when this future object becomes ready.
+   * Adds notification function to be called when this future object becomes
+   * ready.
    *
    * Equivalent to `this->notify(inplace_executor, notification)`.
    *
    * @note Thread of `notification` execution is unspecified.
    */
-  template <typename F>
-  void notify(F&& notification);
+  template <typename F> void notify(F &&notification);
 
   /**
-   * Adds notification function to be called when this future object becomes ready.
+   * Adds notification function to be called when this future object becomes
+   * ready.
    *
-   * Notification function must meet `MoveConstructable`, `MoveAssignable` and `Callable` (with signature `void()`)
-   * standard library requirements.
+   * Notification function must meet `MoveConstructable`, `MoveAssignable` and
+   * `Callable` (with signature `void()`) standard library requirements.
    *
-   * Both `exec` and `notification` objects are decay copied on the caller thread. Once this future object becomes ready
-   * `post(exec, std::move(notification))` is executed on unspecified thread. Implementation provides strict guarantee
-   * that `notification` is scheduled for execution at most once. If `this->is_ready() == true` then `notification` is
-   * scheduled for execution immediately.
+   * Both `exec` and `notification` objects are decay copied on the caller
+   * thread. Once this future object becomes ready `post(exec,
+   * std::move(notification))` is executed on unspecified thread. Implementation
+   * provides strict guarantee that `notification` is scheduled for execution at
+   * most once. If `this->is_ready() == true` then `notification` is scheduled
+   * for execution immediately.
    */
-  template <typename E, typename F>
-  void notify(E&& exec, F&& notification);
+  template <typename E, typename F> void notify(E &&exec, F &&notification);
 
   template <typename F>
-  PC_NODISCARD detail::cnt_future_t<F, future<T>> then(F&& f);
+  PC_NODISCARD detail::cnt_future_t<F, future<T>> then(F &&f);
 
   template <typename F>
-  PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, future>> then(F&& f);
+  PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, future>>
+  then(F &&f);
 
   template <typename E, typename F>
-  PC_NODISCARD detail::cnt_future_t<F, future<T>> then(E&& exec, F&& f);
+  PC_NODISCARD detail::cnt_future_t<F, future<T>> then(E &&exec, F &&f);
 
   template <typename E, typename F>
-  PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, future>> then(E&& exec, F&& f);
+  PC_NODISCARD detail::add_future_t<detail::promise_arg_t<F, future>>
+  then(E &&exec, F &&f);
 
-  template <typename F>
-  PC_NODISCARD detail::cnt_future_t<F, T> next(F&& f);
+  template <typename F> PC_NODISCARD detail::cnt_future_t<F, T> next(F &&f);
 
   template <typename E, typename F>
-  PC_NODISCARD detail::cnt_future_t<F, T> next(E&& exec, F&& f);
+  PC_NODISCARD detail::cnt_future_t<F, T> next(E &&exec, F &&f);
 
   /**
-   * Prevents cancellation of the operations of this future value calculation on its destruction.
+   * Prevents cancellation of the operations of this future value calculation on
+   * its destruction.
    *
    * @post this->valid() == false
    */
   future detach();
 
   // implementation detail
-  future(std::shared_ptr<detail::future_state<T>>&& state) noexcept;
+  future(std::shared_ptr<detail::future_state<T>> &&state) noexcept;
 
 #if defined(__cpp_coroutines)
   // Coroutines TS support
@@ -167,15 +177,16 @@ public:
 
 private:
   friend class shared_future<T>;
-  friend std::shared_ptr<detail::future_state<T>>& detail::state_of<T>(future<T>&);
-  friend std::shared_ptr<detail::future_state<T>> detail::state_of<T>(future<T>&&);
+  friend std::shared_ptr<detail::future_state<T>> &
+  detail::state_of<T>(future<T> &);
+  friend std::shared_ptr<detail::future_state<T>>
+  detail::state_of<T>(future<T> &&);
 
 private:
   std::shared_ptr<detail::future_state<T>> state_;
 };
 
-template <>
-void future<void>::get();
+template <> void future<void>::get();
 
 } // namespace cxx14_v1
 } // namespace portable_concurrency

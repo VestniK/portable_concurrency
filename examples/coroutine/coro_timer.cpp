@@ -18,7 +18,8 @@ bool timed_queue::resume_next() {
   if (stop_)
     return false;
   time_point nearest = queue_.top().time;
-  while (cv_.wait_until(lock, nearest, [&] { return stop_ || queue_.top().time != nearest; })) {
+  while (cv_.wait_until(
+      lock, nearest, [&] { return stop_ || queue_.top().time != nearest; })) {
     if (stop_)
       return false;
     nearest = queue_.top().time;
@@ -41,7 +42,7 @@ void timer_executor::schedule_timers() {
     ;
 }
 
-timer_executor& timer_executor::instance() {
+timer_executor &timer_executor::instance() {
   static coro::timer_executor executor;
   return executor;
 }
