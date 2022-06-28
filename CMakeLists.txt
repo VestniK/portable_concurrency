@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 project(portable_concurrency
   VERSION 0.11.0
   DESCRIPTION "Lightweight future/promise C++ library"

@@ -11,8 +11,7 @@ configure_file(
 )
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_BINARY_DIR}")
 
-find_package(CoroutinesTS QUIET)
-if (CoroutinesTS_FOUND)
+if (cxx_std_20 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
   add_subdirectory(coroutine)
 endif()
 

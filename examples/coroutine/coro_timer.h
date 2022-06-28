@@ -6,13 +6,26 @@
 #include <queue>
 #include <thread>
 
+#if defined(__cpp_impl_coroutine)
+#include <coroutine>
+
+namespace coro {
+template <typename P = void> using coroutine_handle = std::coroutine_handle<P>;
+}
+#elif defined(__cpp_coroutines)
 #include <experimental/coroutine>
+
+namespace coro {
+template <typename P = void>
+using coroutine_handle = std::experimental::coroutine_handle<P>;
+}
+#endif
 
 namespace coro {
 
 class timed_queue {
 public:
-  using coroutine_handle = std::experimental::coroutine_handle<>;
+  using coroutine_handle = ::coro::coroutine_handle<>;
   using clock = std::chrono::steady_clock;
   using time_point = clock::time_point;
 
@@ -47,7 +60,7 @@ public:
 
     bool await_ready() const { return time <= clock::now(); }
     void await_resume() {}
-    void await_suspend(std::experimental::coroutine_handle<> h) {
+    void await_suspend(coroutine_handle<> h) {
       executor->queue_.push_at(time, std::move(h));
     }
   };

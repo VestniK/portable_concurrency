@@ -18,6 +18,7 @@ set(INSTALL_HEADERS
   bits/concurrency_type_traits.h
   bits/config.h
   bits/continuations_stack.h
+  bits/coro.h
   bits/either.h
   bits/execution.h
   bits/future.h

@@ -3,13 +3,10 @@
 #include <memory>
 #include <utility>
 
+#include "coro.h"
 #include "either.h"
 #include "future.h"
 #include "shared_state.h"
-
-#if defined(__cpp_coroutines)
-#include <experimental/coroutine>
-#endif
 
 namespace portable_concurrency {
 inline namespace cxx14_v1 {
@@ -177,12 +174,10 @@ public:
    */
   bool is_awaiten() const { return common_.is_awaiten(); }
 
-#if defined(__cpp_coroutines)
-  std::experimental::suspend_never initial_suspend() const noexcept {
-    return {};
-  }
-  std::experimental::suspend_never final_suspend() const noexcept { return {}; }
-  auto get_return_object() { return get_future(); }
+#if defined(PC_HAS_COROUTINES)
+  detail::suspend_never initial_suspend() const noexcept { return {}; }
+  detail::suspend_never final_suspend() const noexcept { return {}; }
+  auto get_return_object() { return common_.get_future(); }
   void unhandled_exception() { set_exception(std::current_exception()); }
   void return_value(const T &val) { set_value(val); }
   void return_value(T &&val) { set_value(std::move(val)); }
@@ -225,12 +220,10 @@ public:
 
   bool is_awaiten() const { return common_.is_awaiten(); }
 
-#if defined(__cpp_coroutines)
-  std::experimental::suspend_never initial_suspend() const noexcept {
-    return {};
-  }
-  std::experimental::suspend_never final_suspend() const noexcept { return {}; }
-  auto get_return_object() { return get_future(); }
+#if defined(PC_HAS_COROUTINES)
+  detail::suspend_never initial_suspend() const noexcept { return {}; }
+  detail::suspend_never final_suspend() const noexcept { return {}; }
+  auto get_return_object() { return common_.get_future(); }
   void unhandled_exception() { set_exception(std::current_exception()); }
   void return_value(T &val) { set_value(val); }
 #endif
@@ -272,12 +265,10 @@ public:
 
   bool is_awaiten() const { return common_.is_awaiten(); }
 
-#if defined(__cpp_coroutines)
-  std::experimental::suspend_never initial_suspend() const noexcept {
-    return {};
-  }
-  std::experimental::suspend_never final_suspend() const noexcept { return {}; }
-  auto get_return_object() { return get_future(); }
+#if defined(PC_HAS_COROUTINES)
+  detail::suspend_never initial_suspend() const noexcept { return {}; }
+  detail::suspend_never final_suspend() const noexcept { return {}; }
+  auto get_return_object() { return common_.get_future(); }
   void unhandled_exception() { set_exception(std::current_exception()); }
   void return_void() { set_value(); }
 #endif

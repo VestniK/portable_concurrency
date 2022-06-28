@@ -209,7 +209,7 @@ template <typename T>
 future<T>::future(std::shared_ptr<detail::future_state<T>> &&state) noexcept
     : state_(std::move(state)) {}
 
-#if defined(__cpp_coroutines)
+#if defined(PC_HAS_COROUTINES)
 template <typename T> bool future<T>::await_ready() const noexcept {
   return is_ready();
 }
@@ -217,7 +217,7 @@ template <typename T> bool future<T>::await_ready() const noexcept {
 template <typename T> T future<T>::await_resume() { return get(); }
 
 template <typename T>
-void future<T>::await_suspend(std::experimental::coroutine_handle<> handle) {
+void future<T>::await_suspend(detail::coroutine_handle<> handle) {
   state_->push(std::move(handle));
 }
 #endif

@@ -4,13 +4,10 @@
 #include <memory>
 #include <type_traits>
 
-#if defined(__cpp_coroutines)
-#include <experimental/coroutine>
-#endif
-
 #include "fwd.h"
 
 #include "concurrency_type_traits.h"
+#include "coro.h"
 
 #include <portable_concurrency/bits/config.h>
 
@@ -167,12 +164,12 @@ public:
   // implementation detail
   future(std::shared_ptr<detail::future_state<T>> &&state) noexcept;
 
-#if defined(__cpp_coroutines)
+#if defined(PC_HAS_COROUTINES)
   // Coroutines TS support
   using promise_type = promise<T>;
   bool await_ready() const noexcept;
   T await_resume();
-  void await_suspend(std::experimental::coroutine_handle<> handle);
+  void await_suspend(detail::coroutine_handle<> handle);
 #endif
 
 private:

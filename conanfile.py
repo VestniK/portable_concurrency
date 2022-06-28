@@ -10,7 +10,7 @@ class PortableconCurrencyConan(ConanFile):
     description = "Portable future/promise implemenattion close to ConcurrencyTS specification"
     settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False],
-               "no_deprecated": [True, False],}
+               "no_deprecated": [True, False]}
     default_options = {"shared": False,
                        "no_deprecated": False}
     generators = "cmake"
