@@ -1,6 +1,5 @@
 # portable_concurrency
 
-[![Build status](https://travis-ci.org/VestniK/portable_concurrency.svg?branch=master)](https://travis-ci.org/VestniK/portable_concurrency)
 [![Build status](https://ci.appveyor.com/api/projects/status/r2d3py3ioae5bv7u?svg=true)](https://ci.appveyor.com/project/VestniK/portable-concurrency)
 
 [![CC0 licensed](http://i.creativecommons.org/p/zero/1.0/88x31.png)](https://creativecommons.org/publicdomain/zero/1.0/)
@@ -84,7 +83,6 @@
 
     mkdir -p build/debug
     cd build/debug
-    conan remote add pdeps https://api.bintray.com/conan/pdeps/deps
     conan install --build=missing ../..
     cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ../..
     ninja
