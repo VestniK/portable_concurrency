@@ -1,6 +1,7 @@
 #include <future>
 #include <memory>
 #include <string>
+#include <tuple>
 
 #include <gtest/gtest.h>
 
@@ -196,7 +197,17 @@ TYPED_TEST(PromiseTest, moved_from_throws_no_state_on_set_value) {
   EXPECT_FUTURE_ERROR(set_promise_value(promise), std::future_errc::no_state);
 }
 
-TEST(Promise, is_awaiten_returns_true_before_get_fututre_call) {
+TYPED_TEST(PromiseTest, make_promise_creates_valid_promise_and_future) {
+  pc::promise<TypeParam> promise;
+  {
+    auto promise_and_future = pc::make_promise<TypeParam>();
+    promise = std::move(promise_and_future.first);
+    EXPECT_TRUE(promise.is_awaiten());
+  }
+  EXPECT_FALSE(promise.is_awaiten());
+}
+
+TEST(Promise, is_awaiten_returns_true_before_get_future_call) {
   pc::promise<void> p;
   EXPECT_TRUE(p.is_awaiten());
 }
