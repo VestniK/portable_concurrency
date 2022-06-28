@@ -7,12 +7,20 @@ on:
     branches: [ master ]
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
   CONAN_CMAKE_GENERATOR: Ninja
 
 jobs:
   build:
+    strategy:
+      matrix:
+        build_type: 
+        - Release
+        - Debug
+        - UBsan
+        - Asan
+        - Tsan
+    env:
+      BUILD_TYPE: ${{matrix.build_type}}
     # The CMake configure and build commands are platform agnostic and should work equally
     # well on Windows or Mac.  You can convert this to a matrix build if you need
     # cross-platform coverage.
