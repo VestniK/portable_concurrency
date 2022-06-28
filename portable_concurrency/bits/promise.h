@@ -160,9 +160,11 @@ public:
       state->emplace(std::move(val));
   }
 
+#if !defined(PC_NO_DEPRECATED)
   [[deprecated("Use pc::make_promise instead")]] future<T> get_future() {
     return common_.get_future();
   }
+#endif
   void set_exception(std::exception_ptr error) { common_.set_exception(error); }
 
   /**
@@ -213,9 +215,11 @@ public:
       state->emplace(val);
   }
 
+#if !defined(PC_NO_DEPRECATED)
   [[deprecated("Use pc::make_promise instead")]] future<T &> get_future() {
     return common_.get_future();
   }
+#endif
   void set_exception(std::exception_ptr error) { common_.set_exception(error); }
 
   bool is_awaiten() const { return common_.is_awaiten(); }
@@ -258,9 +262,11 @@ public:
       state->emplace();
   }
 
+#if !defined(PC_NO_DEPRECATED)
   [[deprecated("Use pc::make_promise instead")]] future<void> get_future() {
     return common_.get_future();
   }
+#endif
   void set_exception(std::exception_ptr error) { common_.set_exception(error); }
 
   bool is_awaiten() const { return common_.is_awaiten(); }
