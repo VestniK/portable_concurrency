@@ -207,7 +207,7 @@ TYPED_TEST(PromiseTest, make_promise_creates_valid_promise_and_future) {
   EXPECT_FALSE(promise.is_awaiten());
 }
 
-TEST(Promise, is_awaiten_returns_true_before_get_fututre_call) {
+TEST(Promise, is_awaiten_returns_true_before_get_future_call) {
   pc::promise<void> p;
   EXPECT_TRUE(p.is_awaiten());
 }
