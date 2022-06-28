@@ -16,7 +16,7 @@ environment:
 
 install:
 - cmd: >-
-    pip.exe install conan
+    pip3.exe install conan
 
     mkdir build
 
