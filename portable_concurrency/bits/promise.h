@@ -143,7 +143,7 @@ public:
       state->emplace(std::move(val));
   }
 
-  future<T> get_future() { return common_.get_future(); }
+  [[deprecated("Use pc::make_promise instead")]] future<T> get_future() { return common_.get_future(); }
   void set_exception(std::exception_ptr error) { common_.set_exception(error); }
 
   /**
@@ -191,7 +191,7 @@ public:
       state->emplace(val);
   }
 
-  future<T&> get_future() { return common_.get_future(); }
+  [[deprecated("Use pc::make_promise instead")]] future<T&> get_future() { return common_.get_future(); }
   void set_exception(std::exception_ptr error) { common_.set_exception(error); }
 
   bool is_awaiten() const { return common_.is_awaiten(); }
@@ -233,7 +233,7 @@ public:
       state->emplace();
   }
 
-  future<void> get_future() { return common_.get_future(); }
+  [[deprecated("Use pc::make_promise instead")]] future<void> get_future() { return common_.get_future(); }
   void set_exception(std::exception_ptr error) { common_.set_exception(error); }
 
   bool is_awaiten() const { return common_.is_awaiten(); }
@@ -249,6 +249,14 @@ public:
 private:
   detail::promise_common<void> common_;
 };
+
+template <typename T>
+PC_NODISCARD std::pair<promise<T>, future<T>> make_promise()
+{
+  auto state = std::make_shared<detail::shared_state<T>>();
+  auto state_weak = std::weak_ptr<detail::shared_state<T>>(state);
+  return {promise<T>(std::move(state_weak)), future<T>(std::move(state))};
+}
 
 } // namespace cxx14_v1
 } // namespace portable_concurrency

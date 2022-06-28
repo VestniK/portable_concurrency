@@ -24,9 +24,9 @@ using decay_for_future_t = typename decay_for_future<T>::type;
 
 template <typename T>
 future<detail::decay_for_future_t<T>> make_ready_future(T&& value) {
-  promise<detail::decay_for_future_t<T>> promise;
-  promise.set_value(std::forward<T>(value));
-  return promise.get_future();
+  auto promise_and_future = make_promise<detail::decay_for_future_t<T>>();
+  promise_and_future.first.set_value(std::forward<T>(value));
+  return std::move(promise_and_future.second);
 }
 
 future<void> make_ready_future();

@@ -146,9 +146,9 @@ typename shared_future<void>::get_result_type shared_future<void>::get() const {
 }
 
 future<void> make_ready_future() {
-  promise<void> promise;
-  promise.set_value();
-  return promise.get_future();
+  auto promise_and_future = make_promise<void>();
+  promise_and_future.first.set_value();
+  return std::move(promise_and_future.second);
 }
 
 future<std::tuple<>> when_all() { return make_ready_future(std::tuple<>{}); }
