@@ -290,5 +290,21 @@ PC_NODISCARD std::pair<promise<T>, future<T>> make_promise() {
   return {promise<T>(std::move(state_weak)), future<T>(std::move(state))};
 }
 
+template <typename T, typename Alloc>
+PC_NODISCARD std::pair<promise<T>, future<T>> make_promise(const Alloc &allocator)
+{
+  auto state = std::allocate_shared<detail::allocated_state<T, Alloc>>(allocator, allocator);
+  auto state_weak = std::weak_ptr<detail::shared_state<T>>(state);
+  return {promise<T>(std::move(state_weak)), future<T>(std::move(state))};
+}
+
+template <typename T, typename F>
+PC_NODISCARD std::pair<promise<T>, future<T>> make_promise(canceler_arg_t, F &&f)
+{
+  auto state = std::make_shared<detail::cancellable_state<T, std::decay_t<F>>>(std::forward<F>(f));
+  auto state_weak = std::weak_ptr<detail::shared_state<T>>(state);
+  return {promise<T>(std::move(state_weak)), future<T>(std::move(state))};
+}
+
 } // namespace cxx14_v1
 } // namespace portable_concurrency
