@@ -12,7 +12,7 @@ jobs:
       matrix:
         build_type: 
         - Release
-        - Debug
+        # - Debug TODO: fix runtime mismatch with gtest
 
     env:
       BUILD_TYPE: ${{matrix.build_type}}
