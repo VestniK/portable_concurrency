@@ -92,7 +92,7 @@ public:
   /**
    * Also checks if this object holds a function
    */
-  bool operator==(std::nullptr_t) const noexcept { return static_cast<bool>(func_); }
+  bool operator==(std::nullptr_t) const noexcept { return !static_cast<bool>(func_); }
 
 private:
   template <typename F>
