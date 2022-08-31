@@ -41,7 +41,10 @@ public:
   template <typename T>
   explicit timed_waiter(future<T>& fut) : waiter_{std::make_shared<waiter>()} {
     fut.notify([waiter = waiter_] {
-      std::lock_guard<std::mutex>{waiter->mutex}, waiter->notified = true;
+      {
+        std::lock_guard<std::mutex> lock{waiter->mutex};
+        waiter->notified = true;
+      }
       waiter->cv.notify_all();
     });
   }
@@ -51,7 +54,10 @@ public:
   template <typename T>
   explicit timed_waiter(shared_future<T>& fut) : waiter_{std::make_shared<waiter>()} {
     fut.notify([waiter = waiter_] {
-      std::lock_guard<std::mutex>{waiter->mutex}, waiter->notified = true;
+      {
+        std::lock_guard<std::mutex> lock{waiter->mutex};
+        waiter->notified = true;
+      }
       waiter->cv.notify_all();
     });
   }
