@@ -4,13 +4,13 @@
 #if __has_include(<coroutine>)
 #include <coroutine>
 namespace portable_concurrency {
-namespace detail {
 inline namespace cxx14_v1 {
+namespace detail {
 using suspend_never = std::suspend_never;
 template <typename Promise = void>
 using coroutine_handle = std::coroutine_handle<Promise>;
-} // namespace cxx14_v1
 } // namespace detail
+} // namespace cxx14_v1
 } // namespace portable_concurrency
 #define PC_HAS_COROUTINES
 #endif
