@@ -15,8 +15,8 @@ if (cxx_std_20 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
   add_subdirectory(coroutine)
 endif()
 
-find_package(Qt5Core QUIET)
-if (Qt5Core_FOUND)
+find_package(Qt6Core QUIET)
+if (Qt6Core_FOUND)
   add_subdirectory(qt)
 endif()
 

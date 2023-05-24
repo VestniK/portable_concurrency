@@ -38,7 +38,8 @@ set(TEST_TOOLS
 )
 
 add_executable(pc_unit_tests ${API_TESTS} ${DETAILS_TESTS} ${TEST_TOOLS})
-target_link_libraries(pc_unit_tests portable_concurrency CONAN_PKG::gtest)
+find_package(GTest REQUIRED)
+target_link_libraries(pc_unit_tests portable_concurrency GTest::gtest GTest::gtest_main)
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 7)
     # Useless warning on correct code which marks the problem which can only happen

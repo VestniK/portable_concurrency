@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 project(portable_concurrency
   VERSION 0.11.0
   DESCRIPTION "Lightweight future/promise C++ library"
@@ -6,7 +6,6 @@ project(portable_concurrency
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(GNUInstallDirs)
 include(BuildTypes)
-include(ConanDeps)
 
 option(PC_NO_DEPRECATED "Remove deprecated API from the build and installation." OFF)
 option(PC_DEV_BUILD "Build mode for library developers. Important warnings are treated as errors." OFF)

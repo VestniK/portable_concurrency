@@ -1,8 +1,6 @@
 [requires]
-gtest/1.10.0
-
-[options]
-gtest:shared=False
+gtest/1.13.0
+asio/1.28.0
 
 [generators]
-cmake
+CMakeDeps
