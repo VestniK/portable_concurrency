@@ -3,12 +3,18 @@
 namespace coro {
 
 void timed_queue::push_at(time_point time, timed_queue::coroutine_handle h) {
-  std::lock_guard{mutex_}, queue_.emplace(value{time, std::move(h)});
+  {
+    std::lock_guard lk{mutex_};
+    queue_.emplace(value{time, std::move(h)});
+  }
   cv_.notify_one();
 }
 
 void timed_queue::stop() {
-  std::lock_guard{mutex_}, stop_ = true;
+  {
+    std::lock_guard lk{mutex_};
+    stop_ = true;
+  }
   cv_.notify_one();
 }
 

@@ -11,7 +11,10 @@ TEST(ThreadPool, should_execute_function_in_another_thread) {
 
   pc::static_thread_pool pool{1};
   post(pool.executor(), [&] {
-    std::lock_guard<std::mutex>{mtx}, tid = std::this_thread::get_id();
+    {
+      std::lock_guard<std::mutex> lk{mtx};
+      tid = std::this_thread::get_id();
+    }
     cv.notify_one();
   });
   std::unique_lock<std::mutex> lock{mtx};
