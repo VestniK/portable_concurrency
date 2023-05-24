@@ -9,13 +9,14 @@ namespace portable_concurrency {
 namespace {
 namespace test {
 
-template <typename Future>
-struct future_notify : ::testing::Test {
+template <typename Future> struct future_notify : ::testing::Test {
+  future_notify() { std::tie(promise, future) = pc::make_promise<int>(); }
+
   pc::promise<int> promise;
-  Future future = promise.get_future();
+  Future future;
 };
 using futures = ::testing::Types<pc::future<int>, pc::shared_future<int>>;
-TYPED_TEST_CASE(future_notify, futures);
+TYPED_TEST_SUITE(future_notify, futures);
 
 TYPED_TEST(future_notify, is_called_when_future_becomes_ready) {
   bool called = false;
@@ -27,7 +28,8 @@ TYPED_TEST(future_notify, is_called_when_future_becomes_ready) {
 TYPED_TEST(future_notify, is_called_when_future_becomes_ready_with_error) {
   bool called = false;
   this->future.notify([&] { called = true; });
-  this->promise.set_exception(std::make_exception_ptr(std::runtime_error{"ooups"}));
+  this->promise.set_exception(
+      std::make_exception_ptr(std::runtime_error{"ooups"}));
   EXPECT_TRUE(called);
 }
 
@@ -56,8 +58,8 @@ TYPED_TEST(future_notify, is_not_called_before_future_becomes_ready) {
   bool called = false;
   this->future.notify([&] { called = true; });
   EXPECT_FALSE(called);
-  this->promise.set_value(
-      42); // prevent notification call after leaving this test function since it will corrupt the stack
+  this->promise.set_value(42); // prevent notification call after leaving this
+                               // test function since it will corrupt the stack
 }
 
 TYPED_TEST(future_notify, is_not_called_if_future_destroyed_before_being_set) {
@@ -83,7 +85,9 @@ TYPED_TEST(future_notify, is_called_for_task_running_asyncroniusly) {
 
 TYPED_TEST(future_notify, schedules_notification_with_specified_executor) {
   std::thread::id notification_thread;
-  this->future.notify(g_future_tests_env, [&] { notification_thread = std::this_thread::get_id(); });
+  this->future.notify(g_future_tests_env, [&] {
+    notification_thread = std::this_thread::get_id();
+  });
   this->promise.set_value(100500);
   g_future_tests_env->wait_current_tasks();
   EXPECT_TRUE(g_future_tests_env->uses_thread(notification_thread));

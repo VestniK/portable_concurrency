@@ -18,14 +18,13 @@ using hires_clock = std::chrono::high_resolution_clock;
 
 namespace {
 
-template <typename T>
-class SharedFutureTests : public ::testing::Test {};
-TYPED_TEST_CASE_P(SharedFutureTests);
+template <typename T> class SharedFutureTests : public ::testing::Test {};
+TYPED_TEST_SUITE_P(SharedFutureTests);
 
 #if !defined(PC_NO_DEPRECATED)
 template <typename T>
 class SharedFutureDeprecatedTests : public ::testing::Test {};
-TYPED_TEST_CASE_P(SharedFutureDeprecatedTests);
+TYPED_TEST_SUITE_P(SharedFutureDeprecatedTests);
 #endif
 
 TYPED_TEST_P(SharedFutureTests, default_constructed_is_invalid) {
@@ -152,7 +151,8 @@ TYPED_TEST_P(SharedFutureTests, is_ready_on_future_with_value) {
 TYPED_TEST_P(SharedFutureTests, is_ready_on_future_with_error) {
   pc::promise<TypeParam> promise;
   pc::shared_future<TypeParam> future = promise.get_future().share();
-  promise.set_exception(std::make_exception_ptr(std::runtime_error("test error")));
+  promise.set_exception(
+      std::make_exception_ptr(std::runtime_error("test error")));
   EXPECT_TRUE(future.is_ready());
 }
 
@@ -162,26 +162,25 @@ TYPED_TEST_P(SharedFutureTests, get_on_invalid) {
   EXPECT_FUTURE_ERROR(future.get(), std::future_errc::no_state);
 }
 
-template <typename T>
-void test_retrieve_shared_future_result() {
-  const pc::shared_future<T> future = set_value_in_other_thread<T>(25ms).share();
+template <typename T> void test_retrieve_shared_future_result() {
+  const pc::shared_future<T> future =
+      set_value_in_other_thread<T>(25ms).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(some_value<T>(), future.get());
   EXPECT_TRUE(future.valid());
 }
 
-template <>
-void test_retrieve_shared_future_result<std::unique_ptr<int>>() {
-  const auto future = set_value_in_other_thread<std::unique_ptr<int>>(25ms).share();
+template <> void test_retrieve_shared_future_result<std::unique_ptr<int>>() {
+  const auto future =
+      set_value_in_other_thread<std::unique_ptr<int>>(25ms).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(42, *future.get());
   EXPECT_TRUE(future.valid());
 }
 
-template <>
-void test_retrieve_shared_future_result<void>() {
+template <> void test_retrieve_shared_future_result<void>() {
   const auto future = set_value_in_other_thread<void>(25ms).share();
   ASSERT_TRUE(future.valid());
 
@@ -189,27 +188,30 @@ void test_retrieve_shared_future_result<void>() {
   EXPECT_TRUE(future.valid());
 }
 
-template <>
-void test_retrieve_shared_future_result<future_tests_env&>() {
-  const auto future = set_value_in_other_thread<future_tests_env&>(25ms).share();
+template <> void test_retrieve_shared_future_result<future_tests_env &>() {
+  const auto future =
+      set_value_in_other_thread<future_tests_env &>(25ms).share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_EQ(g_future_tests_env, &future.get());
   EXPECT_TRUE(future.valid());
 }
 
-TYPED_TEST_P(SharedFutureTests, retrieve_result) { test_retrieve_shared_future_result<TypeParam>(); }
+TYPED_TEST_P(SharedFutureTests, retrieve_result) {
+  test_retrieve_shared_future_result<TypeParam>();
+}
 
 TYPED_TEST_P(SharedFutureTests, retrieve_exception) {
-  const auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error")).share();
+  const auto future = set_error_in_other_thread<TypeParam>(
+                          25ms, std::runtime_error("test error"))
+                          .share();
   ASSERT_TRUE(future.valid());
 
   EXPECT_RUNTIME_ERROR(future, "test error");
   EXPECT_TRUE(future.valid());
 }
 
-template <typename T>
-void test_retrieve_shared_future_result_twice() {
+template <typename T> void test_retrieve_shared_future_result_twice() {
   pc::shared_future<T> sf1 = set_value_in_other_thread<T>(25ms);
   auto sf2 = sf1;
   ASSERT_TRUE(sf1.valid());
@@ -226,7 +228,8 @@ TYPED_TEST_P(SharedFutureTests, retreive_result_from_several_futures) {
 }
 
 TYPED_TEST_P(SharedFutureTests, retreive_exception_from_several_futures) {
-  pc::shared_future<TypeParam> sf1 = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error"));
+  pc::shared_future<TypeParam> sf1 = set_error_in_other_thread<TypeParam>(
+      25ms, std::runtime_error("test error"));
   auto sf2 = sf1;
   ASSERT_TRUE(sf1.valid());
   ASSERT_TRUE(sf2.valid());
@@ -256,7 +259,8 @@ TYPED_TEST_P(SharedFutureDeprecatedTests, wait_until_on_invalid) {
   pc::shared_future<TypeParam> future;
   ASSERT_FALSE(future.valid());
 
-  EXPECT_FUTURE_ERROR(future.wait_until(sys_clock::now() + 5s), std::future_errc::no_state);
+  EXPECT_FUTURE_ERROR(future.wait_until(sys_clock::now() + 5s),
+                      std::future_errc::no_state);
 }
 #endif
 
@@ -285,7 +289,8 @@ TYPED_TEST_P(SharedFutureTests, wait_on_ready_value) {
 TYPED_TEST_P(SharedFutureTests, wait_on_ready_error) {
   pc::promise<TypeParam> promise;
   auto future = promise.get_future().share();
-  promise.set_exception(std::make_exception_ptr(std::runtime_error("test error")));
+  promise.set_exception(
+      std::make_exception_ptr(std::runtime_error("test error")));
   ASSERT_TRUE(future.valid());
   ASSERT_TRUE(future.is_ready());
 
@@ -315,7 +320,8 @@ TYPED_TEST_P(SharedFutureDeprecatedTests, wait_timeout) {
   EXPECT_TRUE(future.valid());
   EXPECT_FALSE(future.is_ready());
 
-  EXPECT_EQ(pc::future_status::timeout, future.wait_until(hires_clock::now() + 5ms));
+  EXPECT_EQ(pc::future_status::timeout,
+            future.wait_until(hires_clock::now() + 5ms));
   EXPECT_TRUE(future.valid());
   EXPECT_FALSE(future.is_ready());
 }
@@ -356,7 +362,9 @@ TYPED_TEST_P(SharedFutureDeprecatedTests, wait_until_awakes_on_value) {
 #endif
 
 TYPED_TEST_P(SharedFutureTests, wait_awakes_on_error) {
-  auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error")).share();
+  auto future = set_error_in_other_thread<TypeParam>(
+                    25ms, std::runtime_error("test error"))
+                    .share();
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -367,7 +375,9 @@ TYPED_TEST_P(SharedFutureTests, wait_awakes_on_error) {
 
 #if !defined(PC_NO_DEPRECATED)
 TYPED_TEST_P(SharedFutureDeprecatedTests, wait_for_awakes_on_error) {
-  auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error")).share();
+  auto future = set_error_in_other_thread<TypeParam>(
+                    25ms, std::runtime_error("test error"))
+                    .share();
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -377,7 +387,9 @@ TYPED_TEST_P(SharedFutureDeprecatedTests, wait_for_awakes_on_error) {
 }
 
 TYPED_TEST_P(SharedFutureDeprecatedTests, wait_until_awakes_on_error) {
-  auto future = set_error_in_other_thread<TypeParam>(25ms, std::runtime_error("test error")).share();
+  auto future = set_error_in_other_thread<TypeParam>(
+                    25ms, std::runtime_error("test error"))
+                    .share();
   ASSERT_TRUE(future.valid());
   ASSERT_FALSE(future.is_ready());
 
@@ -387,23 +399,45 @@ TYPED_TEST_P(SharedFutureDeprecatedTests, wait_until_awakes_on_error) {
 }
 #endif
 
-REGISTER_TYPED_TEST_CASE_P(SharedFutureTests, default_constructed_is_invalid, obtained_from_promise_is_valid,
-    copy_constructed_from_invalid_is_invalid, copy_assigned_from_invalid_is_invalid,
-    copy_constructed_from_valid_is_valid, copy_assigned_from_valid_is_valid, moved_to_constructor_is_invalid,
-    moved_to_assigment_to_invalid_is_invalid, moved_to_assigment_to_valid_is_invalid,
-    move_constructed_from_invalid_future, move_constructed_from_valid_future, share_of_invalid_is_invalid,
-    is_ready_on_nonready, is_ready_on_future_with_value, is_ready_on_future_with_error, get_on_invalid, retrieve_result,
-    retrieve_exception, retreive_result_from_several_futures, retreive_exception_from_several_futures, wait_on_invalid,
-    wait_on_ready_value, wait_on_ready_error, wait_awakes_on_value, wait_awakes_on_error);
-#if !defined(PC_NO_DEPRECATED)
-REGISTER_TYPED_TEST_CASE_P(SharedFutureDeprecatedTests, wait_for_on_invalid, wait_until_on_invalid, wait_timeout,
-    wait_for_awakes_on_value, wait_until_awakes_on_value, wait_for_awakes_on_error, wait_until_awakes_on_error);
-#endif
+REGISTER_TYPED_TEST_SUITE_P(
+    SharedFutureTests, default_constructed_is_invalid,
+    obtained_from_promise_is_valid, copy_constructed_from_invalid_is_invalid,
+    copy_assigned_from_invalid_is_invalid, copy_constructed_from_valid_is_valid,
+    copy_assigned_from_valid_is_valid, moved_to_constructor_is_invalid,
+    moved_to_assigment_to_invalid_is_invalid,
+    moved_to_assigment_to_valid_is_invalid,
+    move_constructed_from_invalid_future, move_constructed_from_valid_future,
+    share_of_invalid_is_invalid, is_ready_on_nonready,
+    is_ready_on_future_with_value, is_ready_on_future_with_error,
+    get_on_invalid, retrieve_result, retrieve_exception,
+    retreive_result_from_several_futures,
+    retreive_exception_from_several_futures, wait_on_invalid,
+    wait_on_ready_value, wait_on_ready_error, wait_awakes_on_value,
+    wait_awakes_on_error);
 
-INSTANTIATE_TYPED_TEST_CASE_P(VoidType, SharedFutureTests, void);
-INSTANTIATE_TYPED_TEST_CASE_P(PrimitiveType, SharedFutureTests, int);
-INSTANTIATE_TYPED_TEST_CASE_P(CopyableType, SharedFutureTests, std::string);
-INSTANTIATE_TYPED_TEST_CASE_P(MoveableType, SharedFutureTests, std::unique_ptr<int>);
-INSTANTIATE_TYPED_TEST_CASE_P(ReferenceType, SharedFutureTests, future_tests_env&);
+INSTANTIATE_TYPED_TEST_SUITE_P(VoidType, SharedFutureTests, void);
+INSTANTIATE_TYPED_TEST_SUITE_P(PrimitiveType, SharedFutureTests, int);
+INSTANTIATE_TYPED_TEST_SUITE_P(CopyableType, SharedFutureTests, std::string);
+INSTANTIATE_TYPED_TEST_SUITE_P(MoveableType, SharedFutureTests,
+                               std::unique_ptr<int>);
+INSTANTIATE_TYPED_TEST_SUITE_P(ReferenceType, SharedFutureTests,
+                               future_tests_env &);
+
+#if !defined(PC_NO_DEPRECATED)
+REGISTER_TYPED_TEST_SUITE_P(SharedFutureDeprecatedTests, wait_for_on_invalid,
+                            wait_until_on_invalid, wait_timeout,
+                            wait_for_awakes_on_value,
+                            wait_until_awakes_on_value,
+                            wait_for_awakes_on_error,
+                            wait_until_awakes_on_error);
+INSTANTIATE_TYPED_TEST_SUITE_P(VoidType, SharedFutureDeprecatedTests, void);
+INSTANTIATE_TYPED_TEST_SUITE_P(PrimitiveType, SharedFutureDeprecatedTests, int);
+INSTANTIATE_TYPED_TEST_SUITE_P(CopyableType, SharedFutureDeprecatedTests,
+                               std::string);
+INSTANTIATE_TYPED_TEST_SUITE_P(MoveableType, SharedFutureDeprecatedTests,
+                               std::unique_ptr<int>);
+INSTANTIATE_TYPED_TEST_SUITE_P(ReferenceType, SharedFutureDeprecatedTests,
+                               future_tests_env &);
+#endif
 
 } // anonymous namespace

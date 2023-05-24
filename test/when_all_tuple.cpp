@@ -21,14 +21,13 @@ TEST(WhenAllTupleTest, empty_sequence) {
 }
 
 TEST(WhenAllTupleTest, single_future) {
-  pc::promise<int> p;
-  auto raw_f = p.get_future();
-  auto f = pc::when_all(std::move(raw_f));
+  auto p = pc::make_promise<int>();
+  auto f = pc::when_all(std::move(p.second));
   ASSERT_TRUE(f.valid());
-  EXPECT_FALSE(raw_f.valid());
+  EXPECT_FALSE(p.second.valid());
   EXPECT_FALSE(f.is_ready());
 
-  p.set_value(42);
+  p.first.set_value(42);
   ASSERT_TRUE(f.is_ready());
 
   auto res = f.get();
@@ -40,14 +39,14 @@ TEST(WhenAllTupleTest, single_future) {
 }
 
 TEST(WhenAllTupleTest, single_shared_future) {
-  pc::promise<int> p;
-  auto raw_f = p.get_future().share();
+  auto p = pc::make_promise<int>();
+  auto raw_f = p.second.share();
   auto f = pc::when_all(raw_f);
   ASSERT_TRUE(f.valid());
   EXPECT_TRUE(raw_f.valid());
   EXPECT_FALSE(f.is_ready());
 
-  p.set_value(42);
+  p.first.set_value(42);
   ASSERT_TRUE(f.is_ready());
 
   auto res = f.get();
@@ -89,7 +88,8 @@ TEST(WhenAllTupleTest, single_ready_shared_future) {
 }
 
 TEST(WhenAllTupleTest, single_error_future) {
-  auto raw_f = pc::make_exceptional_future<int>(std::runtime_error("future with error"));
+  auto raw_f =
+      pc::make_exceptional_future<int>(std::runtime_error("future with error"));
   auto f = pc::when_all(std::move(raw_f));
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(raw_f.valid());
@@ -104,7 +104,9 @@ TEST(WhenAllTupleTest, single_error_future) {
 }
 
 TEST(WhenAllTupleTest, single_error_shared_future) {
-  auto raw_f = pc::make_exceptional_future<int>(std::runtime_error("future with error")).share();
+  auto raw_f =
+      pc::make_exceptional_future<int>(std::runtime_error("future with error"))
+          .share();
   auto f = pc::when_all(raw_f);
   ASSERT_TRUE(f.valid());
   EXPECT_TRUE(raw_f.valid());
@@ -119,23 +121,24 @@ TEST(WhenAllTupleTest, single_error_shared_future) {
 }
 
 TEST(WhenAllTupleTest, ready_on_all_only) {
-  pc::promise<int> p0;
-  pc::promise<std::string> p1;
-  pc::promise<void> p2;
+  auto p0 = pc::make_promise<int>();
+  auto p1 = pc::make_promise<std::string>();
+  auto p2 = pc::make_promise<void>();
 
-  auto f = pc::when_all(p0.get_future(), p1.get_future(), p2.get_future().share());
+  auto f = pc::when_all(std::move(p0.second), std::move(p1.second),
+                        p2.second.share());
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
 
-  p1.set_value("qwe");
+  p1.first.set_value("qwe");
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
 
-  p0.set_value(42);
+  p0.first.set_value(42);
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
 
-  p2.set_value();
+  p2.first.set_value();
   ASSERT_TRUE(f.valid());
   ASSERT_TRUE(f.is_ready());
 
@@ -162,7 +165,8 @@ TEST(WhenAllTupleTest, concurrent_result_delivery) {
   });
   pc::packaged_task<void()> t2([&latch] { latch.count_down_and_wait(); });
 
-  auto f = pc::when_all(t0.get_future().share(), t1.get_future(), t2.get_future());
+  auto f =
+      pc::when_all(t0.get_future().share(), t1.get_future(), t2.get_future());
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
 
@@ -183,20 +187,20 @@ TEST(WhenAllTupleTest, concurrent_result_delivery) {
 }
 
 TEST(WhenAllTupleTest, some_initially_redy) {
-  pc::promise<int> p0;
+  auto p0 = pc::make_promise<int>();
   auto f1 = pc::make_ready_future(std::string{"qwe"}).share();
-  pc::promise<void> p2;
+  auto p2 = pc::make_promise<void>();
 
-  auto f = pc::when_all(p0.get_future(), f1, p2.get_future());
+  auto f = pc::when_all(std::move(p0.second), f1, std::move(p2.second));
   ASSERT_TRUE(f.valid());
   ASSERT_TRUE(f1.valid());
   EXPECT_FALSE(f.is_ready());
 
-  p0.set_value(42);
+  p0.first.set_value(42);
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(f.is_ready());
 
-  p2.set_value();
+  p2.first.set_value();
   ASSERT_TRUE(f.valid());
   ASSERT_TRUE(f.is_ready());
 

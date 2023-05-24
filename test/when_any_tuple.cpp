@@ -22,14 +22,13 @@ TEST(WhenAnyTupleTest, empty_sequence) {
 }
 
 TEST(WhenAnyTupleTest, single_future) {
-  pc::promise<int> p;
-  auto raw_f = p.get_future();
-  auto f = pc::when_any(std::move(raw_f));
+  auto p = pc::make_promise<int>();
+  auto f = pc::when_any(std::move(p.second));
   ASSERT_TRUE(f.valid());
-  EXPECT_FALSE(raw_f.valid());
+  EXPECT_FALSE(p.second.valid());
   EXPECT_FALSE(f.is_ready());
 
-  p.set_value(42);
+  p.first.set_value(42);
   ASSERT_TRUE(f.is_ready());
 
   auto res = f.get();
@@ -42,14 +41,14 @@ TEST(WhenAnyTupleTest, single_future) {
 }
 
 TEST(WhenAnyTupleTest, single_shared_future) {
-  pc::promise<int> p;
-  auto raw_f = p.get_future().share();
+  auto p = pc::make_promise<int>();
+  auto raw_f = p.second.share();
   auto f = pc::when_any(raw_f);
   ASSERT_TRUE(f.valid());
   EXPECT_TRUE(raw_f.valid());
   EXPECT_FALSE(f.is_ready());
 
-  p.set_value(42);
+  p.first.set_value(42);
   ASSERT_TRUE(f.is_ready());
 
   auto res = f.get();
@@ -94,7 +93,8 @@ TEST(WhenAnyTupleTest, single_ready_shared_future) {
 }
 
 TEST(WhenAnyTupleTest, single_error_future) {
-  auto raw_f = pc::make_exceptional_future<int>(std::runtime_error("future with error"));
+  auto raw_f =
+      pc::make_exceptional_future<int>(std::runtime_error("future with error"));
   auto f = pc::when_any(std::move(raw_f));
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(raw_f.valid());
@@ -110,7 +110,9 @@ TEST(WhenAnyTupleTest, single_error_future) {
 }
 
 TEST(WhenAnyTupleTest, single_error_shared_future) {
-  auto raw_f = pc::make_exceptional_future<int>(std::runtime_error("future with error")).share();
+  auto raw_f =
+      pc::make_exceptional_future<int>(std::runtime_error("future with error"))
+          .share();
   auto f = pc::when_any(raw_f);
   ASSERT_TRUE(f.valid());
   EXPECT_TRUE(raw_f.valid());
@@ -196,7 +198,8 @@ TEST(WhenAnyTupleTest, concurrent_result_delivery) {
 
   latch.count_down_and_wait();
   auto res = f.get();
-  EXPECT_TRUE(res.index == 0u || res.index == 2u) << "unexpected index: " << res.index;
+  EXPECT_TRUE(res.index == 0u || res.index == 2u)
+      << "unexpected index: " << res.index;
 }
 
 TEST_P(WhenAnyTupleTest, multiple_futures) {
@@ -208,10 +211,11 @@ TEST_P(WhenAnyTupleTest, multiple_futures) {
   auto raw_f2 = p2.get_future();
   pc::promise<void> p3;
   auto raw_f3 = p3.get_future().share();
-  pc::promise<future_tests_env&> p4;
+  pc::promise<future_tests_env &> p4;
   auto raw_f4 = p4.get_future();
 
-  auto f = pc::when_any(std::move(raw_f0), raw_f1, std::move(raw_f2), raw_f3, std::move(raw_f4));
+  auto f = pc::when_any(std::move(raw_f0), raw_f1, std::move(raw_f2), raw_f3,
+                        std::move(raw_f4));
   ASSERT_TRUE(f.valid());
   EXPECT_FALSE(raw_f0.valid());
   EXPECT_TRUE(raw_f1.valid());
@@ -280,13 +284,13 @@ TEST_P(WhenAnyTupleTest, multiple_futures_one_initially_ready) {
   pc::promise<std::string> p1;
   pc::promise<std::unique_ptr<int>> p2;
   pc::promise<void> p3;
-  pc::promise<future_tests_env&> p4;
+  pc::promise<future_tests_env &> p4;
 
   pc::shared_future<int> raw_f0 = p0.get_future();
   pc::future<std::string> raw_f1 = p1.get_future();
   pc::shared_future<std::unique_ptr<int>> raw_f2 = p2.get_future();
   pc::future<void> raw_f3 = p3.get_future();
-  pc::shared_future<future_tests_env&> raw_f4 = p4.get_future();
+  pc::shared_future<future_tests_env &> raw_f4 = p4.get_future();
 
   size_t idx_first = GetParam();
   switch (idx_first) {
@@ -307,7 +311,8 @@ TEST_P(WhenAnyTupleTest, multiple_futures_one_initially_ready) {
     break;
   }
 
-  auto f = pc::when_any(raw_f0, std::move(raw_f1), raw_f2, std::move(raw_f3), raw_f4);
+  auto f = pc::when_any(raw_f0, std::move(raw_f1), raw_f2, std::move(raw_f3),
+                        raw_f4);
   ASSERT_TRUE(f.valid());
   EXPECT_TRUE(raw_f0.valid());
   EXPECT_FALSE(raw_f1.valid());
@@ -353,6 +358,7 @@ TEST_P(WhenAnyTupleTest, multiple_futures_one_initially_ready) {
 }
 
 size_t first_idx_vals[] = {0, 1, 2, 3, 4};
-INSTANTIATE_TEST_CASE_P(AllVals, WhenAnyTupleTest, ::testing::ValuesIn(first_idx_vals));
+INSTANTIATE_TEST_CASE_P(AllVals, WhenAnyTupleTest,
+                        ::testing::ValuesIn(first_idx_vals));
 
 } // anonymous namespace
