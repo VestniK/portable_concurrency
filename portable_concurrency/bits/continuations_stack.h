@@ -13,9 +13,8 @@ extern template class once_consumable_stack<continuation>;
 
 class continuations_stack {
 public:
-  void push(continuation&& cnt);
-  template <typename Alloc>
-  void push(continuation&& cnt, const Alloc& alloc) {
+  void push(continuation &&cnt);
+  template <typename Alloc> void push(continuation &&cnt, const Alloc &alloc) {
     if (!stack_.push(cnt, alloc))
       cnt();
   }

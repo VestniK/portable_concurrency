@@ -5,7 +5,8 @@
  * @ingroup functional <portable_concurrency/functional>
  * @file portable_concurrency/functional_fwd
  *
- * Forward declarations for extra functional types usefull for writing concurrent code
+ * Forward declarations for extra functional types usefull for writing
+ * concurrent code
  */
 
 #include "bits/alias_namespace.h"

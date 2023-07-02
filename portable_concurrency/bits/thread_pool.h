@@ -16,13 +16,16 @@ extern template class closable_queue<unique_function<void()>>;
 
 class queue_executor {
 public:
-  queue_executor(closable_queue<unique_function<void()>>* queue) noexcept : queue_{queue} {}
+  queue_executor(closable_queue<unique_function<void()>> *queue) noexcept
+      : queue_{queue} {}
 
 private:
-  friend void post(queue_executor exec, unique_function<void()> fun) { exec.queue_->push(std::move(fun)); }
+  friend void post(queue_executor exec, unique_function<void()> fun) {
+    exec.queue_->push(std::move(fun));
+  }
 
 private:
-  closable_queue<unique_function<void()>>* queue_;
+  closable_queue<unique_function<void()>> *queue_;
 };
 
 } // namespace detail
@@ -37,8 +40,8 @@ public:
 
   explicit static_thread_pool(std::size_t num_threads);
 
-  static_thread_pool(const static_thread_pool&) = delete;
-  static_thread_pool& operator=(const static_thread_pool&) = delete;
+  static_thread_pool(const static_thread_pool &) = delete;
+  static_thread_pool &operator=(const static_thread_pool &) = delete;
 
   /// stop accepting incoming work and wait for work to drain
   ~static_thread_pool();
@@ -65,6 +68,7 @@ private:
 } // namespace cxx14_v1
 
 template <>
-struct is_executor<cxx14_v1::static_thread_pool::executor_type> : std::true_type {};
+struct is_executor<cxx14_v1::static_thread_pool::executor_type>
+    : std::true_type {};
 
 } // namespace portable_concurrency

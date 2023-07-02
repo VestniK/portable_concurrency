@@ -18,6 +18,6 @@ namespace pc = portable_concurrency;
  * @namespace portable_concurrency
  * @brief The library public namespace.
  *
- * This namespace name is long and too verbose. There is an alias namespace @ref pc provided which simplifies this
- * library usage.
+ * This namespace name is long and too verbose. There is an alias namespace @ref
+ * pc provided which simplifies this library usage.
  */

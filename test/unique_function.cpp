@@ -37,12 +37,12 @@ struct move_only_functor {
 struct throw_on_move_functor {
   throw_on_move_functor() = default;
 
-  throw_on_move_functor(throw_on_move_functor&& rhs) {
+  throw_on_move_functor(throw_on_move_functor &&rhs) {
     if (rhs.must_throw)
       throw std::runtime_error{"move ctor"};
     must_throw = rhs.must_throw;
   }
-  throw_on_move_functor& operator=(throw_on_move_functor&& rhs) {
+  throw_on_move_functor &operator=(throw_on_move_functor &&rhs) {
     if (rhs.must_throw)
       throw std::runtime_error{"move ctor"};
     must_throw = rhs.must_throw;
@@ -81,7 +81,7 @@ TEST(UniqueFunction, move_assign_do_not_throw_when_captured_func_move_throws) {
 TEST(UniqueFunction, null_func_ptr_constructed_is_empty) {
   using func_t = void(int);
 
-  func_t* fptr = nullptr;
+  func_t *fptr = nullptr;
   pc::unique_function<void(int)> f = fptr;
   EXPECT_FALSE(f);
   ASSERT_THROW(f(5), std::bad_function_call);
@@ -113,14 +113,14 @@ TEST(UniqueFunction, null_member_obj_ptr_constructed_is_empty) {
 }
 
 TEST(UniqueFunction, raw_function_call) {
-  pc::unique_function<size_t(const char*)> f = std::strlen;
+  pc::unique_function<size_t(const char *)> f = std::strlen;
 
   EXPECT_TRUE(f);
   EXPECT_EQ(f("Hello"), 5u);
 }
 
 TEST(UniqueFunction, member_function_call) {
-  pc::unique_function<int(const point&)> f = &point::dist_from_center;
+  pc::unique_function<int(const point &)> f = &point::dist_from_center;
 
   EXPECT_TRUE(f);
   EXPECT_EQ(f(point{3, 4}), 5);
@@ -134,8 +134,8 @@ TEST(UniqueFunction, member_object_get) {
 }
 
 TEST(UniqueFunction, functor_call) {
-  pc::unique_function<std::string(const char*)> f = [accum = std::string{}](
-                                                        const char* val) mutable { return accum += val; };
+  pc::unique_function<std::string(const char *)> f =
+      [accum = std::string{}](const char *val) mutable { return accum += val; };
 
   EXPECT_TRUE(f);
   EXPECT_EQ(f("Hello"), "Hello");
@@ -143,10 +143,10 @@ TEST(UniqueFunction, functor_call) {
 }
 
 TEST(UniqueFunction, std_function_call) {
-  std::function<std::string(const char*)> std_f = [accum = std::string{}](
-                                                      const char* val) mutable { return accum += val; };
+  std::function<std::string(const char *)> std_f =
+      [accum = std::string{}](const char *val) mutable { return accum += val; };
 
-  pc::unique_function<std::string(const char*)> f = std_f;
+  pc::unique_function<std::string(const char *)> f = std_f;
 
   EXPECT_TRUE(f);
   EXPECT_EQ(f("Hello"), "Hello");
@@ -155,9 +155,11 @@ TEST(UniqueFunction, std_function_call) {
 }
 
 TEST(UniqueFunction, refference_wrapper_call) {
-  auto func = [accum = std::string{}](const char* val) mutable { return accum += val; };
+  auto func = [accum = std::string{}](const char *val) mutable {
+    return accum += val;
+  };
 
-  pc::unique_function<std::string(const char*)> f = std::ref(func);
+  pc::unique_function<std::string(const char *)> f = std::ref(func);
 
   EXPECT_TRUE(f);
   EXPECT_EQ(f("Hello"), "Hello");
@@ -178,8 +180,10 @@ TEST(UniqueFunction, call_small_functor_after_move_ctor) {
 }
 
 TEST(UniqueFunction, call_big_functor_after_move_ctor) {
-  pc::unique_function<uint64_t(uint64_t)> f0 = [c = big{1, 2, 3, 4, 5, 6}](
-                                                   uint64_t x) { return x + c.u0 + c.u1 + c.u2 + c.u3 + c.u4 + c.u5; };
+  pc::unique_function<uint64_t(uint64_t)> f0 =
+      [c = big{1, 2, 3, 4, 5, 6}](uint64_t x) {
+        return x + c.u0 + c.u1 + c.u2 + c.u3 + c.u4 + c.u5;
+      };
   EXPECT_TRUE(f0);
   pc::unique_function<uint64_t(uint64_t)> f1 = std::move(f0);
   EXPECT_TRUE(f1);
@@ -206,8 +210,10 @@ TEST(UniqueFunction, call_small_functor_after_move_asign) {
 }
 
 TEST(UniqueFunction, call_big_functor_after_move_asign) {
-  pc::unique_function<uint64_t(uint64_t)> f0 = [c = big{1, 2, 3, 4, 5, 6}](
-                                                   uint64_t x) { return x + c.u0 + c.u1 + c.u2 + c.u3 + c.u4 + c.u5; };
+  pc::unique_function<uint64_t(uint64_t)> f0 =
+      [c = big{1, 2, 3, 4, 5, 6}](uint64_t x) {
+        return x + c.u0 + c.u1 + c.u2 + c.u3 + c.u4 + c.u5;
+      };
   pc::unique_function<uint64_t(uint64_t)> f1;
   EXPECT_TRUE(f0);
   EXPECT_FALSE(f1);
@@ -231,40 +237,51 @@ TEST(UniqueFunction, pass_builtin_type_argument) {
 }
 
 TEST(UniqueFunction, pass_copyable_type_argument) {
-  pc::unique_function<size_t(std::string)> f = [](std::string s) { return s.size(); };
+  pc::unique_function<size_t(std::string)> f = [](std::string s) {
+    return s.size();
+  };
   EXPECT_EQ(f("foo"), 3u);
 }
 
 TEST(UniqueFunction, pass_moveable_type_argument) {
-  pc::unique_function<int(std::unique_ptr<int>)> f = [](std::unique_ptr<int> p) { return *p; };
+  pc::unique_function<int(std::unique_ptr<int>)> f =
+      [](std::unique_ptr<int> p) { return *p; };
   EXPECT_EQ(f(std::make_unique<int>(42)), 42);
 }
 
 TEST(UniqueFunction, pass_moveable_type_argument_to_big_function) {
-  pc::unique_function<int(std::unique_ptr<int>)> f = [obj = big{1, 2, 3, 4, 5, 6}](
-                                                         std::unique_ptr<int> p) { return *p + obj.u3; };
+  pc::unique_function<int(std::unique_ptr<int>)> f =
+      [obj = big{1, 2, 3, 4, 5, 6}](std::unique_ptr<int> p) {
+        return *p + obj.u3;
+      };
   EXPECT_EQ(f(std::make_unique<int>(42)), 46);
 }
 
 TEST(UniqueFunction, pass_const_refference_type_argument) {
-  pc::unique_function<size_t(const std::string&)> f = [](const std::string& s) { return s.size(); };
+  pc::unique_function<size_t(const std::string &)> f =
+      [](const std::string &s) { return s.size(); };
   EXPECT_EQ(f("foo"), 3u);
 }
 
 TEST(UniqueFunction, pass_rvalue_refference_type_argument) {
-  pc::unique_function<int(std::unique_ptr<int> &&)> f = [](std::unique_ptr<int>&& p) { return *p; };
+  pc::unique_function<int(std::unique_ptr<int> &&)> f =
+      [](std::unique_ptr<int> &&p) { return *p; };
   EXPECT_EQ(f(std::make_unique<int>(42)), 42);
 }
 
 TEST(UniqueFunction, pass_refference_type_argument) {
-  pc::unique_function<void(std::string&)> f = [](std::string& s) { s = "'" + s + "'"; };
+  pc::unique_function<void(std::string &)> f = [](std::string &s) {
+    s = "'" + s + "'";
+  };
   std::string str = "Hello";
   f(str);
   EXPECT_EQ(str, "'Hello'");
 }
 
 TEST(UniqueFunction, const_object_can_be_invoked) {
-  const pc::unique_function<int(int)> f = [m = 1](int x) mutable { return x * (++m); };
+  const pc::unique_function<int(int)> f = [m = 1](int x) mutable {
+    return x * (++m);
+  };
   EXPECT_EQ(f(2), 4);
 }
 

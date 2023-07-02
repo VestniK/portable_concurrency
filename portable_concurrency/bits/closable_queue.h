@@ -8,11 +8,10 @@ namespace portable_concurrency {
 inline namespace cxx14_v1 {
 namespace detail {
 
-template <typename T>
-class closable_queue {
+template <typename T> class closable_queue {
 public:
-  bool pop(T& dest);
-  void push(T&& val);
+  bool pop(T &dest);
+  void push(T &&val);
   void close();
 
 private:

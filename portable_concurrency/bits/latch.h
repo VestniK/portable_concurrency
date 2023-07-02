@@ -11,16 +11,18 @@ inline namespace cxx14_v1 {
  * @headerfile portable_concurrency/latch
  * @ingroup latch
  *
- * The latch class is a downward counter of type ptrdiff_t which can be used to synchronize threads. The value of the
- * counter is initialized on creation. Threads may block on the latch until the counter is decremented to zero. There
- * is no possibility to increase or reset the counter, which makes the latch a single-use barrier.
+ * The latch class is a downward counter of type ptrdiff_t which can be used to
+ * synchronize threads. The value of the counter is initialized on creation.
+ * Threads may block on the latch until the counter is decremented to zero.
+ * There is no possibility to increase or reset the counter, which makes the
+ * latch a single-use barrier.
  */
 class latch {
 public:
   explicit latch(ptrdiff_t count) : counter_(count) {}
 
-  latch(const latch&) = delete;
-  latch& operator=(const latch&) = delete;
+  latch(const latch &) = delete;
+  latch &operator=(const latch &) = delete;
 
   ~latch();
 
