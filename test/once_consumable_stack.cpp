@@ -1,6 +1,7 @@
 #include <chrono>
 #include <map>
 #include <thread>
+#include <algorithm>
 #include <vector>
 
 #include <gtest/gtest.h>
