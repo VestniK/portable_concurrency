@@ -9,7 +9,7 @@ namespace detail {
 template <typename T> bool closable_queue<T>::pop(T &dest) {
   std::unique_lock<std::mutex> lock(mutex_);
   cv_.wait(lock, [this]() { return closed_ || !queue_.empty(); });
-  if (closed_)
+  if (closed_ && queue_.empty())
     return false;
   std::swap(dest, queue_.front());
   queue_.pop();
