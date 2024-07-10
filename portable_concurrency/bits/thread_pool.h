@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <thread>
 #include <type_traits>
@@ -63,6 +64,7 @@ private:
   unsigned attached_threads_ = 0;
   std::mutex mutex_;
   std::condition_variable cv_;
+  std::atomic<bool> stopped_{false};
 };
 
 } // namespace cxx14_v1

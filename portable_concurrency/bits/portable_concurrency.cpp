@@ -1,3 +1,4 @@
+#include <atomic>
 #include <functional>
 #include <future>
 
@@ -84,9 +85,11 @@ namespace {
 // exception then std::terminate is called. This behavior is established by
 // marking this function noexcept.
 void process_queue(
-    detail::closable_queue<unique_function<void()>> &queue) noexcept {
+  detail::closable_queue<unique_function<void()>> &queue,
+  const std::atomic<bool> &stopped
+) noexcept {
   unique_function<void()> task;
-  while (queue.pop(task))
+  while (!stopped.load(std::memory_order_relaxed) && queue.pop(task))
     task();
 }
 
@@ -183,7 +186,7 @@ void static_thread_pool::attach() {
     std::lock_guard<std::mutex> lock{mutex_};
     ++attached_threads_;
   }
-  process_queue(queue_);
+  process_queue(queue_, stopped_);
   {
     std::unique_lock<std::mutex> lock{mutex_};
     --attached_threads_;
@@ -192,7 +195,10 @@ void static_thread_pool::attach() {
   cv_.notify_all();
 }
 
-void static_thread_pool::stop() { queue_.close(); }
+void static_thread_pool::stop() { 
+  stopped_.store(true, std::memory_order_relaxed);
+  queue_.close();
+}
 
 void static_thread_pool::wait() {
   queue_.close();
