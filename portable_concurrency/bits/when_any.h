@@ -54,7 +54,10 @@ public:
     sequence_traits<Sequence>::for_each(
         state->result_.futures, [state, &idx](auto &f) mutable {
           state_of(f)->continuations().push(
-              [state, pos = idx++] { state->notify(pos); });
+              [state_weak = std::weak_ptr<when_any_state<Sequence>>{state}, pos = idx++] {
+                if (auto state_shared = state_weak.lock())
+                  state_shared->notify(pos);
+              });
         });
     if (idx == 0)
       state->continuations_.execute();

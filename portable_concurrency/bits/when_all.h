@@ -28,7 +28,10 @@ public:
   static std::shared_ptr<future_state<Sequence>> make(Sequence &&futures) {
     auto state = std::make_shared<when_all_state<Sequence>>(std::move(futures));
     sequence_traits<Sequence>::for_each(state->futures_, [state](auto &f) {
-      state_of(f)->continuations().push([state] { state->notify(); });
+      state_of(f)->continuations().push([state_weak = std::weak_ptr<when_all_state<Sequence>>{state}] {
+        if (auto state_shared = state_weak.lock())
+          state_shared->notify();
+      });
     });
     state->notify();
     return state;

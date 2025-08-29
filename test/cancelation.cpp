@@ -354,6 +354,29 @@ TEST(InterruptableContinuation,
   EXPECT_EQ(was_awaiten, false);
 }
 
+TEST(CompositeCancelation, composition_cancelation) {
+  auto [promise1, future1] = pc::make_promise<int>();
+  auto [promise2, future2] = pc::make_promise<double>();
+  auto [promise3, future3] = pc::make_promise<char>();
+  auto [promise4, future4] = pc::make_promise<bool>();
+
+  auto any1 = pc::when_any(std::move(future1), std::move(future2));
+  auto any2 = pc::when_any(std::move(future3), std::move(future4));
+  auto owning_top_level_composition = pc::when_all(std::move(any1), std::move(any2));
+
+  EXPECT_TRUE(promise1.is_awaiten());
+  EXPECT_TRUE(promise2.is_awaiten());
+  EXPECT_TRUE(promise3.is_awaiten());
+  EXPECT_TRUE(promise4.is_awaiten());
+
+  owning_top_level_composition = {};
+
+  EXPECT_FALSE(promise1.is_awaiten());
+  EXPECT_FALSE(promise2.is_awaiten());
+  EXPECT_FALSE(promise3.is_awaiten());
+  EXPECT_FALSE(promise4.is_awaiten());
+}
+
 } // namespace
 } // namespace test
 } // namespace portable_concurrency
